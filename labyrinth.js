@@ -66,7 +66,8 @@
 // Added a sorted scoring display.
 // Moved the timer and the score box to make room for mobile controls.
 // Shrank the avatar radius to 3.7 so that they can't block a corridor.
-// Fixed the fake glow material complaints.
+// Fixed the fake glow material complaints - at least in local.
+// Fixed the scoreboard so that it doesn't get larger.
 //------------------------------------------------------------------------------------------
 // To do:
 // Shaders need to be "warmed-up" before they are used.
@@ -74,8 +75,10 @@
 // - Floor shaders
 // - Fireball shader - I think this is done.
 // Resize elements when the window is resized.
-// Other users can block you from getting to your corner.
-//
+// - Scoreboard
+// - Clock
+// - Minimap
+// - Compass
 // The ivy needs to be cleaned up at the top.
 // The iris of the eyes must match the season color.
 // Mobile controls:
@@ -88,7 +91,7 @@
 // are in mouse look mode. Perhaps press "c" to type a message, hit enter and then you are back.
 // Add a "ready" button to start the game.
 // Music is streamed to the game from the web. Players can turn it on and off - or play along
-// and vote for the songs they like.
+// and vote for the songs they like. 
 //------------------------------------------------------------------------------------------
 // Bugs:
 // The avatar is probably visible to other players before you can see them on
@@ -230,7 +233,7 @@ class BoxScore {
             Autumn: { value: 0, element: document.querySelector('[data-season="Autumn"]') },
             Winter: { value: 0, element: document.querySelector('[data-season="Winter"]') }
         };
-
+    
         this.wrapper = document.createElement('div');
         this.wrapper.className = 'score-wrapper';
         
@@ -238,10 +241,10 @@ class BoxScore {
         Object.values(this.scores).forEach(score => {
             score.element.style.top = '0';  // Add this line
             score.element.style.position = 'absolute';  // Add this line
-            this.wrapper.appendChild(score.element);
+        //    this.wrapper.appendChild(score.element);
         });
         
-        this.container.appendChild(this.wrapper);
+      //  this.container.appendChild(this.wrapper);
         this.updatePositions();
     }
 
@@ -250,16 +253,15 @@ class BoxScore {
         ["Autumn", "Winter", "Summer", "Spring"].forEach( season => {
             this.scores[season].value = scores[season];
             this.scores[season].element.querySelector('.score').textContent = scores[season];
-
-            // Use requestAnimationFrame to handle multiple rapid updates
-            if (!this.updatePending) {
-                this.updatePending = true;
-                requestAnimationFrame(() => {
-                    this.updatePositions();
-                    this.updatePending = false;
-                });
-            }
         });
+        // Use requestAnimationFrame to handle multiple rapid updates
+        if (!this.updatePending) {
+            this.updatePending = true;
+            requestAnimationFrame(() => {
+                this.updatePositions();
+                this.updatePending = false;
+            });
+        }
     }
 
     updatePositions() {
@@ -1629,7 +1631,7 @@ class AvatarPawn extends mix(Pawn).with(PM_Smoothed, PM_ThreeVisible, PM_Avatar)
     }
 
     clearCells(data) {
-        console.log("AvatarPawn clearCells", data);
+        // console.log("AvatarPawn clearCells", data);
         for (const cell of data) {
             this.drawMinimapCell(cell[0]+1,cell[1]+1, 0xFFFFFF);
         }

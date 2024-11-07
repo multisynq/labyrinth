@@ -58,25 +58,24 @@
                 font-family: Arial, sans-serif;
                 color: white;
                 z-index: 1000;
-                width: 150px;  /* Fixed width */
+                height: 110px;  /* Height for 4 rows */
+                width: 140px;  /* Fixed width */
             }
-
             .score-wrapper {
                 position: relative;
                 height: 140px;  /* Height for 4 rows */
                 width: 120px;  /* Must match score-row width */
             }
             .score-row {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    padding: 5px 10px;
-    margin: 2px 0;
-    width: 120px;
-    transition: transform 0.5s ease;
-    position: absolute;
-}
-
+                display: flex;
+                justify-content: space-between;
+                align-items: center;
+                padding: 5px 10px;
+                margin: 2px 0;
+                width: 120px;
+                transition: transform 0.5s ease;
+                position: absolute;
+            }
             .season {
                 margin-right: 10px;
                 font-weight: bold;
@@ -104,22 +103,22 @@
         <div class="box-score">
             <div class="score-row" data-season="Spring">
                 <span class="season spring">Spring</span>
-                <span class="score">0</span>
+                <span class="score">4</span>
             </div>
             <div class="score-row" data-season="Summer">
                 <span class="season summer">Summer</span>
-                <span class="score">0</span>
+                <span class="score">4</span>
             </div>
             <div class="score-row" data-season="Autumn">
                 <span class="season autumn">Autumn</span>
-                <span class="score">0</span>
+                <span class="score">4</span>
             </div>
             <div class="score-row" data-season="Winter">
                 <span class="season winter">Winter</span>
-                <span class="score">0</span>
+                <span class="score">4</span>
             </div>
         </div>
-        <a id="codelink" href="https://github.com/multisynq/physics-fountain/blob/main/index.html"
-        title="View source code on GitHub" target="_blank">{...}</a>
+        <!-- <a id="codelink" href="https://github.com/multisynq/physics-fountain/blob/main/index.html"
+        title="View source code on GitHub" target="_blank">{...}</a> -->
     </body>
 </html>

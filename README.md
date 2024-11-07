@@ -8,9 +8,9 @@
 
 - There are up to four players within the Labyrinth, each representing a season.
 - You start in your season’s corner.
-- First to control 100 cells or hold the largest number of cells at the end.
+- First to control 100 cells or hold the largest number of cells at the countdown end.
 - You respawn in your corner when shot.
-You cannot be harmed while in your season’s corner.
+- You cannot be harmed while in your season’s corner.
 - You can only shoot someone when you are on your own cells.
 - You move much faster when you are moving on your cells.
 - Your cells must be contiguous and connected to the season tree in your corner. If they are cut off from that, the disconnected cells die. 

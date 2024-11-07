@@ -68,6 +68,7 @@
 // Shrank the avatar radius to 3.7 so that they can't block a corridor.
 // Fixed the fake glow material complaints - at least in local.
 // Fixed the scoreboard so that it doesn't get larger.
+// Added a version display to the bottom of the screen.
 //------------------------------------------------------------------------------------------
 // To do:
 // Shaders need to be "warmed-up" before they are used.

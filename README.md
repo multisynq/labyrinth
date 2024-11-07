@@ -1,7 +1,7 @@
 # Labyrinth of Seasons
 ## A Multiplayer Strategy/Shooter
 
-![Labyrinth](./labyrinth.png)
+![Labyrinth](./Labyrinth.png)
 
 ## The Rules of the Labyrinth:
 

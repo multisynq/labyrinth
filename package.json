@@ -6,7 +6,7 @@
   "type": "module",
   "scripts": {
     "start": "webpack serve --no-live-reload --no-hot --mode development --devtool source-map --config webpack.config.mjs",
-    "build": "webpack --mode production"
+    "build": "webpack --mode production --config webpack.config.mjs"
   },
   "files": [
     "assets"

@@ -1,4 +1,5 @@
 # Labyrinth of Seasons
+# AKA: "Go" with Guns
 ## A Multiplayer Strategy/Shooter
 
 ![Labyrinth](./Labyrinth.png)

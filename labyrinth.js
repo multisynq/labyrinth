@@ -1,5 +1,8 @@
 //------------------Labirynth---------------------------------------------------------------
 // This is a simple example of a multi-player 3D shooter.
+// Actually, it isn't just a shooter. It is a strategy game.
+// Think of it as "Go" with guns.
+//
 // It is loosely based upon the early Maze War game created at NASA Ames in 1973
 // https://en.wikipedia.org/wiki/Maze_War and has elements of Pacman, The Colony and Dodgeball.
 //------------------------------------------------------------------------------------------
@@ -102,27 +105,27 @@ console.log("ADDONS", ADDONS);
 // Textures
 //------------------------------------------------------------------------------------------
 import sky from "./assets/textures/aboveClouds.jpg";
-import missile_color from "./assets/textures/metal_gold_vein/metal_0080_color_2k.jpg";
-import missile_normal from "./assets/textures/metal_gold_vein/metal_0080_normal_opengl_2k.png";
-import missile_roughness from "./assets/textures/metal_gold_vein/metal_0080_roughness_2k.jpg";
-import missile_displacement from "./assets/textures/metal_gold_vein/metal_0080_height_2k.png";
-import missile_metalness from "./assets/textures/metal_gold_vein/metal_0080_metallic_2k.jpg";
+import missile_color from "./assets/textures/metal_gold_vein/metal_0080_color_1k.jpg";
+import missile_normal from "./assets/textures/metal_gold_vein/metal_0080_normal_opengl_1k.png";
+import missile_roughness from "./assets/textures/metal_gold_vein/metal_0080_roughness_1k.jpg";
+import missile_displacement from "./assets/textures/metal_gold_vein/metal_0080_height_1k.png";
+import missile_metalness from "./assets/textures/metal_gold_vein/metal_0080_metallic_1k.jpg";
 /*
-import power_color from "./assets/textures/metal_hex/metal_0076_color_2k.jpg";
-import power_normal from "./assets/textures/metal_hex/metal_0076_normal_opengl_2k.png";
-import power_roughness from "./assets/textures/metal_hex/metal_0076_roughness_2k.jpg";
-import power_displacement from "./assets/textures/metal_hex/metal_0076_height_2k.png";
-import power_metalness from "./assets/textures/metal_hex/metal_0076_metallic_2k.jpg";
+import power_color from "./assets/textures/metal_hex/metal_0076_color_1k.jpg";
+import power_normal from "./assets/textures/metal_hex/metal_0076_normal_opengl_1k.png";
+import power_roughness from "./assets/textures/metal_hex/metal_0076_roughness_1k.jpg";
+import power_displacement from "./assets/textures/metal_hex/metal_0076_height_1k.png";
+import power_metalness from "./assets/textures/metal_hex/metal_0076_metallic_1k.jpg";
 */
-import marble_color from "./assets/textures/marble_checker/marble_0013_color_2k.jpg";
-import marble_normal from "./assets/textures/marble_checker/marble_0013_normal_opengl_2k.png";
-import marble_roughness from "./assets/textures/marble_checker/marble_0013_roughness_2k.jpg";
-import marble_displacement from "./assets/textures/marble_checker/marble_0013_height_2k.png";
+import marble_color from "./assets/textures/marble_checker/marble_0013_color_1k.jpg";
+import marble_normal from "./assets/textures/marble_checker/marble_0013_normal_opengl_1k.png";
+import marble_roughness from "./assets/textures/marble_checker/marble_0013_roughness_1k.jpg";
+import marble_displacement from "./assets/textures/marble_checker/marble_0013_height_1k.png";
 
-import corinthian_color from "./assets/textures/corinthian/concrete_0014_color_2k.jpg";
-import corinthian_normal from "./assets/textures/corinthian/concrete_0014_normal_opengl_2k.png";
-import corinthian_roughness from "./assets/textures/corinthian/concrete_0014_roughness_2k.jpg";
-import corinthian_displacement from "./assets/textures/corinthian/concrete_0014_height_2k.png";
+import corinthian_color from "./assets/textures/corinthian/concrete_0014_color_1k.jpg";
+import corinthian_normal from "./assets/textures/corinthian/concrete_0014_normal_opengl_1k.png";
+import corinthian_roughness from "./assets/textures/corinthian/concrete_0014_roughness_1k.jpg";
+import corinthian_displacement from "./assets/textures/corinthian/concrete_0014_height_1k.png";
 
 // 3D Models
 //------------------------------------------------------------------------------------------

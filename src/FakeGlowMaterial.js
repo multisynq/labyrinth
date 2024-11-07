@@ -115,6 +115,12 @@ class FakeGlowMaterial extends ShaderMaterial {
       glowColor: new Uniform(parameters.glowColor !== undefined ? new Color(parameters.glowColor) : new Color("#00d5ff")),
 
     };
+    // Remove FGM parameters.
+    delete parameters.opacity;
+    delete parameters.glowColor;
+    delete parameters.glowSharpness;
+    delete parameters.glowInternalRadius;
+    delete parameters.falloff;
 
     this.setValues(parameters);
     this.depthTest = parameters.depthTest !== undefined ? parameters.depthTest : false;

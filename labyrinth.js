@@ -66,6 +66,7 @@
 // Added a sorted scoring display.
 // Moved the timer and the score box to make room for mobile controls.
 // Shrank the avatar radius to 3.7 so that they can't block a corridor.
+// Fixed the fake glow material complaints.
 //------------------------------------------------------------------------------------------
 // To do:
 // Shaders need to be "warmed-up" before they are used.
@@ -85,6 +86,9 @@
 // https://docs.google.com/document/d/1qjPm6pxaejuq5KydRh0C6Honory8DLICO3jfQkpJotc/edit?usp=sharing
 // Chat -broadcast messages to all players, colors are their team color. This is difficult, as we
 // are in mouse look mode. Perhaps press "c" to type a message, hit enter and then you are back.
+// Add a "ready" button to start the game.
+// Music is streamed to the game from the web. Players can turn it on and off - or play along
+// and vote for the songs they like.
 //------------------------------------------------------------------------------------------
 // Bugs:
 // The avatar is probably visible to other players before you can see them on

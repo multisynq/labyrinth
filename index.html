@@ -2,7 +2,7 @@
 <html>
     <head>
         <title>Labyrinth</title>
-        <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, minimum-scale=1.0">
+        <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
         <meta charset="utf-8">
         <style>
             body {
@@ -51,31 +51,36 @@
                 position: fixed;
                 left: 20px;
                 top: 20px;
-                transform: none;
                 background: rgba(0, 0, 0, 0.3);
                 padding: 15px;
                 border-radius: 8px;
                 font-family: Arial, sans-serif;
                 color: white;
                 z-index: 1000;
-                height: 110px;  /* Height for 4 rows */
-                width: 140px;  /* Fixed width */
+                overflow: hidden; /* Ensure content stays within bounds */
+                transition: width 0.3s ease, height 0.3s ease;
             }
-            .score-wrapper {
-                position: relative;
-                height: 140px;  /* Height for 4 rows */
-                width: 120px;  /* Must match score-row width */
-            }
+
             .score-row {
                 display: flex;
                 justify-content: space-between;
                 align-items: center;
                 padding: 5px 10px;
                 margin: 2px 0;
-                width: 120px;
+                width: calc(100% - 20px); /* Account for padding */
                 transition: transform 0.5s ease;
                 position: absolute;
+                left: 0;
             }
+            .season {
+                margin-right: 10px;
+                font-weight: bold;
+            }
+
+            .spring { color: #FFB6C1; }
+            .summer { color: #90EE90; }
+            .autumn { color: #FFE5B4; }
+            .winter { color: #A5F2F3; }
             .version-display {
                 position: fixed;
                 bottom: 10px;
@@ -87,15 +92,6 @@
                 pointer-events: none;
                 font-family: monospace;
             }
-            .season {
-                margin-right: 10px;
-                font-weight: bold;
-            }
-
-            .spring { color: #FFB6C1; }
-            .summer { color: #90EE90; }
-            .autumn { color: #FFE5B4; }
-            .winter { color: #A5F2F3; }
             #codelink {
                 position: fixed; bottom: 10px; right: 10px; padding: .5em; border-radius: 30px;
                 opacity: 50%; background: lightgray; box-shadow: 1px 1px 5px black;

@@ -69,6 +69,7 @@
 // Fixed the fake glow material complaints - at least in local.
 // Fixed the scoreboard so that it doesn't get larger.
 // Added a version display to the bottom of the screen.
+// Boxscore now resizes and doesn't get larger.
 //------------------------------------------------------------------------------------------
 // To do:
 // Shaders need to be "warmed-up" before they are used.
@@ -227,35 +228,49 @@ let ivy;
 class BoxScore {
     constructor() {
         this.container = document.querySelector('.box-score');
-        this.rowHeight = 34;
         this.scores = {
             Spring: { value: 0, element: document.querySelector('[data-season="Spring"]') },
             Summer: { value: 0, element: document.querySelector('[data-season="Summer"]') },
             Autumn: { value: 0, element: document.querySelector('[data-season="Autumn"]') },
             Winter: { value: 0, element: document.querySelector('[data-season="Winter"]') }
         };
-    
-        this.wrapper = document.createElement('div');
-        this.wrapper.className = 'score-wrapper';
         
-        // Set initial positions for all elements
+        // Initialize positions
         Object.values(this.scores).forEach(score => {
-            score.element.style.top = '0';  // Add this line
-            score.element.style.position = 'absolute';  // Add this line
-        //    this.wrapper.appendChild(score.element);
+            score.element.style.position = 'absolute';
         });
         
-      //  this.container.appendChild(this.wrapper);
+        this.resize();
+        // Add resize listener
+        window.addEventListener('resize', () => this.resize());
+    }
+
+    resize() {
+        // Calculate new dimensions based on window size
+        const height = Math.min(window.innerHeight, window.innerWidth);
+        const boxSize = height / 3.5; // Or whatever ratio you prefer
+        
+        // Update container size
+        this.container.style.width = `${boxSize}px`;
+        this.container.style.height = `${boxSize * 0.8}px`; // Slightly shorter than width
+        
+        // Calculate new row height
+        this.rowHeight = (boxSize * 0.8) / 4; // Divide container height by number of rows
+        
+        // Update font sizes
+        const fontSize = this.rowHeight * 0.5;
+        this.container.style.fontSize = `${fontSize}px`;
+        
+        // Update positions immediately
         this.updatePositions();
     }
 
-
     setScores(scores) {
-        ["Autumn", "Winter", "Summer", "Spring"].forEach( season => {
+        ["Autumn", "Winter", "Summer", "Spring"].forEach(season => {
             this.scores[season].value = scores[season];
             this.scores[season].element.querySelector('.score').textContent = scores[season];
         });
-        // Use requestAnimationFrame to handle multiple rapid updates
+        
         if (!this.updatePending) {
             this.updatePending = true;
             requestAnimationFrame(() => {
@@ -270,19 +285,18 @@ class BoxScore {
             .sort(([,a], [,b]) => b.value - a.value);
 
         sortedScores.forEach(([, score], index) => {
-            score.element.style.transform = `translateY(${index * this.rowHeight}px)`;
+            // Ensure transform stays within container bounds
+            const yPosition = Math.min(
+                index * this.rowHeight,
+                this.container.clientHeight - this.rowHeight
+            );
+            score.element.style.transform = `translateY(${yPosition}px)`;
         });
     }
 }
-
 // Usage:
-//const boxScore = new BoxScore();
-
-// Example updates:
-// boxScore.setScore("Spring", 5);
-// boxScore.setScore("Summer", 10);
-// boxScore.setScore("Autumn", 7);
-// boxScore.setScore("Winter", 3);
+const boxScore = new BoxScore();
+boxScore.setScores({"Spring": 4, "Summer": 4, "Autumn": 4, "Winter": 4});
 
 class Compass {
     constructor(size = 40) {
@@ -1383,13 +1397,12 @@ class AvatarPawn extends mix(Pawn).with(PM_Smoothed, PM_ThreeVisible, PM_Avatar)
         //this.subscribe("input", 'wheel', this.onWheel);
         this.createMinimap();
         const scores = this.wellKnownModel("ModelRoot").maze.seasons;
-        this.boxScore = new BoxScore();
-        this.boxScore.setScores(scores);
+        boxScore.setScores(scores);
         this.subscribe("maze", "score", this.scoreUpdate);
     }
 
     scoreUpdate( data ){
-        this.boxScore.setScores(data);
+        boxScore.setScores(data);
    //     console.log("scoreUpdate", data);
     }
 

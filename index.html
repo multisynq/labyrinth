@@ -1,0 +1,125 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        <title>Labyrinth</title>
+        <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, minimum-scale=1.0">
+        <meta charset="utf-8">
+        <style>
+            body {
+                overflow: hidden;
+                background: rgb(30, 30, 30);
+            }
+            .minimap {
+                position: fixed;
+                top: 50px;          /* Moved from bottom to top, increased from 20px */
+                right: 50px;        /* Increased from 20px */
+                width: 200px;
+                height: 200px;
+                background-color: rgba(0, 0, 0, 0.1);
+                border: 1px solid rgba(255, 255, 255, 0.5);
+                transform: rotate(45deg);
+                pointer-events: none;
+                z-index: 1000;
+            }
+            .countdown {
+                position: fixed;
+                top: 20px;
+                left: 50%;         /* Center horizontally */
+                transform: translateX(-50%);  /* Offset by half width for true center */
+                font-family: 'Arial', sans-serif;
+                font-size: 36px;
+                font-weight: bold;
+                color: rgba(255, 255, 255, 0.9);
+                background-color: rgba(0, 0, 0, 0.3);
+                padding: 10px 20px;
+                border-radius: 8px;
+                z-index: 1000;
+                text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.5);
+                letter-spacing: 2px;
+            }
+            .compass {
+                position: fixed;
+                top: 15px;          /* Moved up */
+                right: 15px;        /* Moved right */
+                width: 40px;        /* Default size - will be set by JS */
+                height: 40px;
+                background-color: rgba(0, 0, 0, 0.3);
+                border-radius: 50%;
+                z-index: 1000;
+            }
+            .box-score {
+                position: fixed;
+                left: 20px;
+                top: 20px;
+                transform: none;
+                background: rgba(0, 0, 0, 0.3);
+                padding: 15px;
+                border-radius: 8px;
+                font-family: Arial, sans-serif;
+                color: white;
+                z-index: 1000;
+                width: 150px;  /* Fixed width */
+            }
+
+            .score-wrapper {
+                position: relative;
+                height: 140px;  /* Height for 4 rows */
+                width: 120px;  /* Must match score-row width */
+            }
+            .score-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 5px 10px;
+    margin: 2px 0;
+    width: 120px;
+    transition: transform 0.5s ease;
+    position: absolute;
+}
+
+            .season {
+                margin-right: 10px;
+                font-weight: bold;
+            }
+
+            .spring { color: #FFB6C1; }
+            .summer { color: #90EE90; }
+            .autumn { color: #FFE5B4; }
+            .winter { color: #A5F2F3; }
+            #codelink {
+                position: fixed; bottom: 10px; right: 10px; padding: .5em; border-radius: 30px;
+                opacity: 50%; background: lightgray; box-shadow: 1px 1px 5px black;
+                text-decoration: none; font-family: monospace; font-size: 1.5em; z-index: 1000;
+            }
+            #codelink:hover {
+                opacity: 100%;
+            }
+        </style>
+
+    </head>
+    <body>
+        <div id="minimap" class="minimap"></div>
+        <div id="countdown" class="countdown">0:00</div>
+        <div id="compass" class="compass"></div>
+        <div class="box-score">
+            <div class="score-row" data-season="Spring">
+                <span class="season spring">Spring</span>
+                <span class="score">0</span>
+            </div>
+            <div class="score-row" data-season="Summer">
+                <span class="season summer">Summer</span>
+                <span class="score">0</span>
+            </div>
+            <div class="score-row" data-season="Autumn">
+                <span class="season autumn">Autumn</span>
+                <span class="score">0</span>
+            </div>
+            <div class="score-row" data-season="Winter">
+                <span class="season winter">Winter</span>
+                <span class="score">0</span>
+            </div>
+        </div>
+        <a id="codelink" href="https://github.com/multisynq/physics-fountain/blob/main/index.html"
+        title="View source code on GitHub" target="_blank">{...}</a>
+    </body>
+</html>

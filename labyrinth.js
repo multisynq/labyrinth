@@ -70,6 +70,8 @@
 // Fixed the scoreboard so that it doesn't get larger.
 // Added a version display to the bottom of the screen.
 // Boxscore now resizes and doesn't get larger.
+// Determine if we are on a mobile device.
+// Restructured the code so that web objects are in separate files.
 //------------------------------------------------------------------------------------------
 // To do:
 // Shaders need to be "warmed-up" before they are used.
@@ -107,6 +109,19 @@ import { App, StartWorldcore, ViewService, ModelRoot, ViewRoot,Actor, mix,
     THREE, ADDONS, PM_ThreeVisible, ThreeRenderManager, PM_ThreeCamera, PM_ThreeInstanced, ThreeInstanceManager } from 'https://esm.run/@croquet/worldcore@2.0.0-alpha.28';
 
 import FakeGlowMaterial from './src/FakeGlowMaterial.js';
+import DeviceDetector from './src/DeviceDetector.js';
+import BoxScore from './src/BoxScore.js';
+import Compass from './src/Compass.js';
+// Usage:
+const device = new DeviceDetector();
+console.log("Running on ", device.isMobile? "mobile device":"desktop");
+
+const boxScore = new BoxScore();
+boxScore.setScores({"Spring": 4, "Summer": 4, "Autumn": 4, "Winter": 4});
+
+const compass = new Compass();
+import Countdown from './src/Countdown.js';
+
 import apiKey from "./src/apiKey.js";
 
 console.log("ADDONS", ADDONS);
@@ -225,157 +240,6 @@ let trees;
 let plants;
 let ivy;
 
-class BoxScore {
-    constructor() {
-        this.container = document.querySelector('.box-score');
-        this.scores = {
-            Spring: { value: 0, element: document.querySelector('[data-season="Spring"]') },
-            Summer: { value: 0, element: document.querySelector('[data-season="Summer"]') },
-            Autumn: { value: 0, element: document.querySelector('[data-season="Autumn"]') },
-            Winter: { value: 0, element: document.querySelector('[data-season="Winter"]') }
-        };
-        
-        // Initialize positions
-        Object.values(this.scores).forEach(score => {
-            score.element.style.position = 'absolute';
-        });
-        
-        this.resize();
-        // Add resize listener
-        window.addEventListener('resize', () => this.resize());
-    }
-
-    resize() {
-        // Calculate new dimensions based on window size
-        const height = Math.min(window.innerHeight, window.innerWidth);
-        const boxSize = height / 3.5; // Or whatever ratio you prefer
-        
-        // Update container size
-        this.container.style.width = `${boxSize}px`;
-        this.container.style.height = `${boxSize * 0.8}px`; // Slightly shorter than width
-        
-        // Calculate new row height
-        this.rowHeight = (boxSize * 0.8) / 4; // Divide container height by number of rows
-        
-        // Update font sizes
-        const fontSize = this.rowHeight * 0.5;
-        this.container.style.fontSize = `${fontSize}px`;
-        
-        // Update positions immediately
-        this.updatePositions();
-    }
-
-    setScores(scores) {
-        ["Autumn", "Winter", "Summer", "Spring"].forEach(season => {
-            this.scores[season].value = scores[season];
-            this.scores[season].element.querySelector('.score').textContent = scores[season];
-        });
-        
-        if (!this.updatePending) {
-            this.updatePending = true;
-            requestAnimationFrame(() => {
-                this.updatePositions();
-                this.updatePending = false;
-            });
-        }
-    }
-
-    updatePositions() {
-        const sortedScores = Object.entries(this.scores)
-            .sort(([,a], [,b]) => b.value - a.value);
-
-        sortedScores.forEach(([, score], index) => {
-            // Ensure transform stays within container bounds
-            const yPosition = Math.min(
-                index * this.rowHeight,
-                this.container.clientHeight - this.rowHeight
-            );
-            score.element.style.transform = `translateY(${yPosition}px)`;
-        });
-    }
-}
-// Usage:
-const boxScore = new BoxScore();
-boxScore.setScores({"Spring": 4, "Summer": 4, "Autumn": 4, "Winter": 4});
-
-class Compass {
-    constructor(size = 40) {
-        this.element = document.getElementById('compass');
-        this.canvas = document.createElement('canvas');
-        this.ctx = this.canvas.getContext('2d');
-        this.setSize(size);
-        this.element.appendChild(this.canvas);
-        this.draw(0);
-    }
-
-    setSize(size) {
-        this.element.style.width = `${size}px`;
-        this.element.style.height = `${size}px`;
-        this.canvas.width = size;
-        this.canvas.height = size;
-        this.centerX = size / 2;
-        this.centerY = size / 2;
-        this.radius = (size / 2) - 2;
-    }
-
-    draw(angle) {
-        const ctx = this.ctx;
-        // Clear canvas
-        ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
-        // Draw outer circle
-        ctx.beginPath();
-        ctx.arc(this.centerX, this.centerY, this.radius, 0, Math.PI * 2);
-        ctx.strokeStyle = 'rgba(255, 255, 255, 0.4)';
-        ctx.lineWidth = 1;
-        ctx.stroke();
-        // Save context for rotation
-        ctx.save();
-        ctx.translate(this.centerX, this.centerY);
-        ctx.rotate(-angle);
-        // Draw direction indents
-        const indentSize = this.radius * 0.15;
-        const directions = [0, Math.PI/2, Math.PI, Math.PI*3/2];
-        directions.forEach( dir => {
-            ctx.beginPath();
-            ctx.moveTo(0, -this.radius);
-            ctx.lineTo(0, -this.radius + indentSize);
-            ctx.strokeStyle = 'rgba(255, 255, 255, 0.8)';
-            ctx.lineWidth = 2;
-            ctx.stroke();
-            ctx.rotate(Math.PI/2);
-        });
-
-        // Draw north (red) half of needle
-        ctx.beginPath();
-        ctx.moveTo(0, 0);
-        ctx.lineTo(0, -this.radius + indentSize);
-        ctx.strokeStyle = 'rgba(255, 50, 50, 0.8)';
-        ctx.lineWidth = 1;
-        ctx.stroke();
-
-        // Draw south (white) half of needle
-        ctx.beginPath();
-        ctx.moveTo(0, 0);
-        ctx.lineTo(0, this.radius - indentSize);
-        ctx.strokeStyle = 'rgba(255, 255, 255, 0.8)';
-        ctx.lineWidth = 1;
-        ctx.stroke();
-
-        // Restore context
-        ctx.restore();
-    }
-
-    update(angle) {
-        this.draw(angle);
-    }
-
-    resize(size) {
-        this.setSize(size);
-        this.draw(0);
-    }
-}
-// Usage:
-const compass = new Compass(40);
 scaleMinimap();
 // Update with angle in radians
 // compass.update(Math.PI); // Point south
@@ -383,36 +247,7 @@ scaleMinimap();
 // Resize if needed
 // compass.resize(50); // Make it 50px
 
-class CountdownTimer {
-    constructor(time) {
-        this.element = document.getElementById('countdown');
-        this.timeRemaining = Math.floor(time/1000); // Convert to seconds
-    }
 
-    set(time) {
-        if (time<0) time = 0;
-        this.timeRemaining = Math.floor(time/1000); // Convert to seconds
-        this.updateDisplay();
-    }
-
-    updateDisplay() {
-        const minutes = Math.floor(this.timeRemaining / 60);
-        const seconds = this.timeRemaining % 60;
-
-        // Remove padStart for minutes, keep it for seconds
-        this.element.textContent = 
-            `${minutes}:${seconds.toString().padStart(2, '0')}`;
-
-        // Color changes based on time remaining
-        if (this.timeRemaining <= 30) {
-            this.element.style.color = 'rgba(255, 50, 50, 0.9)';
-        } else if (this.timeRemaining <= 60) {
-            this.element.style.color = 'rgba(255, 255, 0, 0.9)';
-        } else {
-            this.element.style.color = 'rgba(255, 255, 255, 0.9)';
-        }
-    }
-}
 
 // Sound Manager
 //------------------------------------------------------------------------------------------
@@ -1125,7 +960,7 @@ export class MyViewRoot extends ViewRoot {
 
     onStart() {
         this.buildView();
-        this.countdown = new CountdownTimer(this.wellKnownModel("ModelRoot").timer);
+        this.countdownTimer = new Countdown(this.wellKnownModel("ModelRoot").timer);
         console.log("MyViewRoot onStart", this);
         this.skyRotation = new THREE.Euler(0, 0, 0);
         this.subscribe("root", "rotateSky", this.rotateSky);
@@ -1134,7 +969,8 @@ export class MyViewRoot extends ViewRoot {
     }
 
     countDown(timer) {
-        this.countdown.set(timer);
+        // console.log("countDown", timer);
+        this.countdownTimer.set(timer);
     }
 
     buildView() {

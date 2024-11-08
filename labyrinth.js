@@ -217,7 +217,8 @@ const MAZE_COLUMNS = 20;
 const MISSILE_SPEED = 0.50;
 
 let csm; // CSM is Cascaded Shadow Maps
-const seasons = {Spring:{cell:{x:0,y:0}, angle:180+45, radians:Math.PI-PI_4, color:0xFFB6C1, color2:0xCC8A94, color3:0xB37780},
+const seasons = {
+    Spring:{cell:{x:0,y:0}, angle:180+45, radians:Math.PI-PI_4, color:0xFFB6C1, color2:0xCC8A94, color3:0xB37780},
     Summer: {cell: {x:0,y:18}, angle:270+45, radians:Math.PI+Math.PI*3/2-PI_4, color:0x90EE90, color2:0x65AA65, color3:0x508850},
     Autumn: {cell:{x:18, y:18}, angle:0+45, radians:0-PI_4, color:0xFFE5B4, color2:0xCCB38B, color3:0xB39977},
     Winter: {cell:{x:18, y:0}, angle:90+45, radians:Math.PI+PI_2-PI_4, color:0xA5F2F3, color2:0x73BFBF, color3:0x5AA5A5}};
@@ -258,13 +259,6 @@ let plants;
 let ivy;
 
 scaleMinimap();
-// Update with angle in radians
-// compass.update(Math.PI); // Point south
-// compass.update(avatar.rotation.y); // Use avatar's rotation
-// Resize if needed
-// compass.resize(50); // Make it 50px
-// Create a text display function
-
 
 // Sound Manager
 //------------------------------------------------------------------------------------------
@@ -1258,6 +1252,7 @@ class AvatarPawn extends mix(Pawn).with(PM_Smoothed, PM_ThreeVisible, PM_Avatar)
         const scores = this.wellKnownModel("ModelRoot").maze.seasons;
         boxScore.setScores(scores);
         this.subscribe("maze", "score", this.scoreUpdate);
+
         if ( device.isMobile) {
             // Create two joysticks
             this.leftJoystick = new Joystick({ id: 'left', side: 'left' });
@@ -1266,7 +1261,7 @@ class AvatarPawn extends mix(Pawn).with(PM_Smoothed, PM_ThreeVisible, PM_Avatar)
             // Listen for left joystick events
             document.addEventListener('joystick-start-left', (e) => {
                 this.joystickStart("left");
-                console.log("joystick-start-left");
+                //console.log("joystick-start-left");
             });
 
             document.addEventListener('joystick-move-left', (e) => {
@@ -1276,7 +1271,7 @@ class AvatarPawn extends mix(Pawn).with(PM_Smoothed, PM_ThreeVisible, PM_Avatar)
             });
             document.addEventListener('joystick-release-left', (e) => {
                 this.joystickRelease("left");
-                console.log('Left joystick released:', e.detail);
+                //console.log('Left joystick released:', e.detail);
             });
 
             document.addEventListener('joystick-tap-left', (e) => {
@@ -1288,7 +1283,7 @@ class AvatarPawn extends mix(Pawn).with(PM_Smoothed, PM_ThreeVisible, PM_Avatar)
             // Listen for right joystick events
             document.addEventListener('joystick-start-right', (e) => {
                 this.joystickStart("right");
-                console.log('Right joystick started:', e.detail);
+                //console.log('Right joystick started:', e.detail);
             });
 
             document.addEventListener('joystick-move-right', (e) => {
@@ -1299,7 +1294,7 @@ class AvatarPawn extends mix(Pawn).with(PM_Smoothed, PM_ThreeVisible, PM_Avatar)
             
             document.addEventListener('joystick-release-right', (e) => {
                 this.joystickRelease("right");
-                console.log('Right joystick released:', e.detail);
+                //console.log('Right joystick released:', e.detail);
             });
     
             document.addEventListener('joystick-tap-right', (e) => {
@@ -1404,38 +1399,23 @@ class AvatarPawn extends mix(Pawn).with(PM_Smoothed, PM_ThreeVisible, PM_Avatar)
         }
     }
     joystickStart(side) {
-        if (side === "right") {
-            this.looking = true;
-            this.lookX = 0;
-            this.lookY = 0;
-            this.joystickLook();
-        }
+        this.looking = true;
+        this.lookX = 0;
+        this.lookY = 0;
+        this.moving = true;
+        // this.lookY = 0;
+        this.joystickLook();
+    }
 
-        if (side === "left") {
-            this.moving = true;
-            this.gas = 0;
-            this.strafe = 0;
-        }
-    }
     joystickMove(x, y, side) {
-        if(side === "right") {
-            this.lookX = x;
-            this.lookY = -y;
-        }
-        if (side === "left") {
-            this.strafe = -x;
-            this.gas = -y;
-        }
-        //console.log("AvatarPawn joystickMove", x, y, side);
+        this.lookX = x;
+        this.gas = -y;
+        this.strafe = 0;
     }
+
     joystickRelease(side) {
-        if (side === "right") this.looking = false;
-        if (side === "left") {
-            this.moving = false;
-            this.gas = 0;
-            this.strafe = 0;
-        }
-        console.log("AvatarPawn joystickRelease", side);
+        this.looking = false;
+        this.moving = false;
     }
 
     joystickTap(side) {
@@ -1471,7 +1451,7 @@ class AvatarPawn extends mix(Pawn).with(PM_Smoothed, PM_ThreeVisible, PM_Avatar)
     joystickLook() {
         //console.log("AvatarPawn lookingAround");
         if(this.looking){ 
-            this.yaw -= this.lookX * 0.05;
+            this.yaw -= this.lookX * 0.075;
             this.yaw = this.normalizeRotation(this.yaw);
             compass.update(this.yaw + seasons[this.actor.season].radians);
             this.yawQ = q_axisAngle([0,1,0], this.yaw);

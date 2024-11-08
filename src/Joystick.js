@@ -11,6 +11,7 @@ class Joystick {
         this.tapMovementThreshold = 10;
         this.touchStartPos = { x: 0, y: 0 };
         this.side = options.side || 'right';
+        this.touchId = null;
 
         this.createElements();
         this.setupEventListeners();
@@ -32,39 +33,68 @@ class Joystick {
     }
 
     setupEventListeners() {
+        // Touch events
         this.stick.addEventListener('touchstart', (e) => {
-            e.preventDefault();
-            if (!this.isDragging) {
-                const touch = e.touches[0];
+            const touch = Array.from(e.touches).find(t => {
+                const rect = this.base.getBoundingClientRect();
+                const x = t.clientX - (rect.left + rect.width / 2);
+                const y = t.clientY - (rect.top + rect.height / 2);
+                return Math.sqrt(x * x + y * y) < this.baseRadius;
+            });
+
+            if (touch && !this.touchId) {
+                e.preventDefault();
                 this.touchId = touch.identifier;
                 this.handleStart(touch);
             }
         });
 
         document.addEventListener('touchmove', (e) => {
-            e.preventDefault();
-            for (let i = 0; i < e.touches.length; i++) {
-                if (e.touches[i].identifier === this.touchId) {
-                    this.handleMove(e.touches[i]);
-                    break;
-                }
+            const touch = Array.from(e.touches).find(t => t.identifier === this.touchId);
+            if (touch) {
+                e.preventDefault();
+                this.handleMove(touch);
             }
         });
 
         document.addEventListener('touchend', (e) => {
-            e.preventDefault();
-            for (let i = 0; i < e.changedTouches.length; i++) {
-                if (e.changedTouches[i].identifier === this.touchId) {
-                    this.handleEnd(e.changedTouches[i]);
-                    this.touchId = null;
-                    break;
-                }
+            const touch = Array.from(e.changedTouches).find(t => t.identifier === this.touchId);
+            if (touch) {
+                e.preventDefault();
+                this.handleEnd(touch);
+                this.touchId = null;
             }
         });
 
-        this.stick.addEventListener('mousedown', (e) => this.handleStart(e));
-        document.addEventListener('mousemove', (e) => this.handleMove(e));
-        document.addEventListener('mouseup', (e) => this.handleEnd(e));
+        document.addEventListener('touchcancel', (e) => {
+            const touch = Array.from(e.changedTouches).find(t => t.identifier === this.touchId);
+            if (touch) {
+                this.handleEnd(touch);
+                this.touchId = null;
+            }
+        });
+
+        // Mouse events (for testing on desktop)
+        this.stick.addEventListener('mousedown', (e) => {
+            if (!this.touchId) { // Only handle mouse if no touch is active
+                e.preventDefault();
+                this.handleStart(e);
+            }
+        });
+
+        document.addEventListener('mousemove', (e) => {
+            if (this.isDragging && !this.touchId) {
+                e.preventDefault();
+                this.handleMove(e);
+            }
+        });
+
+        document.addEventListener('mouseup', (e) => {
+            if (this.isDragging && !this.touchId) {
+                e.preventDefault();
+                this.handleEnd(e);
+            }
+        });
     }
 
     handleStart(e) {

@@ -112,17 +112,33 @@ import DeviceDetector from './src/DeviceDetector.js';
 import BoxScore from './src/BoxScore.js';
 import Compass from './src/Compass.js';
 import Joystick from './src/Joystick.js';
-// Usage:
+import Countdown from './src/Countdown.js';
+import apiKey from "./src/apiKey.js";
+
+function createTextDisplay() {
+    // Create container
+    const textDisplay = document.createElement('div');
+    textDisplay.className = 'text-display';
+    
+    // Add to DOM just before version number
+    const versionNumber = document.getElementById('version-number');
+    versionNumber.parentNode.insertBefore(textDisplay, versionNumber);
+    
+    // Return update function
+    return (text) => {
+        textDisplay.textContent = text;
+    };
+}
+const updateDisplay = createTextDisplay();
+
 const device = new DeviceDetector();
 console.log("Running on ", device.isMobile? "mobile device":"desktop");
-
+updateDisplay(device.isMobile? "mobile device":"desktop");
 const boxScore = new BoxScore();
 boxScore.setScores({"Spring": 4, "Summer": 4, "Autumn": 4, "Winter": 4});
 
 const compass = new Compass();
-import Countdown from './src/Countdown.js';
 
-import apiKey from "./src/apiKey.js";
 
 
 // Textures
@@ -245,7 +261,7 @@ scaleMinimap();
 // compass.update(avatar.rotation.y); // Use avatar's rotation
 // Resize if needed
 // compass.resize(50); // Make it 50px
-
+// Create a text display function
 
 
 // Sound Manager

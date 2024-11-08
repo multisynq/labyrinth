@@ -9,11 +9,29 @@
                 overflow: hidden;
                 background: rgb(30, 30, 30);
             }
+            .text-display {
+                position: fixed;
+                bottom: 40px;  /* Position above version number */
+                left: 50%;
+                transform: translateX(-50%);
+                font-family: monospace;
+                font-size: 14px;
+                color: rgba(255, 255, 255, 0.7);
+                background: rgba(0, 0, 0, 0.3);
+                padding: 5px 10px;
+                border-radius: 4px;
+                z-index: 1000;
+                pointer-events: none;
+                max-width: 80%;
+                white-space: nowrap;
+                overflow: hidden;
+                text-overflow: ellipsis;
+            }
             .joystick-container {
-    position: fixed;
-    right: 40px;
-    bottom: 33vh;  /* Changed from top: 50% to bottom: 33vh */
-    z-index: 1000;
+                position: fixed;
+                right: 40px;
+                bottom: 33vh;  /* Changed from top: 50% to bottom: 33vh */
+                z-index: 1000;
             }
             .joystick-container {
                 position: fixed;
@@ -175,7 +193,7 @@
                 <span class="score">4</span>
             </div>
         </div>
-        <div id="version-number" class="version-display">v0.1.0-alpha.11</div>
+        <div id="version-number" class="version-display">v0.1.0-alpha.12</div>
         <!-- <a id="codelink" href="https://github.com/multisynq/physics-fountain/blob/main/index.html"
         title="View source code on GitHub" target="_blank">{...}</a> -->
     </body>

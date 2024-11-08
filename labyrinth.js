@@ -76,6 +76,7 @@
 // Joystick controls.
 //------------------------------------------------------------------------------------------
 // To do:
+// Add a full screen button.
 // Shaders need to be "warmed-up" before they are used.
 // - Missile shaders
 // - Floor shaders
@@ -134,6 +135,7 @@ const updateDisplay = createTextDisplay();
 const device = new DeviceDetector();
 console.log("Running on ", device.isMobile? "mobile device":"desktop");
 updateDisplay(device.isMobile? "mobile device":"desktop");
+
 const boxScore = new BoxScore();
 boxScore.setScores({"Spring": 4, "Summer": 4, "Autumn": 4, "Winter": 4});
 
@@ -1469,13 +1471,13 @@ class AvatarPawn extends mix(Pawn).with(PM_Smoothed, PM_ThreeVisible, PM_Avatar)
     joystickLook() {
         //console.log("AvatarPawn lookingAround");
         if(this.looking){ 
-            this.yaw -= this.lookX * 0.2;
+            this.yaw -= this.lookX * 0.05;
             this.yaw = this.normalizeRotation(this.yaw);
             compass.update(this.yaw + seasons[this.actor.season].radians);
             this.yawQ = q_axisAngle([0,1,0], this.yaw);
             this.positionTo(this.translation, this.yawQ);
-
-            this.eyeball.pitch = this.lookY * PI_4;
+            const linearToExponential = (x, exponent = 2) => Math.pow(Math.max(0, Math.min(1, x)), exponent);
+            this.eyeball.pitch = linearToExponential(this.lookY) * PI_4;
             this.eyeball.pitchQ = q_axisAngle([1,0,0], this.eyeball.pitch);
             this.eyeball.set({rotation: this.eyeball.pitchQ});
 

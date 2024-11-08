@@ -3,26 +3,63 @@ class DeviceDetector {
         this._isMobile = this.checkIfMobile();
         console.log('Device Detection Details:', {
             userAgent: navigator.userAgent,
+            platform: navigator.platform,
+            vendor: navigator.vendor,
             touchPoints: navigator.maxTouchPoints,
             screenSize: `${window.innerWidth}x${window.innerHeight}`,
+            pixelRatio: window.devicePixelRatio,
+            orientation: screen.orientation?.type || 'unknown',
             isMobile: this._isMobile
         });
     }
 
     checkIfMobile() {
-        // Primary check: User agent for mobile devices
-        const ua = navigator.userAgent.toLowerCase();
-        const mobileKeywords = /android|webos|iphone|ipad|ipod|blackberry|iemobile|opera mini/i;
-        const isMobileUA = mobileKeywords.test(ua);
+        // Multiple checks for more reliable detection
+        const checks = [
+            // Check user agent
+            () => /Mobi|Android|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent),
+            
+            // Check platform
+            () => ['iPhone', 'iPad', 'iPod', 'Android'].includes(navigator.platform),
+            
+            // Check screen size and touch
+            () => window.innerWidth <= 800 && navigator.maxTouchPoints > 0,
+            
+            // Check orientation capability
+            () => typeof screen.orientation !== 'undefined',
+            
+            // Check pixel ratio (most mobile devices have ratio > 1)
+            () => window.devicePixelRatio >= 2,
+            
+            // Check vendor
+            () => navigator.vendor?.includes('Apple') && navigator.maxTouchPoints > 0,
+            
+            // Check standalone mode (PWA)
+            () => window.navigator.standalone === true
+        ];
 
-        // Secondary checks
-        const isTouchOnly = navigator.maxTouchPoints > 0 && !ua.includes('windows') && !ua.includes('macintosh');
-        
-        // Many laptops now have touch screens, so we need to be more specific
-        const isSmallScreen = window.innerWidth <= 800;
+        // Additional iOS detection
+        const isIOS = [
+            'iPad Simulator',
+            'iPhone Simulator',
+            'iPod Simulator',
+            'iPad',
+            'iPhone',
+            'iPod'
+        ].includes(navigator.platform) || 
+        (navigator.userAgent.includes("Mac") && "ontouchend" in document);
 
-        // Return true only if we're confident it's a mobile device
-        return isMobileUA || (isTouchOnly && isSmallScreen);
+        // Count how many checks pass
+        const passedChecks = checks.filter(check => {
+            try {
+                return check();
+            } catch (e) {
+                return false;
+            }
+        }).length;
+
+        // If iOS is detected or multiple checks pass, consider it mobile
+        return isIOS || passedChecks >= 2;
     }
 
     get isMobile() {
@@ -38,4 +75,5 @@ class DeviceDetector {
         return this._isMobile;
     }
 }
+
 export default DeviceDetector;

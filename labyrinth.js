@@ -73,6 +73,7 @@
 // Determine if we are on a mobile device.
 // Restructured the code so that web objects are in separate files.
 // If you fire when you first start, you get an error. Fixed.
+// Joystick controls.
 //------------------------------------------------------------------------------------------
 // To do:
 // Shaders need to be "warmed-up" before they are used.
@@ -86,9 +87,6 @@
 // - Compass
 // The ivy needs to be cleaned up at the top.
 // The iris of the eyes must match the season color.
-// Mobile controls:
-// - Joystick on left side for movement
-// - Joystick on right side for looking around and tap to shoot
 // Add end game and effects.
 // Need a rules screen at the start. See:
 // https://docs.google.com/document/d/1qjPm6pxaejuq5KydRh0C6Honory8DLICO3jfQkpJotc/edit?usp=sharing
@@ -1407,8 +1405,8 @@ class AvatarPawn extends mix(Pawn).with(PM_Smoothed, PM_ThreeVisible, PM_Avatar)
             this.lookY = -y;
         }
         if (side === "left") {
+            this.strafe = -x;
             this.gas = -y;
-            this.strafe = x;
         }
         //console.log("AvatarPawn joystickMove", x, y, side);
     }
@@ -1466,13 +1464,6 @@ class AvatarPawn extends mix(Pawn).with(PM_Smoothed, PM_ThreeVisible, PM_Avatar)
             this.eyeball.set({rotation: this.eyeball.pitchQ});
 
             this.future(50).joystickLook();
-        }
-    }
-
-    joystickTranslate() {
-        if (this.moving) {
-            const forward = v3_rotate([0,0,-1], this.yawQ);
-            let velocity = v3_scale(forward, this.moveY * 20 * factor * this.actor.highGear);
         }
     }
 

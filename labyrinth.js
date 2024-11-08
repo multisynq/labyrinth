@@ -72,6 +72,7 @@
 // Boxscore now resizes and doesn't get larger.
 // Determine if we are on a mobile device.
 // Restructured the code so that web objects are in separate files.
+// If you fire when you first start, you get an error. Fixed.
 //------------------------------------------------------------------------------------------
 // To do:
 // Shaders need to be "warmed-up" before they are used.
@@ -112,6 +113,7 @@ import FakeGlowMaterial from './src/FakeGlowMaterial.js';
 import DeviceDetector from './src/DeviceDetector.js';
 import BoxScore from './src/BoxScore.js';
 import Compass from './src/Compass.js';
+import Joystick from './src/Joystick.js';
 // Usage:
 const device = new DeviceDetector();
 console.log("Running on ", device.isMobile? "mobile device":"desktop");
@@ -124,7 +126,6 @@ import Countdown from './src/Countdown.js';
 
 import apiKey from "./src/apiKey.js";
 
-console.log("ADDONS", ADDONS);
 
 // Textures
 //------------------------------------------------------------------------------------------
@@ -1041,11 +1042,15 @@ class AvatarActor extends mix(Actor).with(AM_Spatial, AM_Avatar) {
 
     init(options) {
         super.init(options);
+        const t = [CELL_SIZE*seasons[this.season].cell.x+10,6.5,CELL_SIZE*seasons[this.season].cell.y+10];
+        const angle = Math.PI*2*seasons[this.season].angle/360;
+        const r = q_axisAngle([0,1,0],angle);
+        this.set({translation: t, rotation: r});
+        this.canShoot = true;
+        this.inCorner = true;
         this.isCollider = true;
         this.isAvatar = true;
-        this.canShoot = true;
         this.radius = AVATAR_RADIUS;
-        this.inCorner = true;
         this.eyeball = EyeballActor.create({parent: this});
         this.highGear = 1.0;
         this.listen("shootMissile", this.shootMissile);
@@ -1185,6 +1190,9 @@ class AvatarPawn extends mix(Pawn).with(PM_Smoothed, PM_ThreeVisible, PM_Avatar)
         this.yaw = q_yaw(this.rotation);
         compass.update(this.yaw + seasons[this.actor.season].radians);
         this.yawQ = q_axisAngle([0,1,0], this.yaw);
+        this.lastX = seasons[this.actor.season].cell.x+1;
+        this.lastY = seasons[this.actor.season].cell.y+1;
+        console.log("AvatarPawn constructor", this.lastX, this.lastY);
         this.service("AvatarManager").avatars.add(this);
         this.listen("shootMissileSound", this.didShootSound);
         this.listen("recharged", this.rechargedSound);
@@ -1223,7 +1231,6 @@ class AvatarPawn extends mix(Pawn).with(PM_Smoothed, PM_ThreeVisible, PM_Avatar)
         this.strafe = 0;
         //this.highGear = 1;
         this.pointerId = 0;
-
         this.subscribe("input", "keyDown", this.keyDown);
         this.subscribe("input", "keyUp", this.keyUp);
         this.subscribe("input", "pointerDown", this.doPointerDown);
@@ -1235,6 +1242,56 @@ class AvatarPawn extends mix(Pawn).with(PM_Smoothed, PM_ThreeVisible, PM_Avatar)
         const scores = this.wellKnownModel("ModelRoot").maze.seasons;
         boxScore.setScores(scores);
         this.subscribe("maze", "score", this.scoreUpdate);
+        if ( device.isMobile) {
+            // Create two joysticks
+            this.leftJoystick = new Joystick({ id: 'left', side: 'left' });
+            this.rightJoystick = new Joystick({ id: 'right', side: 'right' });
+            
+            // Listen for left joystick events
+            document.addEventListener('joystick-start-left', (e) => {
+                this.joystickStart("left");
+                console.log("joystick-start-left");
+            });
+
+            document.addEventListener('joystick-move-left', (e) => {
+                const { x, y, side } = e.detail;
+                this.joystickMove(x, y, side);
+                //console.log('Left joystick:', x, y);
+            });
+            document.addEventListener('joystick-release-left', (e) => {
+                this.joystickRelease("left");
+                console.log('Left joystick released:', e.detail);
+            });
+
+            document.addEventListener('joystick-tap-left', (e) => {
+                const { side } = e.detail;
+                this.joystickTap(side);
+                //console.log('Left joystick tapped!');
+            });
+            
+            // Listen for right joystick events
+            document.addEventListener('joystick-start-right', (e) => {
+                this.joystickStart("right");
+                console.log('Right joystick started:', e.detail);
+            });
+
+            document.addEventListener('joystick-move-right', (e) => {
+                const { x, y, side } = e.detail;
+                this.joystickMove(x, y, side);
+                //console.log('Right joystick:', x, y);
+            });
+            
+            document.addEventListener('joystick-release-right', (e) => {
+                this.joystickRelease("right");
+                console.log('Right joystick released:', e.detail);
+            });
+    
+            document.addEventListener('joystick-tap-right', (e) => {
+                const { side } = e.detail;
+                this.joystickTap(side);
+                //console.log('Right joystick tapped!');
+            });
+        }
     }
 
     scoreUpdate( data ){
@@ -1330,12 +1387,53 @@ class AvatarPawn extends mix(Pawn).with(PM_Smoothed, PM_ThreeVisible, PM_Avatar)
             default:
         }
     }
-    
+    joystickStart(side) {
+        if (side === "right") {
+            this.looking = true;
+            this.lookX = 0;
+            this.lookY = 0;
+            this.joystickLook();
+        }
+
+        if (side === "left") {
+            this.moving = true;
+            this.gas = 0;
+            this.strafe = 0;
+        }
+    }
+    joystickMove(x, y, side) {
+        if(side === "right") {
+            this.lookX = x;
+            this.lookY = -y;
+        }
+        if (side === "left") {
+            this.gas = -y;
+            this.strafe = x;
+        }
+        //console.log("AvatarPawn joystickMove", x, y, side);
+    }
+    joystickRelease(side) {
+        if (side === "right") this.looking = false;
+        if (side === "left") {
+            this.moving = false;
+            this.gas = 0;
+            this.strafe = 0;
+        }
+        console.log("AvatarPawn joystickRelease", side);
+    }
+
+    joystickTap(side) {
+        this.shootMissile();
+        console.log("AvatarPawn joystickTap", side);
+    }
+
     doPointerDown(e) {
     //    console.log("AvatarPawn.onPointerDown()", e);
         const im = this.service("InputManager");
-        if ( im.inPointerLock ) this.shootMissile();
-        else im.enterPointerLock();
+        if (!device.isMobile) {
+            if ( im.inPointerLock ) this.shootMissile();
+            else im.enterPointerLock();
+        }
     }
 
     doPointerUp(e) {
@@ -1351,21 +1449,48 @@ class AvatarPawn extends mix(Pawn).with(PM_Smoothed, PM_ThreeVisible, PM_Avatar)
         //console.log("AvatarPawn.onPointerDelta()", e.xy);
         // update the avatar's yaw
         const im = this.service("InputManager");
-        if ( im.inPointerLock ) {
-            this.yaw -= e.xy[0] * 0.002;
+        if ( im.inPointerLock ) this.keyboardLook(e.xy[0], e.xy[1], 0.002);
+    }
+
+    joystickLook() {
+        //console.log("AvatarPawn lookingAround");
+        if(this.looking){ 
+            this.yaw -= this.lookX * 0.2;
             this.yaw = this.normalizeRotation(this.yaw);
             compass.update(this.yaw + seasons[this.actor.season].radians);
             this.yawQ = q_axisAngle([0,1,0], this.yaw);
             this.positionTo(this.translation, this.yawQ);
 
-            // update the eyeball's pitch
-            let p = this.eyeball.pitch;
-            p -= e.xy[1] * 0.002;
-            p = Math.max(-PI_4, Math.min(PI_4, p));
-            this.eyeball.pitch = p;
+            this.eyeball.pitch = this.lookY * PI_4;
             this.eyeball.pitchQ = q_axisAngle([1,0,0], this.eyeball.pitch);
             this.eyeball.set({rotation: this.eyeball.pitchQ});
+
+            this.future(50).joystickLook();
         }
+    }
+
+    joystickTranslate() {
+        if (this.moving) {
+            const forward = v3_rotate([0,0,-1], this.yawQ);
+            let velocity = v3_scale(forward, this.moveY * 20 * factor * this.actor.highGear);
+        }
+    }
+
+    keyboardLook(x,y,scale) {
+       // console.log("AvatarPawn lookAround", x,y,scale);
+        this.yaw -= x * scale;
+        this.yaw = this.normalizeRotation(this.yaw);
+        compass.update(this.yaw + seasons[this.actor.season].radians);
+        this.yawQ = q_axisAngle([0,1,0], this.yaw);
+        this.positionTo(this.translation, this.yawQ);
+
+        // update the eyeball's pitch
+        let p = this.eyeball.pitch;
+        p -= y * scale;
+        p = Math.max(-PI_4, Math.min(PI_4, p));
+        this.eyeball.pitch = p;
+        this.eyeball.pitchQ = q_axisAngle([1,0,0], this.eyeball.pitch);
+        this.eyeball.set({rotation: this.eyeball.pitchQ});
     }
 
     doPointerMove(e) {
@@ -1423,7 +1548,7 @@ class AvatarPawn extends mix(Pawn).with(PM_Smoothed, PM_ThreeVisible, PM_Avatar)
         let z = loc[2];
         const xCell = 1+Math.floor(x/CELL_SIZE);
         const yCell = 1+Math.floor(z/CELL_SIZE);
-
+        // console.log("verifyMaze", this.lastX, this.lastY, xCell, yCell);
         if ( xCell>0 && xCell < MAZE_COLUMNS && yCell>0 && yCell < MAZE_ROWS ) { //on the map
             // what cell are we in?
             const cell = mazeActor.map[xCell][yCell];
@@ -1568,11 +1693,11 @@ class MyUser extends User {
             cellY = 11;
         }
         const season = ["Spring","Summer","Autumn","Winter"][this.userNumber%4];
-        const t = [CELL_SIZE*seasons[season].cell.x+10,6.5,CELL_SIZE*seasons[season].cell.y+10];
-        const r = q_axisAngle([0,1,0],Math.PI*2*seasons[season].angle/360);
+        //const t = [CELL_SIZE*seasons[season].cell.x+10,6.5,CELL_SIZE*seasons[season].cell.y+10];
+        //const r = q_axisAngle([0,1,0],Math.PI*2*seasons[season].angle/360);
         this.avatar = AvatarActor.create({
-            translation: t,
-            rotation: r,
+            //translation: t,
+            //rotation: r,
             driver: this.userId,
             season
         });

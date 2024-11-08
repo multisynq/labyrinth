@@ -9,6 +9,57 @@
                 overflow: hidden;
                 background: rgb(30, 30, 30);
             }
+            .joystick-container {
+    position: fixed;
+    right: 40px;
+    bottom: 33vh;  /* Changed from top: 50% to bottom: 33vh */
+    z-index: 1000;
+            }
+            .joystick-container {
+                position: fixed;
+                bottom: calc(33.33vh - 50px);
+                z-index: 1000;
+            }
+
+            .joystick-left {
+                left: 40px;
+            }
+
+            .joystick-right {
+                right: 40px;
+            }
+
+            .joystick-base {
+                width: 100px;
+                height: 100px;
+                background: rgba(128, 128, 128, 0.3);
+                border-radius: 50%;
+                position: relative;
+                box-shadow: inset 0 0 20px rgba(0, 0, 0, 0.5);
+                border: 2px solid rgba(255, 255, 255, 0.1);
+            }
+
+            .joystick-stick {
+                width: 50px;
+                height: 50px;
+                background: radial-gradient(circle at 30% 30%, 
+                    rgba(255, 255, 255, 0.8),
+                    rgba(180, 180, 180, 0.8));
+                border-radius: 50%;
+                position: absolute;
+                top: 50%;
+                left: 50%;
+                transform: translate(-50%, -50%);
+                cursor: grab;
+                box-shadow: 0 2px 8px rgba(0, 0, 0, 0.5);
+                transition: transform 0.2s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+                user-select: none;
+                touch-action: none;
+            }
+
+            .joystick-stick:active {
+                cursor: grabbing;
+            }
             .minimap {
                 position: fixed;
                 top: 50px;          /* Moved from bottom to top, increased from 20px */
@@ -76,7 +127,6 @@
                 margin-right: 10px;
                 font-weight: bold;
             }
-
             .spring { color: #FFB6C1; }
             .summer { color: #90EE90; }
             .autumn { color: #FFE5B4; }
@@ -125,7 +175,7 @@
                 <span class="score">4</span>
             </div>
         </div>
-        <div id="version-number" class="version-display">v0.1.0-alpha.07</div>
+        <div id="version-number" class="version-display">v0.1.0-alpha.09</div>
         <!-- <a id="codelink" href="https://github.com/multisynq/physics-fountain/blob/main/index.html"
         title="View source code on GitHub" target="_blank">{...}</a> -->
     </body>

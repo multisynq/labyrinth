@@ -74,6 +74,7 @@
 // Restructured the code so that web objects are in separate files.
 // If you fire when you first start, you get an error. Fixed.
 // Joystick controls.
+// Fix mobile testing.
 //------------------------------------------------------------------------------------------
 // To do:
 // Add a full screen button.
@@ -105,7 +106,7 @@
 //------------------------------------------------------------------------------------------
 import { App, StartWorldcore, ViewService, ModelRoot, ViewRoot,Actor, mix,
     InputManager, AM_Spatial, PM_Spatial, PM_Smoothed, Pawn, AM_Avatar, PM_Avatar, UserManager, User,
-    toRad, q_yaw, q_pitch, q_axisAngle, v3_add, v3_sub, v3_normalize, v3_rotate, v3_scale, v3_distanceSqr,
+    q_yaw, q_pitch, q_axisAngle, v3_add, v3_sub, v3_normalize, v3_rotate, v3_scale, v3_distanceSqr,
     THREE, ADDONS, PM_ThreeVisible, ThreeRenderManager, PM_ThreeCamera, PM_ThreeInstanced, ThreeInstanceManager } from 'https://esm.run/@croquet/worldcore@2.0.0-alpha.28';
 
 import FakeGlowMaterial from './src/FakeGlowMaterial.js';
@@ -114,6 +115,8 @@ import BoxScore from './src/BoxScore.js';
 import Compass from './src/Compass.js';
 import Joystick from './src/Joystick.js';
 import Countdown from './src/Countdown.js';
+import MazeActor from './src/MazeActor.js';
+import {InstanceActor, instances, materials} from './src/Instance.js';
 import apiKey from "./src/apiKey.js";
 
 function createTextDisplay() {
@@ -208,7 +211,7 @@ import shockSound from "./assets/sounds/Shock.wav";
 const PI_2 = Math.PI/2;
 const PI_4 = Math.PI/4;
 const MISSILE_LIFE = 4000;
-const CELL_SIZE = 20;
+export const CELL_SIZE = 20;
 const AVATAR_RADIUS = 3.7;
 const MISSILE_RADIUS = 2;
 const WALL_EPSILON = 0.01;
@@ -216,12 +219,12 @@ const MAZE_ROWS = 20;
 const MAZE_COLUMNS = 20;
 const MISSILE_SPEED = 0.50;
 
-let csm; // CSM is Cascaded Shadow Maps
-const seasons = {
-    Spring:{cell:{x:0,y:0}, angle:180+45, radians:Math.PI-PI_4, color:0xFFB6C1, color2:0xCC8A94, color3:0xB37780},
-    Summer: {cell: {x:0,y:18}, angle:270+45, radians:Math.PI+Math.PI*3/2-PI_4, color:0x90EE90, color2:0x65AA65, color3:0x508850},
-    Autumn: {cell:{x:18, y:18}, angle:0+45, radians:0-PI_4, color:0xFFE5B4, color2:0xCCB38B, color3:0xB39977},
-    Winter: {cell:{x:18, y:0}, angle:90+45, radians:Math.PI+PI_2-PI_4, color:0xA5F2F3, color2:0x73BFBF, color3:0x5AA5A5}};
+export let csm; // CSM is Cascaded Shadow Maps
+export const seasons = {
+    Spring:{cell:{x:0,y:0}, angle:180+45, color:0xFFB6C1, color2:0xCC8A94, color3:0xB37780},
+    Summer: {cell: {x:0,y:18}, angle:270+45, color:0x90EE90, color2:0x65AA65, color3:0x508850},
+    Autumn: {cell:{x:18, y:18}, angle:0+45, color:0xFFE5B4, color2:0xCCB38B, color3:0xB39977},
+    Winter: {cell:{x:18, y:0}, angle:90+45, color:0xA5F2F3, color2:0x73BFBF, color3:0x5AA5A5}};
 // Minimap canvas
 const minimapCanvas = document.createElement('canvas');
 const minimapCtx = minimapCanvas.getContext('2d');
@@ -244,7 +247,7 @@ function scaleMinimap() {
     minimapDiv.style.height = `${sideLength}px`;
     minimapCanvas.style.width = `${sideLength}px`;
     minimapCanvas.style.height = `${sideLength}px`;
-    compass.resize(sideLength/3);
+    compass.resize(sideLength/6);
 }
 
 let readyToLoad3D = false;
@@ -276,7 +279,16 @@ export const playSound = function() {
 
     function play(soundURL, parent3D, force, loop = false) {
         if (!force && !soundSwitch) return;
-        if (soundList[soundURL]) playSoundOnce(soundList[soundURL], parent3D, force, loop);
+        
+        // Check if we're on mobile and the audio context is suspended
+        const audioContext = THREE.AudioContext.getContext();
+        if (device.isMobile && audioContext.state === 'suspended') {
+            audioContext.resume().then(() => {
+                playSoundOnce(soundList[soundURL], parent3D, force, loop);
+            });
+        } else if (soundList[soundURL]) {
+            playSoundOnce(soundList[soundURL], parent3D, force, loop);
+        }
     }
     return play;
 }();
@@ -311,6 +323,32 @@ function playSoundOnce(sound, parent3D, force, loop = false) {
 
 async function loadSounds() {
     const audioLoader = new THREE.AudioLoader();
+    
+    // Add mobile audio unlock
+    if (device.isMobile) {
+        const unlockAudio = () => {
+            // Create and play a silent audio context
+            const audioContext = THREE.AudioContext.getContext();
+            if (audioContext.state === 'suspended') {
+                audioContext.resume();
+            }
+            
+            // Create and play a silent audio element
+            const silentSound = new Audio();
+            silentSound.play().catch(() => {});
+            
+            // Remove the event listeners once unlocked
+            ['touchstart', 'touchend', 'click'].forEach(event => {
+                document.removeEventListener(event, unlockAudio);
+            });
+        };
+
+        // Add event listeners for user interaction
+        ['touchstart', 'touchend', 'click'].forEach(event => {
+            document.addEventListener(event, unlockAudio);
+        });
+    }
+
     return Promise.all([
         audioLoader.loadAsync(bounceSound),
         audioLoader.loadAsync(shootSound),
@@ -356,12 +394,6 @@ async function modelConstruct() {
         gltfLoader.loadAsync( fourSeasonsTree_glb ),
     ]);
 }
-const instances = {};
-const materials = {};
-const geometries = {};
-// Floor cell instance geometry
-geometries.floor = new THREE.PlaneGeometry(20,20,2,2);
-geometries.floor.rotateX(toRad(-90));
 
 modelConstruct().then( () => {
     readyToLoad3D = true;
@@ -601,276 +633,6 @@ function complexMaterial(options) {
     material.needsUpdate = true;
     return material;
 }
-
-// Maze Generator
-// This generates a (mostly) braided maze. That is a kind of maze that should have no dead ends.
-// This actually does have dead ends on the edges, but I decided to leave it as is.
-//------------------------------------------------------------------------------------------
-class MazeActor extends mix(Actor).with(AM_Spatial) {
-    init(options) {
-        super.init(options);
-        this.rows = options._rows || 20;
-        this.columns = options._columns || 20;
-        this.cellSize = options._cellSize || 20;
-        this.seasons = {"Spring": 4, "Summer": 4, "Autumn": 4, "Winter": 4};
-        this.createMaze(this.rows,this.columns);
-        this.constructMaze();
-    }
-
-    createMaze(width, height) {
-      this.map = [];
-      this.DIRECTIONS = {
-        'N' : { dy: -1, opposite: 'S' },
-        'S' : { dy:  1, opposite: 'N' },
-        'E' : { dx:  1, opposite: 'W' },
-        'W' : { dx: -1, opposite: 'E' }
-      };
-      this.WIDTH = width || 20;
-      this.HEIGHT = height || 20;
-      this.prefill();
-      this.carve(this.WIDTH/2, this.HEIGHT/2, 'N');
-      //console.log(this.output()); // if braid making holes?
-      this.braid();
-      this.clean();
-      console.log("New Maze");
-      console.log(this.output());
-    }
-
-    // initialize it with all walls on
-    prefill() {
-      for (let x = 0; x < this.WIDTH; x++) {
-        this.map[x] = [];
-        for (let y = 0; y < this.HEIGHT; y++) {
-          this.map[x][y] = {};
-        }
-      }
-    }
-
-    // shuffle which direction to search
-    shuffle(o) {
-      for (let j, x, i = o.length; i; j = Math.floor(Math.random() * i), x = o[--i], o[i] = o[j], o[j] = x);
-      return o;
-    }
-
-    // carve away a wall - don't go anywhere we have already been
-    carve(x0, y0, direction) {
-        const x1 = x0 + (this.DIRECTIONS[direction].dx || 0),
-          y1 = y0 + (this.DIRECTIONS[direction].dy || 0);
-
-      if (x1 === 0 || x1 === this.WIDTH || y1 === 0 || y1 === this.HEIGHT) {
-        return;
-      }
-
-      if ( this.map[x1][y1].seen ) {
-        return;
-      }
-
-      this.map[x0][y0][ direction ] = true;
-      this.map[x1][y1][ this.DIRECTIONS[direction].opposite ] = true;
-      this.map[x1][y1].seen = true;
-
-      const directions = this.shuffle([ 'N', 'S', 'E', 'W' ]);
-      for (let i = 0; i < directions.length; i++) {
-        this.carve(x1, y1, directions[i]);
-      }
-    }
-
-    // remove cull-de-sacs. This is incomplete, a few may remain along the edges
-    braid() {
-      for (let y = 2; y < this.HEIGHT-1; y++) {
-        for (let x = 2; x < this.WIDTH-1; x++) {
-
-          if (x>1 && !(this.map[x][y].S || this.map[x][y].E || this.map[x][y].N)) {
-            this.map[x][y].E = true;
-            this.map[x+1][y].W = true;
-          }
-          if (y>1 && !(this.map[x][y].E || this.map[x][y].N || this.map[x][y].W)) {
-            this.map[x][y].N = true;
-            this.map[x][y-1].S = true;
-          }
-          if (!(this.map[x][y].N || this.map[x][y].W || this.map[x][y].S)) {
-            this.map[x][y].W = true;
-            this.map[x-1][y].E = true;
-          }
-          if (!(this.map[x][y].W || this.map[x][y].S || this.map[x][y].W)) {
-            this.map[x][y].S = true;
-            this.map[x][y+1].N = true;
-          }
-        }
-      }
-    }
-
-    // dump most of the data - don't need it anymore
-    clean() {
-        for (let y = 0; y < this.HEIGHT; y++) {
-            for (let x = 0; x < this.WIDTH; x++) {
-            delete this.map[x][y].seen;
-            }
-        }
-
-        // the horse is in the center of the maze so add walls around it and remove walls nearby
-        // a value of false means there is a wall
-        const cell = this.map[11][11];
-        cell.N = cell.S = cell.E = cell.W = false;
-        this.map[11][10].S = this.map[11][12].N = false;
-        this.map[10][11].E = this.map[12][11].W = false;
-
-        this.map[10][10].S = this.map[10][11].N = this.map[10][11].S = this.map[10][12].N = true;
-        this.map[12][10].S = this.map[12][11].N = this.map[12][11].S = this.map[12][12].N = true;
-        this.map[10][10].E = this.map[11][10].W = this.map[11][10].E = this.map[12][10].W = true;
-        this.map[10][12].E = this.map[11][12].W = this.map[11][12].E = this.map[12][12].W = true;
-
-        const clearCorner = (x,y, season) => {
-            this.map[x+1][y+2].N = this.map[x+1][y+1].S =
-            this.map[x+2][y+2].N = this.map[x+2][y+1].S = true;
-            this.map[x+1][y+1].E = this.map[x+2][y+1].W =
-            this.map[x+1][y+2].E = this.map[x+2][y+2].W = true;
-            this.setCornerSeason(x,y,season);
-        };
-
-        clearCorner(0,0, "Spring");
-        clearCorner(this.WIDTH-3,0,"Winter");
-        clearCorner(0,this.HEIGHT-3,"Summer");
-        clearCorner(this.WIDTH-3,this.HEIGHT-3,"Autumn");
-    }
-
-    setCornerSeason(x,y, season) {
-        // set the corners of the cell to the season
-        const cell = this.map[x][y];
-        if (cell.floor) { // only do this if the floor exists
-            // console.log("setColor", cell, x,y, season);
-            this.map[x][y].season = season;
-            this.map[x][y].floor.setColor(seasons[season].color3);
-            this.map[x+1][y].season = season;
-            this.map[x+1][y].floor.setColor(seasons[season].color3);
-            this.map[x][y+1].season = season;
-            this.map[x][y+1].floor.setColor(seasons[season].color3);
-            this.map[x+1][y+1].season = season;
-            this.map[x+1][y+1].floor.setColor(seasons[season].color3);
-        }
-        else this.future(100).setCornerSeason(x,y,season);
-    }
-
-    // you can't claim a corner
-    checkCornersSeason(x, y) {
-        //console.log("checkCornersSeason", x, y, this.map[x][y].season, x<2 && y<2);
-        if ( x < 2 && y < 2 ) return this.map[x][y].season;
-        if ( x < 2 && y >= this.HEIGHT-3 ) return this.map[x][y].season;
-        if ( x >= this.WIDTH-3 && y < 2 ) return this.map[x][y].season;
-        if ( x >= this.WIDTH-3 && y >= this.HEIGHT-3 ) return this.map[x][y].season;
-        return false;
-    }
-
-    // this lets me see the maze in the console
-    output() {
-      let output = '\n';
-      for (let y = 0; y < this.HEIGHT; y++) {
-        for (let x = 0; x < this.WIDTH; x++) {
-          if (x>0)output += ( this.map[x][y].S ? ' ' : '_' );
-          output += ( this.map[x][y].E ? ' ' : y===0?' ':'|' );
-        }
-        output += '\n';
-      }
-      output = output.replace(/_ /g, '__');
-      return output;
-    }
-
-    setSeason(x,y, season) {
-        // console.log("setSeason", x,y, season);
-        const cell = this.map[x-1][y-1];
-        const oldSeason = cell.season;
-        if ( season !== oldSeason ) {
-            this.seasons[season]++;
-            cell.season = season;
-            cell.floor.setColor(seasons[season].color);
-            // This is literally the attack line. Where you can win or lose in an instant.
-            if (oldSeason) this.seasons[oldSeason] = this.checkLife(oldSeason);
-            this.publish("maze", "score", this.seasons);
-            return true;
-        }
-        return false;
-    }
-
-    getSeason(x,y) {
-        return this.map[x-1][y-1].season;
-    }
-
-    checkLife(season) {
-        //uses a fill algorithm to check if the season tree has been cut.
-        const r = Math.random();
-        const oldCount =this.seasons[season];
-        const count = this.floodTest(season,r, seasons[season].cell.x, seasons[season].cell.y);
-        if (oldCount-1 !== count) {
-            const clearCells = [];
-            for (let y = 0; y < this.HEIGHT; y++) {
-                for (let x = 0; x < this.WIDTH; x++) {
-                    if (this.map[x][y].season === season && this.map[x][y].testValue !== r) {
-                        this.map[x][y].season = null;
-                        this.map[x][y].floor.setColor(0xFFFFFF);
-                        clearCells.push([x,y]);
-                    }
-                }
-            }
-            this.publish("maze", "clearCells", clearCells);
-        }
-        return count;
-    }
-
-    floodTest(season, r, x,y) {
-        // console.log("floodTest", season, r, x,y);
-        if (x<0 || x>=this.WIDTH-1 || y<0 || y>=this.HEIGHT-1) return 0;
-        if (this.map[x][y].season !== season) return 0;
-        if (this.map[x][y].testValue === r) return 0;
-        this.map[x][y].testValue = r;
-        let count = 1;
-        count += this.floodTest(season, r, x+1,y);
-        count += this.floodTest(season, r, x-1,y);
-        count += this.floodTest(season, r, x,y+1);
-        count += this.floodTest(season, r, x,y-1);
-        return count;
-    }
-
-    getCellColor(x,y) {
-        const cell = this.map[x-1][y-1];
-        return cell.season ? seasons[cell.season].color : 0xFFFFFF;
-    }
-
-    constructMaze() {
-        const r = q_axisAngle([0,1,0],PI_2);
-        const ivyRotation = q_axisAngle([0,1,0],Math.PI);
-        for (let y = 0; y < this.rows; y++) {
-          for (let x = 0; x < this.columns; x++) {
-            this.map[x][y].floor = InstanceActor.create({name:"floor", translation: [x*CELL_SIZE+CELL_SIZE/2, 0, y*CELL_SIZE+CELL_SIZE/2]});
-           // south walls
-            if (!this.map[x][y].S && x>0) {
-                const t = [x*this.cellSize - this.cellSize/2, 0, y*this.cellSize];
-                const wall = WallActor.create({parent: this, translation: t});
-
-                if (Math.random() < 0.25) {
-                    InstanceActor.create({name: "ivy0", parent: wall});
-                    InstanceActor.create({name: "ivy1", parent: wall});
-                    InstanceActor.create({name: "ivy0", parent: wall, rotation:ivyRotation});
-                    InstanceActor.create({name: "ivy1", parent: wall, rotation:ivyRotation});
-                }
-
-            }
-            // east walls
-            if (!this.map[x][y].E && y>0) {
-                const t = [x*this.cellSize, 0, (y+1)*this.cellSize - 3*this.cellSize/2];
-                const wall = WallActor.create({parent: this, translation: t, rotation: r});
-
-                if (Math.random() < 0.25) {
-                    InstanceActor.create({name: "ivy0", parent: wall});
-                    InstanceActor.create({name: "ivy1", parent: wall});
-                    InstanceActor.create({name: "ivy0", parent: wall, rotation:ivyRotation});
-                    InstanceActor.create({name: "ivy1", parent: wall, rotation:ivyRotation});
-                }
-            }
-        }
-      }
-    }
- }
-MazeActor.register("MazeActor");
 
 // BaseActor
 // This is the ground plane.
@@ -1198,7 +960,7 @@ class AvatarPawn extends mix(Pawn).with(PM_Smoothed, PM_ThreeVisible, PM_Avatar)
         this.isAvatar = true;
         this.radius = actor.radius;
         this.yaw = q_yaw(this.rotation);
-        compass.update(this.yaw + seasons[this.actor.season].radians);
+        compass.update(this.yaw);
         this.yawQ = q_axisAngle([0,1,0], this.yaw);
         this.lastX = seasons[this.actor.season].cell.x+1;
         this.lastY = seasons[this.actor.season].cell.y+1;
@@ -1227,7 +989,7 @@ class AvatarPawn extends mix(Pawn).with(PM_Smoothed, PM_ThreeVisible, PM_Avatar)
         this.positionTo(data.t, data.r);
         //this.set({translation: data.t, rotation: data.r});
         this.yaw = data.angle;
-        compass.update(this.yaw + seasons[this.actor.season].radians);
+        compass.update(this.yaw);
         this.yawQ = data.r;
     }
 
@@ -1453,7 +1215,7 @@ class AvatarPawn extends mix(Pawn).with(PM_Smoothed, PM_ThreeVisible, PM_Avatar)
         if(this.looking){ 
             this.yaw -= this.lookX * 0.075;
             this.yaw = this.normalizeRotation(this.yaw);
-            compass.update(this.yaw + seasons[this.actor.season].radians);
+            compass.update(this.yaw);
             this.yawQ = q_axisAngle([0,1,0], this.yaw);
             this.positionTo(this.translation, this.yawQ);
             const linearToExponential = (x, exponent = 2) => Math.pow(Math.max(0, Math.min(1, x)), exponent);
@@ -1469,7 +1231,7 @@ class AvatarPawn extends mix(Pawn).with(PM_Smoothed, PM_ThreeVisible, PM_Avatar)
        // console.log("AvatarPawn lookAround", x,y,scale);
         this.yaw -= x * scale;
         this.yaw = this.normalizeRotation(this.yaw);
-        compass.update(this.yaw + seasons[this.actor.season].radians);
+        compass.update(this.yaw);
         this.yawQ = q_axisAngle([0,1,0], this.yaw);
         this.positionTo(this.translation, this.yawQ);
 
@@ -2118,100 +1880,6 @@ export class GlowPawn extends mix(Pawn).with(PM_Smoothed, PM_ThreeVisible) {
     }
 }
 GlowPawn.register("GlowPawn");
-//------------------------------------------------------------------------------------------
-//-- WallActor -----------------------------------------------------------------------------
-// This provides a simple wall.
-//------------------------------------------------------------------------------------------
-class WallActor extends mix(Actor).with(AM_Spatial) {
-    get pawn() {return "WallPawn"}
-}
-WallActor.register('WallActor');
-//------------------------------------------------------------------------------------------
-//-- WallPawn ------------------------------------------------------------------------------
-// This is used to generate the walls of the maze.
-//------------------------------------------------------------------------------------------
-class WallPawn extends mix(Pawn).with(PM_Spatial, PM_ThreeVisible, PM_ThreeInstanced) {
-    constructor(...args) {
-        super(...args);
-        this.wall = this.createInstance();
-    }
-
-    createInstance() {
-        const im = this.service("ThreeInstanceManager");
-        let wall = this.useInstance("wall");
-        if ( !wall ) {
-            const width = 20;
-            const height = 10;
-            const frontWall = new THREE.PlaneGeometry(width, height);
-            const backWall = new THREE.PlaneGeometry(width, height);
-            backWall.rotateY(Math.PI);
-            const geometry = ADDONS.BufferGeometryUtils.mergeGeometries([frontWall, backWall], false);
-            csm.setupMaterial(materials.wall);
-            im.addMaterial("wall", materials.wall);
-            im.addGeometry("wall", geometry);
-            im.addMesh("wall", "wall", "wall");
-            wall = this.useInstance("wall");
-        }
-        wall.mesh.material.needsUpdate = true;
-        wall.mesh.receiveShadow = true;
-        wall.mesh.castShadow = true;
-        return wall;
-    }
-}
-WallPawn.register("WallPawn");
-
-// InstanceActor
-// Generate loaded instances.
-//------------------------------------------------------------------------------------------
-class InstanceActor extends mix(Actor).with(AM_Spatial) {
-    get pawn() {return "InstancePawn"}
-    get name() { return this._name || "column"}
-    get color() { return this._color || 0xffffff }
-    setColor(color) { this._color = color; this.say("color", color); }
-}
-InstanceActor.register('InstanceActor');
-
-// InstancePawn
-// Load 3D models and convert them into instances. This is used when we have many
-// copies of the same model. Loading these as instances is a bit tricky, hence the
-// separate class.
-//------------------------------------------------------------------------------------------
-class InstancePawn extends mix(Pawn).with(PM_Smoothed, PM_ThreeVisible, PM_ThreeInstanced) {
-    constructor(...args) {
-        super(...args);
-        this.loadInstance();
-        this.listen("color", this.doColor);
-    }
-
-    doColor(color) {
-        this.setColor(new THREE.Color(color));
-    }
-
-    loadInstance() {
-        if (this.doomed) return;
-        const name = this.actor.name;
-        let instance = this.useInstance(name);
-        if (!instance) { // does the instance not exist?
-            if (instances[name] || geometries[name]) { // is it ready to load?
-                const geometry = geometries[name] || instances[name].geometry.clone();
-                const material = materials[name] || instances[name].material;
-                csm.setupMaterial(material);
-                //console.log("InstancePawn", name, geometry, material);
-                const im = this.service("ThreeInstanceManager");
-                im.addMaterial(name, material);
-                im.addGeometry(name, geometry);
-                im.addMesh(name, name, name);
-                instance = this.useInstance(name);
-                instance.mesh.material.needsUpdate = true;
-                csm.setupMaterial(instance.mesh.material);
-                instance.mesh.receiveShadow = true;
-                instance.mesh.castShadow = true;
-            } else this.future(100).loadInstance(); // not ready to load - try again later
-        }
-        if (instance && this.actor.color) this.doColor(this.actor.color);
-    }
-}
-InstancePawn.register("InstancePawn");
 
 // HorseActor
 // Hero statue at the center of the maze.

@@ -1,8 +1,12 @@
 class Compass {
     constructor(size = 40) {
-        this.element = document.getElementById('compass');
+        this.element = document.querySelector('.compass');  // Changed from getElementById
         this.canvas = document.createElement('canvas');
         this.ctx = this.canvas.getContext('2d');
+        
+        this.canvas.style.backgroundColor = 'rgba(0, 0, 0, 0.3)';
+        this.canvas.style.borderRadius = '50%';
+        
         this.setSize(size);
         this.element.appendChild(this.canvas);
         this.draw(0);
@@ -15,7 +19,7 @@ class Compass {
         this.canvas.height = size;
         this.centerX = size / 2;
         this.centerY = size / 2;
-        this.radius = (size / 2) - 2;
+        this.radius = size / 2;
     }
 
     draw(angle) {
@@ -66,6 +70,7 @@ class Compass {
     }
 
     update(angle) {
+        console.log("Compass Angle",angle)
         this.draw(angle);
     }
 

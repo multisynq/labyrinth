@@ -107,14 +107,12 @@
                 letter-spacing: 2px;
             }
             .compass {
-                position: fixed;
-                top: 15px;          /* Moved up */
-                right: 15px;        /* Moved right */
-                width: 40px;        /* Default size - will be set by JS */
-                height: 40px;
-                background-color: rgba(0, 0, 0, 0.3);
-                border-radius: 50%;
-                z-index: 1000;
+                position: absolute;
+                top: 50%;
+                left: 50%;
+                transform: translate(-50%, -50%);
+                z-index: 2;
+                pointer-events: none;
             }
             .box-score {
                 position: fixed;
@@ -172,9 +170,11 @@
 
     </head>
     <body>
-        <div id="minimap" class="minimap"></div>
+        <div id="minimap" class="minimap">
+            <div id="compass" class="compass"></div>
+        </div>
         <div id="countdown" class="countdown">0:00</div>
-        <div id="compass" class="compass"></div>
+       
         <div class="box-score">
             <div class="score-row" data-season="Spring">
                 <span class="season spring">Spring</span>
@@ -193,7 +193,7 @@
                 <span class="score">4</span>
             </div>
         </div>
-        <div id="version-number" class="version-display">v0.1.0-alpha.17</div>
+        <div id="version-number" class="version-display">v0.1.0-alpha.19</div>
         <!-- <a id="codelink" href="https://github.com/multisynq/physics-fountain/blob/main/index.html"
         title="View source code on GitHub" target="_blank">{...}</a> -->
     </body>

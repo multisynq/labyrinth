@@ -8,7 +8,7 @@ class DeviceDetector {
             this._isMobile = forceMobile.toLowerCase() === 'true';
         }
 
-        console.log('Device Detection Details:', {
+        console.log('Device Detection Det   ails:', {
             userAgent: navigator.userAgent,
             platform: navigator.platform,
             vendor: navigator.vendor,
@@ -23,63 +23,64 @@ class DeviceDetector {
     }
 
     checkIfMobile() {
-        const desktopOS = [
-            'Win32',
-            'Win64',
-            'Windows',
-            'WinCE',
-            'Linux x86_64',
-            'Linux i686',
-            'Linux i586',
-            'Linux i486',
-            'Linux i386',
-        ];
+        // Debug logging
+        const debugInfo = {
+            userAgent: navigator.userAgent,
+            platform: navigator.platform,
+            maxTouchPoints: navigator.maxTouchPoints,
+            screenSize: `${window.innerWidth}x${window.innerHeight}`,
+            pixelRatio: window.devicePixelRatio
+        };
+        console.log('Device Debug Info:', debugInfo);
 
-        // Modified platform check - don't return early for MacBooks
-        if (desktopOS.includes(navigator.platform) && !navigator.userAgent.includes('Mobile')) {
+        // Check if it's a Mac first
+        const isMac = (
+            navigator.platform.includes('Mac') && 
+            navigator.userAgent.includes('Macintosh') && 
+            !navigator.userAgent.includes('Mobile')
+        );
+        
+        if (isMac) {
             return false;
         }
 
         // Mobile-specific checks
         const mobileChecks = [
-            // Check user agent for mobile keywords
-            () => /Mobi|Android|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent),
+            // Primary check: User agent for mobile keywords
+            () => {
+                const ua = navigator.userAgent.toLowerCase();
+                const isMobile = /mobile|android|iphone|ipad|phone|samsung|galaxy/i.test(ua);
+                console.log('UA Mobile Check:', isMobile, ua);
+                return isMobile;
+            },
             
-            // Check for mobile-specific features
-            () => typeof window.orientation !== 'undefined',
+            // Screen size and ratio check
+            () => {
+                const isMobileSize = window.innerWidth <= 768 || window.devicePixelRatio >= 2.5;
+                console.log('Screen Size Check:', isMobileSize);
+                return isMobileSize;
+            },
             
-            // Check screen size and pixel ratio
-            () => (window.innerWidth <= 1024 && window.devicePixelRatio > 1),
-            
-            // Check for touch screen (modified to work with simulators)
-            () => navigator.maxTouchPoints > 0,
+            // Touch capability
+            () => {
+                const hasTouch = navigator.maxTouchPoints > 0;
+                console.log('Touch Check:', hasTouch);
+                return hasTouch;
+            },
         ];
 
-        // iOS specific detection (enhanced)
-        const isIOS = [
-            'iPad Simulator',
-            'iPhone Simulator',
-            'iPod Simulator',
-            'iPad',
-            'iPhone',
-            'iPod'
-        ].includes(navigator.platform) || 
-        (navigator.userAgent.includes("iPad") || 
-         navigator.userAgent.includes("iPhone")) ||
-        // iOS 13+ iPad detection
-        (navigator.userAgent.includes("Mac") && navigator.maxTouchPoints > 0);
-
-        // Count how many mobile checks pass
-        const passedChecks = mobileChecks.filter(check => {
+        // Run checks and log results
+        const results = mobileChecks.map(check => {
             try {
                 return check();
             } catch (e) {
+                console.error('Check failed:', e);
                 return false;
             }
-        }).length;
+        });
 
-        // Return true if it's iOS or if at least one mobile indicator is present
-        return isIOS || passedChecks >= 1; // Reduced threshold from 2 to 1
+        console.log('Mobile Check Results:', results);
+        return results.some(result => result === true);
     }
 
     get isMobile() {

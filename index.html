@@ -158,6 +158,35 @@
                 pointer-events: none;
                 font-family: monospace;
             }
+            .fullscreen-button {
+                position: fixed;
+                top: 20px;
+                right: 20px;
+                z-index: 10000;
+                background: rgba(0, 0, 0, 0.3);  /* More transparent background */
+                border: none;                     /* Removed white border */
+                border-radius: 5px;
+                padding: 10px;
+                cursor: pointer;
+                color: white;
+                font-size: 32px;                 /* Larger icon */
+                width: 44px;
+                height: 44px;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                transition: all 0.3s ease;        /* Smooth transition for all changes */
+                pointer-events: auto;
+            }
+
+            .fullscreen-button:hover {
+                background: rgba(0, 0, 0, 0.5);
+                transform: scale(1.1);            /* Icon grows slightly on hover */
+            }
+
+            .fullscreen-button:active {
+                transform: scale(0.95);           /* Slight press effect */
+            }
             #codelink {
                 position: fixed; bottom: 10px; right: 10px; padding: .5em; border-radius: 30px;
                 opacity: 50%; background: lightgray; box-shadow: 1px 1px 5px black;
@@ -165,6 +194,9 @@
             }
             #codelink:hover {
                 opacity: 100%;
+            }
+            #container {
+                pointer-events: none;
             }
         </style>
 

@@ -6,11 +6,6 @@
 // It is loosely based upon the early Maze War game created at NASA Ames in 1973
 // https://en.wikipedia.org/wiki/Maze_War and has elements of Pacman, The Colony and Dodgeball.
 //------------------------------------------------------------------------------------------
-// This is intended to be ported to the Multisynq for Unity platform. Most of this application
-// can be easily translated to Unity. The only object that requires replicated computation is
-// the missile which when fired must execute on all clients. It computes collisions with user
-// avatars and the maze walls.
-//------------------------------------------------------------------------------------------
 // Changes:
 // Minimal world - showing we exist. We get an alert when a new user joins.
 // Add simple avatars w/ mouselook interface
@@ -75,9 +70,12 @@
 // If you fire when you first start, you get an error. Fixed.
 // Joystick controls.
 // Fix mobile testing.
+// Broke up the big file into smaller files.
+// Compass is in the minimap.
+// Added a resize button.
+// Added a full screen button.
 //------------------------------------------------------------------------------------------
 // To do:
-// Add a full screen button.
 // Shaders need to be "warmed-up" before they are used.
 // - Missile shaders
 // - Floor shaders
@@ -87,6 +85,8 @@
 // - Clock
 // - Minimap
 // - Compass
+// Three big weenies.
+// Rooms?
 // The ivy needs to be cleaned up at the top.
 // The iris of the eyes must match the season color.
 // Add end game and effects.
@@ -109,6 +109,7 @@ import { App, StartWorldcore, ViewService, ModelRoot, ViewRoot,Actor, mix,
     q_yaw, q_pitch, q_axisAngle, v3_add, v3_sub, v3_normalize, v3_rotate, v3_scale, v3_distanceSqr,
     THREE, ADDONS, PM_ThreeVisible, ThreeRenderManager, PM_ThreeCamera, PM_ThreeInstanced, ThreeInstanceManager } from 'https://esm.run/@croquet/worldcore@2.0.0-alpha.28';
 
+import { FullscreenButton } from './src/Fullscreen.js';
 import FakeGlowMaterial from './src/FakeGlowMaterial.js';
 import DeviceDetector from './src/DeviceDetector.js';
 import BoxScore from './src/BoxScore.js';
@@ -134,7 +135,8 @@ function createTextDisplay() {
     };
 }
 const updateDisplay = createTextDisplay();
-
+// Initialize fullscreen button
+new FullscreenButton();
 const device = new DeviceDetector();
 console.log("Running on ", device.isMobile? "mobile device":"desktop");
 updateDisplay(device.isMobile? "mobile device":"desktop");
@@ -213,6 +215,7 @@ const PI_4 = Math.PI/4;
 const MISSILE_LIFE = 4000;
 export const CELL_SIZE = 20;
 const AVATAR_RADIUS = 3.7;
+const AVATAR_HEIGHT = 6.5;
 const MISSILE_RADIUS = 2;
 const WALL_EPSILON = 0.01;
 const MAZE_ROWS = 20;
@@ -814,7 +817,7 @@ class AvatarActor extends mix(Actor).with(AM_Spatial, AM_Avatar) {
 
     init(options) {
         super.init(options);
-        const t = [CELL_SIZE*seasons[this.season].cell.x+10,6.5,CELL_SIZE*seasons[this.season].cell.y+10];
+        const t = [CELL_SIZE*seasons[this.season].cell.x+10,AVATAR_HEIGHT,CELL_SIZE*seasons[this.season].cell.y+10];
         const angle = Math.PI*2*seasons[this.season].angle/360;
         const r = q_axisAngle([0,1,0],angle);
         this.set({translation: t, rotation: r});
@@ -877,7 +880,7 @@ class AvatarActor extends mix(Actor).with(AM_Spatial, AM_Avatar) {
     }
 
     respawn() {
-        const t = [CELL_SIZE*seasons[this.season].cell.x+10,6.5,CELL_SIZE*seasons[this.season].cell.y+10];
+        const t = [CELL_SIZE*seasons[this.season].cell.x+10,AVATAR_HEIGHT,CELL_SIZE*seasons[this.season].cell.y+10];
         const angle = Math.PI*2*seasons[this.season].angle/360;
         const r = q_axisAngle([0,1,0],angle);
         this.set({translation: t, rotation: r});
@@ -1187,6 +1190,7 @@ class AvatarPawn extends mix(Pawn).with(PM_Smoothed, PM_ThreeVisible, PM_Avatar)
 
     doPointerDown(e) {
     //    console.log("AvatarPawn.onPointerDown()", e);
+        // Ignore clicks on the fullscreen button
         const im = this.service("InputManager");
         if (!device.isMobile) {
             if ( im.inPointerLock ) this.shootMissile();
@@ -1444,11 +1448,8 @@ class MyUser extends User {
             cellY = 11;
         }
         const season = ["Spring","Summer","Autumn","Winter"][this.userNumber%4];
-        //const t = [CELL_SIZE*seasons[season].cell.x+10,6.5,CELL_SIZE*seasons[season].cell.y+10];
-        //const r = q_axisAngle([0,1,0],Math.PI*2*seasons[season].angle/360);
+
         this.avatar = AvatarActor.create({
-            //translation: t,
-            //rotation: r,
             driver: this.userId,
             season
         });

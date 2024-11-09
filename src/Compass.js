@@ -4,7 +4,7 @@ class Compass {
         this.canvas = document.createElement('canvas');
         this.ctx = this.canvas.getContext('2d');
         
-        this.canvas.style.backgroundColor = 'rgba(0, 0, 0, 0.3)';
+        this.canvas.style.backgroundColor = 'rgba(0, 0, 0, 0.2)';
         this.canvas.style.borderRadius = '50%';
         
         this.setSize(size);
@@ -70,7 +70,6 @@ class Compass {
     }
 
     update(angle) {
-        console.log("Compass Angle",angle)
         this.draw(angle);
     }
 

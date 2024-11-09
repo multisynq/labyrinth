@@ -242,10 +242,12 @@ class MazeActor extends mix(Actor).with(AM_Spatial) {
         const r = q_axisAngle([0,1,0],PI_2);
         const ivyRotation = q_axisAngle([0,1,0],Math.PI);
         for (let y = 0; y < this.rows; y++) {
-          for (let x = 0; x < this.columns; x++) {
-            this.map[x][y].floor = InstanceActor.create({name:"floor", translation: [x*CELL_SIZE+CELL_SIZE/2, 0, y*CELL_SIZE+CELL_SIZE/2]});
-           // south walls
-            if (!this.map[x][y].S && x>0) {
+            for (let x = 0; x < this.columns; x++) {
+                if (x<this.columns-1 && y<this.rows-1) {
+                    this.map[x][y].floor = InstanceActor.create({name:"floor", translation: [x*CELL_SIZE+CELL_SIZE/2, 0, y*CELL_SIZE+CELL_SIZE/2]});
+                }
+                // south walls
+                if (!this.map[x][y].S && x>0) {
                 const t = [x*this.cellSize - this.cellSize/2, 0, y*this.cellSize];
                 const wall = WallActor.create({parent: this, translation: t});
 

@@ -11,28 +11,38 @@ class BoxScore {
         // Initialize positions
         Object.values(this.scores).forEach(score => {
             score.element.style.position = 'absolute';
+            score.element.style.left = '0';
+            score.element.style.right = '0';
+            score.element.style.height = '25%'; // Set fixed height for each score
         });
         
         this.resize();
-        // Add resize listener
-        window.addEventListener('resize', () => this.resize());
+        // Debounce resize event
+        let resizeTimeout;
+        window.addEventListener('resize', () => {
+            clearTimeout(resizeTimeout);
+            resizeTimeout = setTimeout(() => this.resize(), 100);
+        });
     }
 
     resize() {
         // Calculate new dimensions based on window size
         const height = Math.min(window.innerHeight, window.innerWidth);
-        const boxSize = height / 3.5; // Or whatever ratio you prefer
+        const boxSize = height / 3.5;
         
         // Update container size
         this.container.style.width = `${boxSize}px`;
-        this.container.style.height = `${boxSize * 0.8}px`; // Slightly shorter than width
+        this.container.style.height = `${boxSize * 0.8}px`;
         
         // Calculate new row height
-        this.rowHeight = (boxSize * 0.8) / 4; // Divide container height by number of rows
+        this.rowHeight = Math.floor((boxSize * 0.8) / 4); // Ensure whole pixels
         
         // Update font sizes
         const fontSize = this.rowHeight * 0.5;
         this.container.style.fontSize = `${fontSize}px`;
+        
+        // Force layout recalculation
+        this.container.offsetHeight;
         
         // Update positions immediately
         this.updatePositions();
@@ -58,11 +68,7 @@ class BoxScore {
             .sort(([,a], [,b]) => b.value - a.value);
 
         sortedScores.forEach(([, score], index) => {
-            // Ensure transform stays within container bounds
-            const yPosition = Math.min(
-                index * this.rowHeight,
-                this.container.clientHeight - this.rowHeight
-            );
+            const yPosition = index * this.rowHeight;
             score.element.style.transform = `translateY(${yPosition}px)`;
         });
     }

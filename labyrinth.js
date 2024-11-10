@@ -1,4 +1,4 @@
-//------------------Labirynth---------------------------------------------------------------
+//------------------Labyrinth---------------------------------------------------------------
 // This is a simple example of a multi-player 3D shooter.
 // Actually, it isn't just a shooter. It is a strategy game.
 // Think of it as "Go" with guns.
@@ -72,10 +72,11 @@
 // Fix mobile testing.
 // Broke up the big file into smaller files.
 // Compass is in the minimap.
-// Added a resize button.
 // Added a full screen button.
 //------------------------------------------------------------------------------------------
 // To do:
+// The center of the maze is at 10,10.
+// The compass should be made as a circle around the minimap - each direction is the color.
 // Shaders need to be "warmed-up" before they are used.
 // - Missile shaders
 // - Floor shaders
@@ -87,6 +88,7 @@
 // - Compass
 // Three big weenies.
 // Rooms?
+// Different sound for the user cutting off cells
 // The ivy needs to be cleaned up at the top.
 // The iris of the eyes must match the season color.
 // Add end game and effects.
@@ -205,7 +207,9 @@ import enterSound from "./assets/sounds/avatarEnter.wav";
 import exitSound from "./assets/sounds/avatarLeave.wav";
 import missileSound from "./assets/sounds/Warning.mp3";
 import implosionSound from "./assets/sounds/Implosion.mp3";
-import cellSound from "./assets/sounds/Granted.wav";
+//import cellSound from "./assets/sounds/Granted.wav";
+import cellSound from "./assets/sounds/Heartbeat2.wav";
+
 import shockSound from "./assets/sounds/Shock.wav";
 
 // Global Variables
@@ -215,7 +219,7 @@ const PI_4 = Math.PI/4;
 const MISSILE_LIFE = 4000;
 export const CELL_SIZE = 20;
 const AVATAR_RADIUS = 3.7;
-const AVATAR_HEIGHT = 6.5;
+const AVATAR_HEIGHT = 6.0;
 const MISSILE_RADIUS = 2;
 const WALL_EPSILON = 0.01;
 const MAZE_ROWS = 20;
@@ -224,10 +228,10 @@ const MISSILE_SPEED = 0.50;
 
 export let csm; // CSM is Cascaded Shadow Maps
 export const seasons = {
-    Spring:{cell:{x:0,y:0}, angle:180+45, color:0xFFB6C1, color2:0xCC8A94, color3:0xB37780},
-    Summer: {cell: {x:0,y:18}, angle:270+45, color:0x90EE90, color2:0x65AA65, color3:0x508850},
-    Autumn: {cell:{x:18, y:18}, angle:0+45, color:0xFFE5B4, color2:0xCCB38B, color3:0xB39977},
-    Winter: {cell:{x:18, y:0}, angle:90+45, color:0xA5F2F3, color2:0x73BFBF, color3:0x5AA5A5}};
+    Spring:{cell:{x:0,y:0}, nextCell:{x:1,y:1}, angle:180+45, color:0xFFB6C1, color2:0xCC8A94, color3:0xB37780},
+    Summer: {cell: {x:0,y:CELL_SIZE-2}, nextCell:{x:1,y:CELL_SIZE-3}, angle:270+45, color:0x90EE90, color2:0x65AA65, color3:0x508850},
+    Autumn: {cell:{x:CELL_SIZE-2, y:CELL_SIZE-2}, nextCell:{x:CELL_SIZE-3,y:CELL_SIZE-3}, angle:0+45, color:0xFFE5B4, color2:0xCCB38B, color3:0xB39977},
+    Winter: {cell:{x:CELL_SIZE-2, y:0}, nextCell:{x:CELL_SIZE-3,y:1}, angle:90+45, color:0xA5F2F3, color2:0x73BFBF, color3:0x5AA5A5}};
 // Minimap canvas
 const minimapCanvas = document.createElement('canvas');
 const minimapCtx = minimapCanvas.getContext('2d');
@@ -817,6 +821,8 @@ class AvatarActor extends mix(Actor).with(AM_Spatial, AM_Avatar) {
 
     init(options) {
         super.init(options);
+        this.throttleMin = 0.65;
+        this.throttleMax = 2.0;
         const t = [CELL_SIZE*seasons[this.season].cell.x+10,AVATAR_HEIGHT,CELL_SIZE*seasons[this.season].cell.y+10];
         const angle = Math.PI*2*seasons[this.season].angle/360;
         const r = q_axisAngle([0,1,0],angle);
@@ -827,11 +833,35 @@ class AvatarActor extends mix(Actor).with(AM_Spatial, AM_Avatar) {
         this.isAvatar = true;
         this.radius = AVATAR_RADIUS;
         this.eyeball = EyeballActor.create({parent: this});
-        this.highGear = 1.0;
+        this.highGear = this.throttleMin;
         this.listen("shootMissile", this.shootMissile);
         this.listen("claimCell", this.claimCell);
         this.fireball =  FireballActor.create({parent: this, radius:this.radius});
         this.fireball.future(1000).hide();
+        this.future(1000).buildGlow();
+    }
+
+    buildGlow() {
+        this.glow = [];
+        this.glowCount = 0;
+        const cell = seasons[this.season].cell;
+        const nextCell = seasons[this.season].nextCell;
+        const glowPosition = [];
+        glowPosition[0] = [cell.x, cell.y];
+        glowPosition[1] = [cell.x, nextCell.y];
+        glowPosition[2] = [nextCell.x, cell.y];
+        glowPosition[3] = [nextCell.x, nextCell.y];
+        const mazeActor = this.wellKnownModel("ModelRoot").maze;
+        let doCell = mazeActor.map[glowPosition[0][0]][glowPosition[0][1]];
+        // possible that the floor is not created yet...
+        if(!doCell.floor) {this.future(100).buildGlow(); return;}
+        for(let i=0; i<4; i++) {
+            console.log("buildGlow", glowPosition);
+            doCell = mazeActor.map[glowPosition[i][0]][glowPosition[i][1]];
+            this.glow[i] = GlowActor.create({parent: doCell.floor, shape:"cube", translation:glowPosition[i], color: seasons[this.season].color, depthTest: true, radius: 1.25, glowRadius: 0.5, falloff: 0.1, opacity: 0.75, sharpness: 0.5});
+            this.glow[i].sink(1000, 1);
+            this.glow[i].future(1000).hide();
+        }
     }
 
     get season() {return this._season || "spring"}
@@ -845,18 +875,18 @@ class AvatarActor extends mix(Actor).with(AM_Spatial, AM_Avatar) {
         this.inCorner = seasonCorner === this.season;
         const cell = mazeActor.map[data.x-1][data.y-1];
         if (cell.season !== this.season) {
-            this.highGear = 1.0;
+            this.highGear = this.throttleMin;
             // if the cell you are moving from is yours, then you can claim it
             if (data.lastX && mazeActor.map[data.lastX-1][data.lastY-1].season === this.season) {
                 // set the season of the cell you are moving to
                 if (!seasonCorner && mazeActor.setSeason(data.x, data.y, this.season)) {
+                    this.say("claimCellUpdate", {x:data.x, y:data.y, color:seasons[this.season].color});
                     const glow = GlowActor.create({parent: cell.floor, shape:"cube", translation:[0,1,0], color: seasons[this.season].color, depthTest: true, radius: 1.25, glowRadius: 0.5, falloff: 0.1, opacity: 0.75, sharpness: 0.5});
                     glow.sink(1000, 1);
                     glow.future(1000).destroy();
-                    this.say("claimCellUpdate", {x:data.x, y:data.y, color:seasons[this.season].color});
                 }
             }
-        } else this.highGear = 2;
+        } else this.highGear = this.throttleMax;
     }
 
     shootMissile() {
@@ -1004,7 +1034,6 @@ class AvatarPawn extends mix(Pawn).with(PM_Smoothed, PM_ThreeVisible, PM_Avatar)
         this.gas = 0;
         this.turn = 0;
         this.strafe = 0;
-        //this.highGear = 1;
         this.pointerId = 0;
         this.subscribe("input", "keyDown", this.keyDown);
         this.subscribe("input", "keyUp", this.keyUp);
@@ -1117,9 +1146,6 @@ class AvatarPawn extends mix(Pawn).with(PM_Smoothed, PM_ThreeVisible, PM_Avatar)
                 this.strafe = 1; break;
             case "ArrowRight": case "D": case "d":
                 this.strafe = -1; break;
-            case "Shift":
-                console.log("shiftKey Down");
-                this.highGear = 1.5; break;
             case " ":
                 this.shootMissile();
                 break;
@@ -1356,8 +1382,8 @@ class AvatarPawn extends mix(Pawn).with(PM_Smoothed, PM_ThreeVisible, PM_Avatar)
 
     claimCellUpdate(data) {
         //console.log("AvatarPawn claimCellUpdate", data);
+        playSound(cellSound, null, false);
         this.drawMinimapCell(data.x,data.y, data.color);
-        playSound(cellSound, this.renderObject, false);
     }
 
     clearCells(data) {
@@ -1831,7 +1857,10 @@ class GlowActor extends mix(Actor).with(AM_Spatial) {
     resetGame() {
         this.destroy();
     }
-
+    hide() { this.visible = false; }
+    show() { this.visible = true; }
+    set visible(value) { this._visible = value; this.say("visible", value); }
+    get visible() { return this._visible || false }
     get radius() { return this._radius || 2 }
     get glowRadius() { return this._glowRadius || 1 }
     get color() { return this._color || 0xff8844 }
@@ -1872,6 +1901,11 @@ export class GlowPawn extends mix(Pawn).with(PM_Smoothed, PM_ThreeVisible) {
         this.glow = new THREE.Mesh(geometry, material);
         this.glow.renderOrder = 5000; // this must be set to a large number to keep the associated pawn visible
         this.setRenderObject(this.glow);
+        this.listen("visible", this.doVisible);
+    }
+
+    doVisible(value) {
+        this.glow.visible = value;
     }
 
     destroy() {

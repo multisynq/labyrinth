@@ -81,6 +81,7 @@
 // - Missile shaders
 // - Floor shaders
 // - Fireball shader - I think this is done.
+// Perhaps raise your tiles.
 // Resize elements when the window is resized.
 // - Scoreboard
 // - Clock
@@ -821,7 +822,7 @@ class AvatarActor extends mix(Actor).with(AM_Spatial, AM_Avatar) {
 
     init(options) {
         super.init(options);
-        this.throttleMin = 0.65;
+        this.throttleMin = 0.75;
         this.throttleMax = 2.0;
         const t = [CELL_SIZE*seasons[this.season].cell.x+10,AVATAR_HEIGHT,CELL_SIZE*seasons[this.season].cell.y+10];
         const angle = Math.PI*2*seasons[this.season].angle/360;
@@ -839,11 +840,12 @@ class AvatarActor extends mix(Actor).with(AM_Spatial, AM_Avatar) {
         this.fireball =  FireballActor.create({parent: this, radius:this.radius});
         this.fireball.future(1000).hide();
         this.future(1000).buildGlow();
+        this.setHighSpeed(this.throttleMax);
     }
 
     buildGlow() {
         this.glow = [];
-        this.glowCount = 0;
+        this.glowIndex = 0;
         const cell = seasons[this.season].cell;
         const nextCell = seasons[this.season].nextCell;
         const glowPosition = [];
@@ -856,10 +858,9 @@ class AvatarActor extends mix(Actor).with(AM_Spatial, AM_Avatar) {
         // possible that the floor is not created yet...
         if(!doCell.floor) {this.future(100).buildGlow(); return;}
         for(let i=0; i<4; i++) {
-            console.log("buildGlow", glowPosition);
             doCell = mazeActor.map[glowPosition[i][0]][glowPosition[i][1]];
-            this.glow[i] = GlowActor.create({parent: doCell.floor, shape:"cube", translation:glowPosition[i], color: seasons[this.season].color, depthTest: true, radius: 1.25, glowRadius: 0.5, falloff: 0.1, opacity: 0.75, sharpness: 0.5});
-            this.glow[i].sink(1000, 1);
+            this.glow[i] = GlowActor.create({shape:"cube", color: seasons[this.season].color, depthTest: true, radius: 1.25, glowRadius: 0.5, falloff: 0.1, opacity: 0.75, sharpness: 0.5});
+            this.glow[i].sink(1000, 1, doCell.floor.translation);
             this.glow[i].future(1000).hide();
         }
     }
@@ -881,12 +882,20 @@ class AvatarActor extends mix(Actor).with(AM_Spatial, AM_Avatar) {
                 // set the season of the cell you are moving to
                 if (!seasonCorner && mazeActor.setSeason(data.x, data.y, this.season)) {
                     this.say("claimCellUpdate", {x:data.x, y:data.y, color:seasons[this.season].color});
-                    const glow = GlowActor.create({parent: cell.floor, shape:"cube", translation:[0,1,0], color: seasons[this.season].color, depthTest: true, radius: 1.25, glowRadius: 0.5, falloff: 0.1, opacity: 0.75, sharpness: 0.5});
-                    glow.sink(1000, 1);
-                    glow.future(1000).destroy();
+// GlowActor.create({parent: cell.floor, shape:"cube", translation:[0,1,0], color: seasons[this.season].color, depthTest: true, radius: 1.25, glowRadius: 0.5, falloff: 0.1, opacity: 0.75, sharpness: 0.5});
+                    const glow = this.glow[this.glowIndex];
+                    this.glowIndex = (this.glowIndex+1)%4;  
+                    glow.sink(1000, 1, cell.floor.translation);
+                    glow.show();
+                    //this.future(1200).setHighSpeed(this.throttleMax);
+                   // glow.future(1000).hide();
                 }
             }
         } else this.highGear = this.throttleMax;
+    }
+
+    setHighSpeed(value) {
+        this.highGear = value;
     }
 
     shootMissile() {
@@ -1872,9 +1881,11 @@ class GlowActor extends mix(Actor).with(AM_Spatial) {
     get opacity() { return this._opacity || 1 }
     get shape() { return this._shape || "sphere" }
 
-    sink(time, distance) {
-        this.set({translation: [0, distance*time/1000, 0]});
-        this.future(100).sink(time-100, distance);
+    sink(time, distance, translate) {
+        const t = [...translate];
+        t[1] = distance*time/1000;
+        this.set({translation: t});
+        if(time>0) this.future(100).sink(time-100, distance, t);
     }
 }
 GlowActor.register('GlowActor');

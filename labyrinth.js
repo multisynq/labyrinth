@@ -73,14 +73,15 @@
 // Broke up the big file into smaller files.
 // Compass is in the minimap.
 // Added a full screen button.
+// Warmed up floor shader.
+// Use '/' to turn sound on and off.
 //------------------------------------------------------------------------------------------
 // To do:
+// Need to snap the floor shader to the floor.
 // The center of the maze is at 10,10.
 // The compass should be made as a circle around the minimap - each direction is the color.
 // Shaders need to be "warmed-up" before they are used.
 // - Missile shaders
-// - Floor shaders
-// - Fireball shader - I think this is done.
 // Perhaps raise your tiles.
 // Resize elements when the window is resized.
 // - Scoreboard
@@ -209,9 +210,9 @@ import exitSound from "./assets/sounds/avatarLeave.wav";
 import missileSound from "./assets/sounds/Warning.mp3";
 import implosionSound from "./assets/sounds/Implosion.mp3";
 //import cellSound from "./assets/sounds/Granted.wav";
-import cellSound from "./assets/sounds/Heartbeat2.wav";
-
+import cellSound from "./assets/sounds/Heartbeat4.wav";
 import shockSound from "./assets/sounds/Shock.wav";
+import aweSound from "./assets/sounds/Awe.wav";
 
 // Global Variables
 //------------------------------------------------------------------------------------------
@@ -283,10 +284,8 @@ const soundLoops = [];
 const loopSoundVolume = 0.25;
 
 export const playSound = function() {
-    const audioLoader = new THREE.AudioLoader();
-
     function play(soundURL, parent3D, force, loop = false) {
-        if (!force && !soundSwitch) return;
+        if (!soundSwitch) return;
         
         // Check if we're on mobile and the audio context is suspended
         const audioContext = THREE.AudioContext.getContext();
@@ -368,6 +367,7 @@ async function loadSounds() {
         audioLoader.loadAsync(implosionSound),
         audioLoader.loadAsync(cellSound),
         audioLoader.loadAsync(shockSound),
+        audioLoader.loadAsync(aweSound),
     ]);
 }
 loadSounds().then( sounds => {
@@ -383,6 +383,7 @@ loadSounds().then( sounds => {
     soundList[implosionSound] = {buffer:sounds[7], count:0};
     soundList[cellSound] = {buffer:sounds[8], count:0};
     soundList[shockSound] = {buffer:sounds[9], count:0};
+    soundList[aweSound] = {buffer:sounds[10], count:0}; 
 });
 
 // Load 3D Models
@@ -1122,7 +1123,6 @@ class AvatarPawn extends mix(Pawn).with(PM_Smoothed, PM_ThreeVisible, PM_Avatar)
 
     didShootSound() {
         if (this.isMyAvatar) return; // only play the sound if it is not your avatar
-        this.shootSound.stop();
         playSound(shootSound, this.renderObject, false);
     }
 
@@ -1400,7 +1400,7 @@ class AvatarPawn extends mix(Pawn).with(PM_Smoothed, PM_ThreeVisible, PM_Avatar)
         for (const cell of data) {
             this.drawMinimapCell(cell[0]+1,cell[1]+1, 0xFFFFFF);
         }
-        playSound(shockSound, null, false);
+        if(this.actor.myAvatar) playSound(aweSound, this.renderObject, false);
     }
 
     createMinimap() {

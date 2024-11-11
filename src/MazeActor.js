@@ -178,7 +178,7 @@ class MazeActor extends mix(Actor).with(AM_Spatial) {
       return output;
     }
 
-    setSeason(x,y, season) {
+    setSeason(x,y, season, avatarId) {
         // console.log("setSeason", x,y, season);
         const cell = this.map[x-1][y-1];
         const oldSeason = cell.season;
@@ -187,7 +187,7 @@ class MazeActor extends mix(Actor).with(AM_Spatial) {
             cell.season = season;
             cell.floor.setColor(seasons[season].color);
             // This is literally the attack line. Where you can win or lose in an instant.
-            if (oldSeason) this.seasons[oldSeason] = this.checkLife(oldSeason);
+            if (oldSeason) this.seasons[oldSeason] = this.checkLife(oldSeason, avatarId);
             this.publish("maze", "score", this.seasons);
             return true;
         }
@@ -198,7 +198,7 @@ class MazeActor extends mix(Actor).with(AM_Spatial) {
         return this.map[x-1][y-1].season;
     }
 
-    checkLife(season) {
+    checkLife(season, avatarId) {
         //uses a fill algorithm to check if the season tree has been cut.
         const r = Math.random();
         const oldCount =this.seasons[season];
@@ -214,7 +214,7 @@ class MazeActor extends mix(Actor).with(AM_Spatial) {
                     }
                 }
             }
-            this.publish("maze", "clearCells", clearCells);
+            this.publish("maze", "clearCells", {clearCells, avatarId});
         }
         return count;
     }

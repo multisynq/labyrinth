@@ -75,9 +75,14 @@
 // Added a full screen button.
 // Warmed up floor shader.
 // Use '/' to turn sound on and off.
+// Snap the floor shader to the floor.
+// Destroy the glow when the avatar is destroyed.
+// Play the shock sound when another player captures a cell.
 //------------------------------------------------------------------------------------------
 // To do:
-// Need to snap the floor shader to the floor.
+// Volume is being ignored.
+// Sound effects are put on hold until the avatar's sound is ready, but should be ignored.
+// Check if shock and awe are working.
 // The center of the maze is at 10,10.
 // The compass should be made as a circle around the minimap - each direction is the color.
 // Shaders need to be "warmed-up" before they are used.
@@ -881,15 +886,15 @@ class AvatarActor extends mix(Actor).with(AM_Spatial, AM_Avatar) {
             // if the cell you are moving from is yours, then you can claim it
             if (data.lastX && mazeActor.map[data.lastX-1][data.lastY-1].season === this.season) {
                 // set the season of the cell you are moving to
-                if (!seasonCorner && mazeActor.setSeason(data.x, data.y, this.season)) {
+                if (!seasonCorner && mazeActor.setSeason(data.x, data.y, this.season, this.id)) {
                     this.say("claimCellUpdate", {x:data.x, y:data.y, color:seasons[this.season].color});
-// GlowActor.create({parent: cell.floor, shape:"cube", translation:[0,1,0], color: seasons[this.season].color, depthTest: true, radius: 1.25, glowRadius: 0.5, falloff: 0.1, opacity: 0.75, sharpness: 0.5});
+                    //GlowActor.create({parent: cell.floor, shape:"cube", translation:[0,1,0], color: seasons[this.season].color, depthTest: true, radius: 1.25, glowRadius: 0.5, falloff: 0.1, opacity: 0.75, sharpness: 0.5});
                     const glow = this.glow[this.glowIndex];
                     this.glowIndex = (this.glowIndex+1)%4;  
                     glow.sink(1000, 1, cell.floor.translation);
                     glow.show();
                     //this.future(1200).setHighSpeed(this.throttleMax);
-                   // glow.future(1000).hide();
+                    glow.future(1000).hide();
                 }
             }
         } else this.highGear = this.throttleMax;
@@ -927,6 +932,12 @@ class AvatarActor extends mix(Actor).with(AM_Spatial, AM_Avatar) {
         this.canShoot = true;
         this.inCorner = true;
         this.say("respawn", {t, r, angle});
+    }
+
+    destroy() {
+        super.destroy();
+        console.log("AvatarActor destroy", this.id);
+        for(let i=0; i<4; i++) {this.glow[i].destroy();}
     }
 }
 AvatarActor.register('AvatarActor');
@@ -1121,7 +1132,7 @@ class AvatarPawn extends mix(Pawn).with(PM_Smoothed, PM_ThreeVisible, PM_Avatar)
         this.highGear = 1;
     }
 
-    didShootSound() {
+    didShootSound(id) {
         if (this.isMyAvatar) return; // only play the sound if it is not your avatar
         playSound(shootSound, this.renderObject, false);
     }
@@ -1141,7 +1152,7 @@ class AvatarPawn extends mix(Pawn).with(PM_Smoothed, PM_ThreeVisible, PM_Avatar)
 
     rechargedSound() {
         console.log("recharged");
-        playSound(rechargedSound, this.renderObject, false);
+        if (this.isMyAvatar) playSound(rechargedSound, this.renderObject, false);
     }
 
     keyDown(e) {
@@ -1390,17 +1401,20 @@ class AvatarPawn extends mix(Pawn).with(PM_Smoothed, PM_ThreeVisible, PM_Avatar)
     }
 
     claimCellUpdate(data) {
-        //console.log("AvatarPawn claimCellUpdate", data);
-        playSound(cellSound, null, false);
+        console.log("AvatarPawn claimCellUpdate", this.isMyAvatar);
+        if(this.isMyAvatar) playSound(cellSound, null, false);
         this.drawMinimapCell(data.x,data.y, data.color);
     }
 
     clearCells(data) {
-        // console.log("AvatarPawn clearCells", data);
-        for (const cell of data) {
+        console.log("AvatarPawn clearCells", data.avatarId, this.actor.id);
+        for (const cell of data.clearCells) {
             this.drawMinimapCell(cell[0]+1,cell[1]+1, 0xFFFFFF);
         }
-        if(this.actor.myAvatar) playSound(aweSound, this.renderObject, false);
+        if(this.isMyAvatar) {
+            if(data.avatarId === this.actor.id) playSound(aweSound, this.renderObject, false);
+            else playSound(shockSound, null, false);
+        }
     }
 
     createMinimap() {
@@ -1884,7 +1898,7 @@ class GlowActor extends mix(Actor).with(AM_Spatial) {
     sink(time, distance, translate) {
         const t = [...translate];
         t[1] = distance*time/1000;
-        this.set({translation: t});
+        this.snap({translation: t});
         if(time>0) this.future(100).sink(time-100, distance, t);
     }
 }

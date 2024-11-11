@@ -78,11 +78,12 @@
 // Snap the floor shader to the floor.
 // Destroy the glow when the avatar is destroyed.
 // Play the shock sound when another player captures a cell.
+// Shock and awe are working.
+// Volume is working.
+// Added text display for volume and sound and other things as required.
 //------------------------------------------------------------------------------------------
 // To do:
-// Volume is being ignored.
 // Sound effects are put on hold until the avatar's sound is ready, but should be ignored.
-// Check if shock and awe are working.
 // The center of the maze is at 10,10.
 // The compass should be made as a circle around the minimap - each direction is the color.
 // Shaders need to be "warmed-up" before they are used.
@@ -138,17 +139,73 @@ function createTextDisplay() {
     const versionNumber = document.getElementById('version-number');
     versionNumber.parentNode.insertBefore(textDisplay, versionNumber);
     
+    // Add CSS for fade effect with longer transition
+    const style = document.createElement('style');
+    style.textContent = `
+        .text-display {
+            position: fixed;
+            bottom: 40px;
+            left: 50%;
+            transform: translateX(-50%);
+            font-family: Arial, sans-serif;
+            background: rgba(0, 0, 0, 0.5);
+            padding: 8px 16px;
+            border-radius: 4px;
+            z-index: 1000;
+            opacity: 1;
+            transition: opacity 2s ease-out;
+            pointer-events: none;
+            color: white;
+        }
+        
+        .text-display.fade {
+            opacity: 0;
+        }
+        
+        .text-display.hidden {
+            display: none;
+        }
+    `;
+    document.head.appendChild(style);
+    
+    let currentTimeout;
+    let fadeTimeout;
+    
     // Return update function
-    return (text) => {
+    return (text, duration = 0) => {
+        // Clear any existing timeouts
+        if (currentTimeout) clearTimeout(currentTimeout);
+        if (fadeTimeout) clearTimeout(fadeTimeout);
+        
+        // Remove classes and show element
+        textDisplay.classList.remove('fade', 'hidden');
+        // Force a reflow
+        textDisplay.offsetHeight;
+        
+        // Update text
         textDisplay.textContent = text;
+        
+        // Set up fade if duration provided
+        if (duration > 0) {
+            currentTimeout = setTimeout(() => {
+                textDisplay.classList.add('fade');
+                
+                // Set up the hide after fade completes
+                fadeTimeout = setTimeout(() => {
+                    textDisplay.classList.add('hidden');
+                }, 2000); // Match the transition duration
+            }, duration * 1000);
+        }
     };
 }
-const updateDisplay = createTextDisplay();
+
+const setTextDisplay = createTextDisplay();
+
 // Initialize fullscreen button
 new FullscreenButton();
 const device = new DeviceDetector();
 console.log("Running on ", device.isMobile? "mobile device":"desktop");
-updateDisplay(device.isMobile? "mobile device":"desktop");
+setTextDisplay(device.isMobile? "mobile device":"desktop",10);
 
 const boxScore = new BoxScore();
 boxScore.setScores({"Spring": 4, "Summer": 4, "Autumn": 4, "Winter": 4});
@@ -310,6 +367,8 @@ function playSoundOnce(sound, parent3D, force, loop = false) {
     if (!force && sound.count>maxSound) return;
     sound.count++;
     let mySound;
+    console.log("---------------------------");
+    console.log("volume ", volume);
     if (parent3D) {
         mySound = new THREE.PositionalAudio( listener );  // listener is a global
         //mySound = new MyAudio( listener );  // listener is a global
@@ -1174,14 +1233,17 @@ class AvatarPawn extends mix(Pawn).with(PM_Smoothed, PM_ThreeVisible, PM_Avatar)
                 break;
             case '-': case '_':
                 volume = Math.max(0, volume - 0.1);
+                setTextDisplay("Volume: " + Math.floor(volume*10),2);
                 soundLoops.forEach( sound => sound.setVolume(volume * loopSoundVolume) );
                 break;
             case '+': case '=':
                 volume = Math.min(1, volume + 0.1);
+                setTextDisplay("Volume: " + Math.floor(volume*10),2);
                 soundLoops.forEach( sound => sound.setVolume(volume * loopSoundVolume) );
                 break;
             case '/':
                 soundSwitch = !soundSwitch; // toggle sound on and off
+                setTextDisplay("Sound: " + (soundSwitch? "on":"off"),2);
                 soundLoops.forEach( sound => {if (soundSwitch) sound.play(); else sound.pause();} );
                 console.log( "sound is " + soundSwitch);
                 break;
@@ -1236,12 +1298,14 @@ class AvatarPawn extends mix(Pawn).with(PM_Smoothed, PM_ThreeVisible, PM_Avatar)
 
     doPointerDown(e) {
     //    console.log("AvatarPawn.onPointerDown()", e);
-        // Ignore clicks on the fullscreen button
-        const im = this.service("InputManager");
         if (!device.isMobile) {
+            const im = this.service("InputManager");
             if ( im.inPointerLock ) this.shootMissile();
-            else im.enterPointerLock();
-        }
+            else {
+                im.enterPointerLock();
+                soundSwitch = true;
+            }
+        }else soundSwitch = true; // turn sound on for mobile
     }
 
     doPointerUp(e) {
@@ -1292,11 +1356,6 @@ class AvatarPawn extends mix(Pawn).with(PM_Smoothed, PM_ThreeVisible, PM_Avatar)
         this.eyeball.pitch = p;
         this.eyeball.pitchQ = q_axisAngle([1,0,0], this.eyeball.pitch);
         this.eyeball.set({rotation: this.eyeball.pitchQ});
-    }
-
-    doPointerMove(e) {
-    //const xy = e.xy;
-    //console.log("AvatarPawn.onPointerMove()", e);
     }
 
     update(time, delta) {

@@ -138,7 +138,30 @@
             .spring { color: #FFB6C1; }
             .summer { color: #90EE90; }
             .autumn { color: #FFE5B4; }
-            .winter { color: #A5F2F3; }       
+            .winter { color: #A5F2F3; }   
+            .center-icon {
+                position: fixed;
+                left: 50%;
+                bottom: 100px;
+                transform: translateX(-50%);
+                z-index: 1000;
+                pointer-events: none;
+                display: block;
+            }
+            .center-icon img {
+                display: block;
+                width: 32px;  /* Default size */
+                height: 32px; /* Default size */
+                object-fit: contain;
+                /* Multiple shadows for stronger effect */
+                filter: 
+                    /* Dark outer shadow */
+                    drop-shadow(0 4px 3px rgba(0, 0, 0, 0.5))
+                    /* Black base shadow */
+                    drop-shadow(0 2px 2px rgba(0, 0, 0, 0.9))
+                    /* Inner shadow for definition */
+                    drop-shadow(0 1px 1px rgba(0, 0, 0, 0.7));
+            }            
             .version-display {
                 position: fixed;
                 bottom: 10px;
@@ -216,7 +239,7 @@
                 <span class="score">4</span>
             </div>
         </div>
-        <div id="version-number" class="version-display">v0.1.0-alpha.30</div>
+        <div id="version-number" class="version-display">v0.1.0-alpha.31</div>
         <!-- <a id="codelink" href="https://github.com/multisynq/physics-fountain/blob/main/index.html"
         title="View source code on GitHub" target="_blank">{...}</a> -->
     </body>

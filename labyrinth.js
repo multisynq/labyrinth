@@ -83,13 +83,18 @@
 // Compass is now centered on the white square (removed). 
 // The iris of the eyes matches the season color.
 // Removed the compass - minimap now rotates.
+// Season icons are now displayed in the center of the screen.
+//------------------------------------------------------------------------------------------
+// Bugs:
+// Sometimes, a delay will cause you to jump through a wall - including outside of
+// the maze. This is very bad.
 //------------------------------------------------------------------------------------------
 // To do:
 // Sound effects are put on hold until the avatar's sound is ready, but should be ignored.
 // The center of the maze is at 10,10.
 // Shaders need to be "warmed-up" before they are used.
 // - Missile shaders
-// Perhaps raise your tiles.
+// Sounds may need to be warmed up.
 // Resize elements when the window is resized.
 // - Scoreboard
 // - Clock
@@ -108,12 +113,7 @@
 // Need artist:
 // The ivy needs to be cleaned up at the top.
 //------------------------------------------------------------------------------------------
-// Bugs:
-// The avatar is probably visible to other players before you can see them on
-// loading. Need to hide the new avatar until it is able to play.
-// Sometimes, a delay will cause you to jump through a wall - including outside of
-// the maze. This is very bad.
-//------------------------------------------------------------------------------------------
+
 import { App, StartWorldcore, ViewService, ModelRoot, ViewRoot,Actor, mix, toRad,
     InputManager, AM_Spatial, PM_Spatial, PM_Smoothed, Pawn, AM_Avatar, PM_Avatar, UserManager, User,
     q_yaw, q_pitch, q_axisAngle, v3_add, v3_sub, v3_normalize, v3_rotate, v3_scale, v3_distanceSqr,
@@ -128,6 +128,52 @@ import Countdown from './src/Countdown.js';
 import MazeActor from './src/MazeActor.js';
 import {InstanceActor, instances, materials} from './src/Instance.js';
 import apiKey from "./src/apiKey.js";
+
+function createCenterIcon(imagePath, baseSize = 32) {
+    // Create container
+    const iconContainer = document.createElement('div');
+    iconContainer.className = 'center-icon';
+    
+    // Create image element
+    const icon = document.createElement('img');
+    icon.src = imagePath;
+    
+    // Set initial size directly
+    icon.style.width = `${baseSize}px`;
+    icon.style.height = `${baseSize}px`;
+    
+    // Function to calculate size based on window dimensions
+    const updateSize = () => {
+        const windowWidth = window.innerWidth;
+        const windowHeight = window.innerHeight;
+        const minDimension = Math.min(windowWidth, windowHeight);
+        
+        // Scale icon size based on screen size and baseSize
+        const scaleFactor = minDimension / 1000;
+        const newSize = Math.max(baseSize * 0.75, Math.min(baseSize * scaleFactor, baseSize * 1.5));
+        
+        icon.style.width = `${newSize}px`;
+        icon.style.height = `${newSize}px`;
+    };
+    
+    // Add image to container
+    iconContainer.appendChild(icon);
+    
+    // Add to DOM just above text display
+    const textDisplay = document.querySelector('.text-display');
+    textDisplay.parentNode.insertBefore(iconContainer, textDisplay);
+    
+    // Handle window resize
+    window.addEventListener('resize', updateSize);
+    
+    return iconContainer;
+}
+
+import IconSpring from './assets/textures/IconSpring.png';
+import IconSummer from './assets/textures/IconSummer.png';
+import IconAutumn from './assets/textures/IconAutumn.png';
+import IconWinter from './assets/textures/IconWinter.png';
+
 
 function createTextDisplay() {
     // Create container
@@ -199,6 +245,7 @@ function createTextDisplay() {
 }
 
 const setTextDisplay = createTextDisplay();
+//const iconSpring = createCenterIcon(IconSpring, 128);
 
 // Initialize fullscreen button
 new FullscreenButton();
@@ -292,10 +339,10 @@ const MISSILE_SPEED = 0.50;
 
 export let csm; // CSM is Cascaded Shadow Maps
 export const seasons = {
-    Spring:{cell:{x:0,y:0}, nextCell:{x:1,y:1}, angle:toRad(180+45), color:0xFFB6C1, color2:0xCC8A94, color3:0xd7324b},
-    Summer: {cell: {x:0,y:CELL_SIZE-2}, nextCell:{x:1,y:CELL_SIZE-3}, angle:toRad(270+45), color:0x90EE90, color2:0x65AA65, color3:0x037403},
-    Autumn: {cell:{x:CELL_SIZE-2, y:CELL_SIZE-2}, nextCell:{x:CELL_SIZE-3,y:CELL_SIZE-3}, angle:toRad(0+45), color:0xFFE5B4, color2:0xCCB38B, color3:0x815608},
-    Winter: {cell:{x:CELL_SIZE-2, y:0}, nextCell:{x:CELL_SIZE-3,y:1}, angle:toRad(90+45), color:0xA5F2F3, color2:0x73BFBF, color3:0x1248dd}};
+    Spring:{cell:{x:0,y:0}, icon: IconSpring, nextCell:{x:1,y:1}, angle:toRad(180+45), color:0xFFB6C1, color2:0xCC8A94, color3:0xd7324b},
+    Summer: {cell: {x:0,y:CELL_SIZE-2}, icon: IconSummer, nextCell:{x:1,y:CELL_SIZE-3}, angle:toRad(270+45), color:0x90EE90, color2:0x65AA65, color3:0x037403},
+    Autumn: {cell:{x:CELL_SIZE-2, y:CELL_SIZE-2}, icon: IconAutumn, nextCell:{x:CELL_SIZE-3,y:CELL_SIZE-3}, angle:toRad(0+45), color:0xFFE5B4, color2:0xCCB38B, color3:0x815608},
+    Winter: {cell:{x:CELL_SIZE-2, y:0}, icon: IconWinter, nextCell:{x:CELL_SIZE-3,y:1}, angle:toRad(90+45), color:0xA5F2F3, color2:0x73BFBF, color3:0x1248dd}};
 // Minimap canvas
 const minimapDiv = document.getElementById('minimap');
 const minimapCanvas = document.createElement('canvas');
@@ -1097,6 +1144,7 @@ class AvatarPawn extends mix(Pawn).with(PM_Smoothed, PM_ThreeVisible, PM_Avatar)
         this.listen("respawn", this.respawn);
         this.subscribe(this.viewId, "synced", this.handleSynced);
         this.subscribe("maze", "clearCells", this.clearCells);
+        this.icon = createCenterIcon(seasons[this.season].icon, 128);
     }
 
     get season() {return this.actor.season}

@@ -48,7 +48,6 @@
 // Players cannot be harmed while on those four tiles, but they can shoot back. Projectiles bounce.
 // You can only shoot if you are on your own season color.
 // You move 1.5 times faster when you are on your own color.
-// Added a compass rose to the minimap.
 // Missile/missile collision works.
 // Added credit info to be added to credits screen.
 // Added effects when you capture a cell.
@@ -71,7 +70,7 @@
 // Joystick controls.
 // Fix mobile testing.
 // Broke up the big file into smaller files.
-// Compass is in the minimap.
+// Compass is in the minimap (removed).
 // Added a full screen button.
 // Warmed up floor shader.
 // Use '/' to turn sound on and off.
@@ -81,8 +80,9 @@
 // Shock and awe are working.
 // Volume is working.
 // Added text display for volume and sound and other things as required.
-// Compass is now centered on the white square. 
+// Compass is now centered on the white square (removed). 
 // The iris of the eyes matches the season color.
+// Removed the compass - minimap now rotates.
 //------------------------------------------------------------------------------------------
 // To do:
 // Sound effects are put on hold until the avatar's sound is ready, but should be ignored.
@@ -94,7 +94,6 @@
 // - Scoreboard
 // - Clock
 // - Minimap
-// - Compass
 // Three big weenies.
 // Rooms (Brian Upton suggestion)?
 // Add end game and effects.
@@ -115,7 +114,7 @@
 // Sometimes, a delay will cause you to jump through a wall - including outside of
 // the maze. This is very bad.
 //------------------------------------------------------------------------------------------
-import { App, StartWorldcore, ViewService, ModelRoot, ViewRoot,Actor, mix,
+import { App, StartWorldcore, ViewService, ModelRoot, ViewRoot,Actor, mix, toRad,
     InputManager, AM_Spatial, PM_Spatial, PM_Smoothed, Pawn, AM_Avatar, PM_Avatar, UserManager, User,
     q_yaw, q_pitch, q_axisAngle, v3_add, v3_sub, v3_normalize, v3_rotate, v3_scale, v3_distanceSqr,
     THREE, ADDONS, PM_ThreeVisible, ThreeRenderManager, PM_ThreeCamera, PM_ThreeInstanced, ThreeInstanceManager } from 'https://esm.run/@croquet/worldcore@2.0.0-alpha.28';
@@ -124,7 +123,6 @@ import FullscreenButton from './src/Fullscreen.js';
 import FakeGlowMaterial from './src/FakeGlowMaterial.js';
 import DeviceDetector from './src/DeviceDetector.js';
 import BoxScore from './src/BoxScore.js';
-import Compass from './src/Compass.js';
 import Joystick from './src/Joystick.js';
 import Countdown from './src/Countdown.js';
 import MazeActor from './src/MazeActor.js';
@@ -211,10 +209,6 @@ setTextDisplay(device.isMobile? "mobile device":"desktop",10);
 const boxScore = new BoxScore();
 boxScore.setScores({"Spring": 4, "Summer": 4, "Autumn": 4, "Winter": 4});
 
-const compass = new Compass();
-
-
-
 // Textures
 //------------------------------------------------------------------------------------------
 import sky from "./assets/textures/aboveClouds.jpg";
@@ -298,11 +292,12 @@ const MISSILE_SPEED = 0.50;
 
 export let csm; // CSM is Cascaded Shadow Maps
 export const seasons = {
-    Spring:{cell:{x:0,y:0}, nextCell:{x:1,y:1}, angle:180+45, color:0xFFB6C1, color2:0xCC8A94, color3:0xd7324b},
-    Summer: {cell: {x:0,y:CELL_SIZE-2}, nextCell:{x:1,y:CELL_SIZE-3}, angle:270+45, color:0x90EE90, color2:0x65AA65, color3:0x037403},
-    Autumn: {cell:{x:CELL_SIZE-2, y:CELL_SIZE-2}, nextCell:{x:CELL_SIZE-3,y:CELL_SIZE-3}, angle:0+45, color:0xFFE5B4, color2:0xCCB38B, color3:0x815608},
-    Winter: {cell:{x:CELL_SIZE-2, y:0}, nextCell:{x:CELL_SIZE-3,y:1}, angle:90+45, color:0xA5F2F3, color2:0x73BFBF, color3:0x1248dd}};
+    Spring:{cell:{x:0,y:0}, nextCell:{x:1,y:1}, angle:toRad(180+45), color:0xFFB6C1, color2:0xCC8A94, color3:0xd7324b},
+    Summer: {cell: {x:0,y:CELL_SIZE-2}, nextCell:{x:1,y:CELL_SIZE-3}, angle:toRad(270+45), color:0x90EE90, color2:0x65AA65, color3:0x037403},
+    Autumn: {cell:{x:CELL_SIZE-2, y:CELL_SIZE-2}, nextCell:{x:CELL_SIZE-3,y:CELL_SIZE-3}, angle:toRad(0+45), color:0xFFE5B4, color2:0xCCB38B, color3:0x815608},
+    Winter: {cell:{x:CELL_SIZE-2, y:0}, nextCell:{x:CELL_SIZE-3,y:1}, angle:toRad(90+45), color:0xA5F2F3, color2:0x73BFBF, color3:0x1248dd}};
 // Minimap canvas
+const minimapDiv = document.getElementById('minimap');
 const minimapCanvas = document.createElement('canvas');
 const minimapCtx = minimapCanvas.getContext('2d');
 minimapCtx.globalAlpha = 0.1;
@@ -310,7 +305,7 @@ minimapCanvas.width = 220;
 minimapCanvas.height = 220;
 
 function scaleMinimap() {
-    const minimapDiv = document.getElementById('minimap');
+    //const minimapDiv = document.getElementById('minimap');
     const height = Math.min(window.innerHeight, window.innerWidth);
 
     // Calculate size where diagonal is 1/3 of page height
@@ -324,7 +319,6 @@ function scaleMinimap() {
     minimapDiv.style.height = `${sideLength}px`;
     minimapCanvas.style.width = `${sideLength}px`;
     minimapCanvas.style.height = `${sideLength}px`;
-    compass.resize(sideLength/6);
 }
 
 let readyToLoad3D = false;
@@ -901,7 +895,7 @@ class AvatarActor extends mix(Actor).with(AM_Spatial, AM_Avatar) {
         this.throttleMin = 1.0;
         this.throttleMax = 2.0;
         const t = [CELL_SIZE*seasons[this.season].cell.x+10,AVATAR_HEIGHT,CELL_SIZE*seasons[this.season].cell.y+10];
-        const angle = Math.PI*2*seasons[this.season].angle/360;
+        const angle = seasons[this.season].angle; //Math.PI*2*seasons[this.season].angle/360;
         const r = q_axisAngle([0,1,0],angle);
         this.set({translation: t, rotation: r});
         this.canShoot = true;
@@ -998,7 +992,7 @@ class AvatarActor extends mix(Actor).with(AM_Spatial, AM_Avatar) {
 
     respawn() {
         const t = [CELL_SIZE*seasons[this.season].cell.x+10,AVATAR_HEIGHT,CELL_SIZE*seasons[this.season].cell.y+10];
-        const angle = Math.PI*2*seasons[this.season].angle/360;
+        const angle = seasons[this.season].angle; //Math.PI*2*seasons[this.season].angle/360;
         const r = q_axisAngle([0,1,0],angle);
         this.set({translation: t, rotation: r});
         this.canShoot = true;
@@ -1091,7 +1085,7 @@ class AvatarPawn extends mix(Pawn).with(PM_Smoothed, PM_ThreeVisible, PM_Avatar)
         this.isAvatar = true;
         this.radius = actor.radius;
         this.yaw = q_yaw(this.rotation);
-        compass.update(this.yaw);
+        minimapDiv.style.transform = `rotate(${this.yaw}rad)`;
         this.yawQ = q_axisAngle([0,1,0], this.yaw);
         this.lastX = seasons[this.season].cell.x+1;
         this.lastY = seasons[this.season].cell.y+1;
@@ -1125,7 +1119,7 @@ class AvatarPawn extends mix(Pawn).with(PM_Smoothed, PM_ThreeVisible, PM_Avatar)
         this.positionTo(data.t, data.r);
         //this.set({translation: data.t, rotation: data.r});
         this.yaw = data.angle;
-        compass.update(this.yaw);
+        minimapDiv.style.transform = `rotate(${this.yaw}rad)`;
         this.yawQ = data.r;
     }
 
@@ -1352,7 +1346,7 @@ class AvatarPawn extends mix(Pawn).with(PM_Smoothed, PM_ThreeVisible, PM_Avatar)
         if(this.looking){ 
             this.yaw -= this.lookX * 0.075;
             this.yaw = this.normalizeRotation(this.yaw);
-            compass.update(this.yaw);
+            minimapDiv.style.transform = `rotate(${this.yaw}rad)`;
             this.yawQ = q_axisAngle([0,1,0], this.yaw);
             this.positionTo(this.translation, this.yawQ);
             const linearToExponential = (x, exponent = 2) => Math.pow(Math.max(0, Math.min(1, x)), exponent);
@@ -1368,7 +1362,7 @@ class AvatarPawn extends mix(Pawn).with(PM_Smoothed, PM_ThreeVisible, PM_Avatar)
        // console.log("AvatarPawn lookAround", x,y,scale);
         this.yaw -= x * scale;
         this.yaw = this.normalizeRotation(this.yaw);
-        compass.update(this.yaw);
+        minimapDiv.style.transform = `rotate(${this.yaw}rad)`;
         this.yawQ = q_axisAngle([0,1,0], this.yaw);
         this.positionTo(this.translation, this.yawQ);
 
@@ -1501,7 +1495,7 @@ class AvatarPawn extends mix(Pawn).with(PM_Smoothed, PM_ThreeVisible, PM_Avatar)
     createMinimap() {
         //console.log("createMinimap");
         // Add the canvas to the minimap div
-        const minimapDiv = document.getElementById('minimap');
+        //const minimapDiv = document.getElementById('minimap');
         minimapDiv.appendChild(minimapCanvas);
         this.redrawMinimap();
     }
@@ -1519,8 +1513,9 @@ class AvatarPawn extends mix(Pawn).with(PM_Smoothed, PM_ThreeVisible, PM_Avatar)
         const xCell = 1+Math.floor(this.translation[0]/CELL_SIZE);
         const yCell = 1+Math.floor(this.translation[2]/CELL_SIZE);
         this.avatarMinimap(null, null, xCell, yCell);
-        const minimapDiv = document.getElementById('minimap');
-        minimapDiv.style.transform = `rotate(${seasons[this.season].angle}deg)`;
+        //const minimapDiv = document.getElementById('minimap');
+       //minimapDiv.style.transform = `rotate(${seasons[this.season].angle+this.yaw}rad)`;
+       minimapDiv.style.transform = `rotate(${this.yaw}rad)`;
     }
 
     drawMinimapCell(x,y, color) {
@@ -1546,8 +1541,9 @@ class AvatarPawn extends mix(Pawn).with(PM_Smoothed, PM_ThreeVisible, PM_Avatar)
             const mazeActor = this.wellKnownModel("ModelRoot").maze;
             this.drawMinimapCell(lastX, lastY, mazeActor.getCellColor(lastX,lastY));
         }
-        // I have no idea why I have to subtract 10 from y
-        compass.update(this.yaw, x * 11 - 5, (y-10) * 11 - 5);
+
+ //       minimapDiv.style.transform = `rotate(${seasons[this.season].angle+this.yaw}deg)`;
+        minimapDiv.style.transform = `rotate(${this.yaw}rad)`;
         minimapCtx.globalAlpha = 0.9;
         minimapCtx.fillStyle = "#FFFFFF";
         minimapCtx.fillRect(x*11-4, y*11-4, 8, 8);

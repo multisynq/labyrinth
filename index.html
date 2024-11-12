@@ -106,14 +106,6 @@
                 text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.5);
                 letter-spacing: 2px;
             }
-            .compass {
-                position: absolute;
-                top: 50%;
-                left: 50%;
-                transform: translate(-50%, -50%);
-                z-index: 2;
-                pointer-events: none;
-            }
             .box-score {
                 position: fixed;
                 left: 20px;
@@ -146,7 +138,7 @@
             .spring { color: #FFB6C1; }
             .summer { color: #90EE90; }
             .autumn { color: #FFE5B4; }
-            .winter { color: #A5F2F3; }
+            .winter { color: #A5F2F3; }       
             .version-display {
                 position: fixed;
                 bottom: 10px;
@@ -203,7 +195,6 @@
     </head>
     <body>
         <div id="minimap" class="minimap">
-            <div id="compass" class="compass"></div>
         </div>
         <div id="countdown" class="countdown">0:00</div>
        
@@ -225,7 +216,7 @@
                 <span class="score">4</span>
             </div>
         </div>
-        <div id="version-number" class="version-display">v0.1.0-alpha.28</div>
+        <div id="version-number" class="version-display">v0.1.0-alpha.30</div>
         <!-- <a id="codelink" href="https://github.com/multisynq/physics-fountain/blob/main/index.html"
         title="View source code on GitHub" target="_blank">{...}</a> -->
     </body>

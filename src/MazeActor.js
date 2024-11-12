@@ -143,13 +143,13 @@ class MazeActor extends mix(Actor).with(AM_Spatial) {
         if (cell.floor) { // only do this if the floor exists
             // console.log("setColor", cell, x,y, season);
             this.map[x][y].season = season;
-            this.map[x][y].floor.setColor(seasons[season].color3);
+            this.map[x][y].floor.setColor(seasons[season].color2);
             this.map[x+1][y].season = season;
-            this.map[x+1][y].floor.setColor(seasons[season].color3);
+            this.map[x+1][y].floor.setColor(seasons[season].color2);
             this.map[x][y+1].season = season;
-            this.map[x][y+1].floor.setColor(seasons[season].color3);
+            this.map[x][y+1].floor.setColor(seasons[season].color2);
             this.map[x+1][y+1].season = season;
-            this.map[x+1][y+1].floor.setColor(seasons[season].color3);
+            this.map[x+1][y+1].floor.setColor(seasons[season].color2);
         }
         else this.future(100).setCornerSeason(x,y,season);
     }

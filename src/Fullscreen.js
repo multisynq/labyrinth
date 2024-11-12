@@ -1,4 +1,4 @@
-export class FullscreenButton {
+class FullscreenButton {
     constructor() {
         this.button = document.createElement('button');
         this.button.className = 'fullscreen-button';
@@ -71,3 +71,5 @@ export class FullscreenButton {
         }
     }
 }
+
+export default FullscreenButton;

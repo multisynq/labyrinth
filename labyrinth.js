@@ -82,6 +82,7 @@
 // Volume is working.
 // Added text display for volume and sound and other things as required.
 // Compass is now centered on the white square. 
+// The iris of the eyes matches the season color.
 //------------------------------------------------------------------------------------------
 // To do:
 // Sound effects are put on hold until the avatar's sound is ready, but should be ignored.
@@ -95,10 +96,7 @@
 // - Minimap
 // - Compass
 // Three big weenies.
-// Rooms?
-// Different sound for the user cutting off cells
-// The ivy needs to be cleaned up at the top.
-// The iris of the eyes must match the season color.
+// Rooms (Brian Upton suggestion)?
 // Add end game and effects.
 // Need a rules screen at the start. See:
 // https://docs.google.com/document/d/1qjPm6pxaejuq5KydRh0C6Honory8DLICO3jfQkpJotc/edit?usp=sharing
@@ -107,6 +105,9 @@
 // Add a "ready" button to start the game.
 // Music is streamed to the game from the web. Players can turn it on and off - or play along
 // and vote for the songs they like. 
+//------------------------------------------------------------------------------------------
+// Need artist:
+// The ivy needs to be cleaned up at the top.
 //------------------------------------------------------------------------------------------
 // Bugs:
 // The avatar is probably visible to other players before you can see them on
@@ -119,7 +120,7 @@ import { App, StartWorldcore, ViewService, ModelRoot, ViewRoot,Actor, mix,
     q_yaw, q_pitch, q_axisAngle, v3_add, v3_sub, v3_normalize, v3_rotate, v3_scale, v3_distanceSqr,
     THREE, ADDONS, PM_ThreeVisible, ThreeRenderManager, PM_ThreeCamera, PM_ThreeInstanced, ThreeInstanceManager } from 'https://esm.run/@croquet/worldcore@2.0.0-alpha.28';
 
-import { FullscreenButton } from './src/Fullscreen.js';
+import FullscreenButton from './src/Fullscreen.js';
 import FakeGlowMaterial from './src/FakeGlowMaterial.js';
 import DeviceDetector from './src/DeviceDetector.js';
 import BoxScore from './src/BoxScore.js';
@@ -217,6 +218,11 @@ const compass = new Compass();
 // Textures
 //------------------------------------------------------------------------------------------
 import sky from "./assets/textures/aboveClouds.jpg";
+// import eyeball_summer from "./assets/textures/EyeSummer.png";
+import eyeball_autumn from "./assets/textures/EyeAutumn.png";
+import eyeball_winter from "./assets/textures/EyeWinter.png";
+import eyeball_spring from "./assets/textures/EyeSpring.png";
+
 import missile_color from "./assets/textures/metal_gold_vein/metal_0080_color_1k.jpg";
 import missile_normal from "./assets/textures/metal_gold_vein/metal_0080_normal_opengl_1k.png";
 import missile_roughness from "./assets/textures/metal_gold_vein/metal_0080_roughness_1k.jpg";
@@ -292,10 +298,10 @@ const MISSILE_SPEED = 0.50;
 
 export let csm; // CSM is Cascaded Shadow Maps
 export const seasons = {
-    Spring:{cell:{x:0,y:0}, nextCell:{x:1,y:1}, angle:180+45, color:0xFFB6C1, color2:0xCC8A94, color3:0xB37780},
-    Summer: {cell: {x:0,y:CELL_SIZE-2}, nextCell:{x:1,y:CELL_SIZE-3}, angle:270+45, color:0x90EE90, color2:0x65AA65, color3:0x508850},
-    Autumn: {cell:{x:CELL_SIZE-2, y:CELL_SIZE-2}, nextCell:{x:CELL_SIZE-3,y:CELL_SIZE-3}, angle:0+45, color:0xFFE5B4, color2:0xCCB38B, color3:0xB39977},
-    Winter: {cell:{x:CELL_SIZE-2, y:0}, nextCell:{x:CELL_SIZE-3,y:1}, angle:90+45, color:0xA5F2F3, color2:0x73BFBF, color3:0x5AA5A5}};
+    Spring:{cell:{x:0,y:0}, nextCell:{x:1,y:1}, angle:180+45, color:0xFFB6C1, color2:0xCC8A94, color3:0xd7324b},
+    Summer: {cell: {x:0,y:CELL_SIZE-2}, nextCell:{x:1,y:CELL_SIZE-3}, angle:270+45, color:0x90EE90, color2:0x65AA65, color3:0x037403},
+    Autumn: {cell:{x:CELL_SIZE-2, y:CELL_SIZE-2}, nextCell:{x:CELL_SIZE-3,y:CELL_SIZE-3}, angle:0+45, color:0xFFE5B4, color2:0xCCB38B, color3:0x815608},
+    Winter: {cell:{x:CELL_SIZE-2, y:0}, nextCell:{x:CELL_SIZE-3,y:1}, angle:90+45, color:0xA5F2F3, color2:0x73BFBF, color3:0x1248dd}};
 // Minimap canvas
 const minimapCanvas = document.createElement('canvas');
 const minimapCtx = minimapCanvas.getContext('2d');
@@ -539,7 +545,7 @@ new THREE.TextureLoader().load(fireballTexture, texture => {
 let sky_t, missile_color_t, missile_normal_t, missile_roughness_t, missile_displacement_t, missile_metalness_t,
 //    power_color_t, power_normal_t, power_roughness_t, power_displacement_t, power_metalness_t,
     marble_color_t, marble_normal_t, marble_roughness_t, marble_displacement_t,
-    corinthian_color_t, corinthian_normal_t, corinthian_roughness_t, corinthian_displacement_t;
+    corinthian_color_t, corinthian_normal_t, corinthian_roughness_t, corinthian_displacement_t, eyeball_spring_t, eyeball_autumn_t, eyeball_winter_t;
 
 async function textureConstruct() {
     ["hexasphere", "wall", "floor"].forEach( name => {
@@ -548,11 +554,13 @@ async function textureConstruct() {
     });
 
     const textureLoader = new THREE.TextureLoader();
+    textureLoader.crossOrigin = 'anonymous';
 
     return [sky_t, missile_color_t, missile_normal_t, missile_roughness_t, missile_displacement_t, missile_metalness_t,
     // power_color_t, power_normal_t, power_roughness_t, power_displacement_t, power_metalness_t,
      marble_color_t, marble_normal_t, marble_roughness_t, marble_displacement_t,
-     corinthian_color_t, corinthian_normal_t, corinthian_roughness_t, corinthian_displacement_t
+     corinthian_color_t, corinthian_normal_t, corinthian_roughness_t, corinthian_displacement_t, 
+     eyeball_spring_t, eyeball_autumn_t, eyeball_winter_t
     ] = await Promise.all( [
         textureLoader.loadAsync(sky),
         textureLoader.loadAsync(missile_color),
@@ -573,6 +581,9 @@ async function textureConstruct() {
         textureLoader.loadAsync(corinthian_normal),
         textureLoader.loadAsync(corinthian_roughness),
         textureLoader.loadAsync(corinthian_displacement),
+        textureLoader.loadAsync(eyeball_spring),
+        textureLoader.loadAsync(eyeball_autumn),
+        textureLoader.loadAsync(eyeball_winter),
     ]);
 }
 
@@ -810,6 +821,8 @@ export class MyViewRoot extends ViewRoot {
         this.subscribe("root", "rotateSky", this.rotateSky);
         this.subscribe("input", "resize", scaleMinimap);
         this.subscribe("root", "countDown", this.countDown);
+        const actors = this.wellKnownModel('ActorManager').actors;
+        console.log("MyViewRoot onStart actors", actors);
     }
 
     countDown(timer) {
@@ -885,7 +898,7 @@ class AvatarActor extends mix(Actor).with(AM_Spatial, AM_Avatar) {
 
     init(options) {
         super.init(options);
-        this.throttleMin = 0.75;
+        this.throttleMin = 1.0;
         this.throttleMax = 2.0;
         const t = [CELL_SIZE*seasons[this.season].cell.x+10,AVATAR_HEIGHT,CELL_SIZE*seasons[this.season].cell.y+10];
         const angle = Math.PI*2*seasons[this.season].angle/360;
@@ -931,6 +944,8 @@ class AvatarActor extends mix(Actor).with(AM_Spatial, AM_Avatar) {
     get season() {return this._season || "spring"}
 
     get color() {return seasons[this.season].color}
+    get color2() {return seasons[this.season].color2}
+    get color3() {return seasons[this.season].color3}
 
     claimCell(data) {
         const mazeActor = this.wellKnownModel("ModelRoot").maze;
@@ -992,8 +1007,8 @@ class AvatarActor extends mix(Actor).with(AM_Spatial, AM_Avatar) {
     }
 
     destroy() {
+        console.log("AvatarActor destroy", this);
         super.destroy();
-        console.log("AvatarActor destroy", this.id);
         for(let i=0; i<4; i++) {this.glow[i].destroy();}
     }
 }
@@ -1025,6 +1040,11 @@ class EyeballPawn extends mix(Pawn).with(PM_Smoothed, PM_ThreeVisible, PM_ThreeC
         if (this.doomed) return;
         if (readyToLoad3D && eyeball) {
             this.eye = eyeball.scene.clone();
+            console.log("EyeballPawn load3D", this.parent.season);
+            if(this.parent.season === "Spring") this.eye.children[0].children[0].material.map = eyeball_spring_t;
+            else if(this.parent.season === "Autumn") this.eye.children[0].children[0].material.map = eyeball_autumn_t;
+            else if(this.parent.season === "Winter") this.eye.children[0].children[0].material.map = eyeball_winter_t;
+
             this.eye.scale.set(40,40,40);
             this.eye.rotation.set(0,Math.PI,0);
             this.eye.traverse( m => {if (m.geometry) { m.castShadow=true; m.receiveShadow=true; } });
@@ -1073,8 +1093,8 @@ class AvatarPawn extends mix(Pawn).with(PM_Smoothed, PM_ThreeVisible, PM_Avatar)
         this.yaw = q_yaw(this.rotation);
         compass.update(this.yaw);
         this.yawQ = q_axisAngle([0,1,0], this.yaw);
-        this.lastX = seasons[this.actor.season].cell.x+1;
-        this.lastY = seasons[this.actor.season].cell.y+1;
+        this.lastX = seasons[this.season].cell.x+1;
+        this.lastY = seasons[this.season].cell.y+1;
         console.log("AvatarPawn constructor", this.lastX, this.lastY);
         this.service("AvatarManager").avatars.add(this);
         this.listen("shootMissileSound", this.didShootSound);
@@ -1084,6 +1104,11 @@ class AvatarPawn extends mix(Pawn).with(PM_Smoothed, PM_ThreeVisible, PM_Avatar)
         this.subscribe(this.viewId, "synced", this.handleSynced);
         this.subscribe("maze", "clearCells", this.clearCells);
     }
+
+    get season() {return this.actor.season}
+    get color() {return seasons[this.season].color}
+    get color2() {return seasons[this.season].color2}
+    get color3() {return seasons[this.season].color3}
 
     handleSynced() {
         console.log("session is synced - enable sound");
@@ -1197,7 +1222,7 @@ class AvatarPawn extends mix(Pawn).with(PM_Smoothed, PM_ThreeVisible, PM_Avatar)
     shootMissile() {
         if (this.actor.canShoot) {
             const mazeActor = this.wellKnownModel("ModelRoot").maze;
-            if (this.actor.season === mazeActor.getSeason(this.lastX, this.lastY)) {
+            if (this.season === mazeActor.getSeason(this.lastX, this.lastY)) {
                 this.say("shootMissile");
                 playSound(shootSound, null, false);
                 return;
@@ -1458,7 +1483,6 @@ class AvatarPawn extends mix(Pawn).with(PM_Smoothed, PM_ThreeVisible, PM_Avatar)
     }
 
     claimCellUpdate(data) {
-        console.log("AvatarPawn claimCellUpdate", this.isMyAvatar);
         if(this.isMyAvatar) playSound(cellSound, null, false);
         this.drawMinimapCell(data.x,data.y, data.color);
     }
@@ -1496,7 +1520,7 @@ class AvatarPawn extends mix(Pawn).with(PM_Smoothed, PM_ThreeVisible, PM_Avatar)
         const yCell = 1+Math.floor(this.translation[2]/CELL_SIZE);
         this.avatarMinimap(null, null, xCell, yCell);
         const minimapDiv = document.getElementById('minimap');
-        minimapDiv.style.transform = `rotate(${seasons[this.actor.season].angle}deg)`;
+        minimapDiv.style.transform = `rotate(${seasons[this.season].angle}deg)`;
     }
 
     drawMinimapCell(x,y, color) {

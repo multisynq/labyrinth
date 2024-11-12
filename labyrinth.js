@@ -81,11 +81,11 @@
 // Shock and awe are working.
 // Volume is working.
 // Added text display for volume and sound and other things as required.
+// Compass is now centered on the white square. 
 //------------------------------------------------------------------------------------------
 // To do:
 // Sound effects are put on hold until the avatar's sound is ready, but should be ignored.
 // The center of the maze is at 10,10.
-// The compass should be made as a circle around the minimap - each direction is the color.
 // Shaders need to be "warmed-up" before they are used.
 // - Missile shaders
 // Perhaps raise your tiles.
@@ -300,8 +300,8 @@ export const seasons = {
 const minimapCanvas = document.createElement('canvas');
 const minimapCtx = minimapCanvas.getContext('2d');
 minimapCtx.globalAlpha = 0.1;
-minimapCanvas.width = 200;
-minimapCanvas.height = 200;
+minimapCanvas.width = 220;
+minimapCanvas.height = 220;
 
 function scaleMinimap() {
     const minimapDiv = document.getElementById('minimap');
@@ -367,8 +367,6 @@ function playSoundOnce(sound, parent3D, force, loop = false) {
     if (!force && sound.count>maxSound) return;
     sound.count++;
     let mySound;
-    console.log("---------------------------");
-    console.log("volume ", volume);
     if (parent3D) {
         mySound = new THREE.PositionalAudio( listener );  // listener is a global
         //mySound = new MyAudio( listener );  // listener is a global
@@ -924,7 +922,7 @@ class AvatarActor extends mix(Actor).with(AM_Spatial, AM_Avatar) {
         if(!doCell.floor) {this.future(100).buildGlow(); return;}
         for(let i=0; i<4; i++) {
             doCell = mazeActor.map[glowPosition[i][0]][glowPosition[i][1]];
-            this.glow[i] = GlowActor.create({shape:"cube", color: seasons[this.season].color, depthTest: true, radius: 1.25, glowRadius: 0.5, falloff: 0.1, opacity: 0.75, sharpness: 0.5});
+            this.glow[i] = GlowActor.create({avatar: this,shape:"cube", color: seasons[this.season].color, depthTest: true, radius: 1.25, glowRadius: 0.5, falloff: 0.1, opacity: 0.75, sharpness: 0.5});
             this.glow[i].sink(1000, 1, doCell.floor.translation);
             this.glow[i].future(1000).hide();
         }
@@ -1510,12 +1508,12 @@ class AvatarPawn extends mix(Pawn).with(PM_Smoothed, PM_ThreeVisible, PM_Avatar)
             return '#' + hexString.toUpperCase();
         }
         if (color !== 0xFFFFFF) {
-            minimapCtx.clearRect(x*10-5, y*10-5, 9, 9);
+            minimapCtx.clearRect(x*11-5, y*11-5, 10, 10);
             minimapCtx.globalAlpha = 0.6;
             minimapCtx.fillStyle = hexNumberToColorString(color);
-            minimapCtx.fillRect(x*10-5, y*10-5, 9, 9);
+            minimapCtx.fillRect(x*11-5, y*11-5, 10, 10);
         } else {
-            minimapCtx.clearRect(x*10-5, y*10-5, 9, 9);
+            minimapCtx.clearRect(x*11-5, y*11-5, 10, 10);
         }
     }
 
@@ -1524,9 +1522,11 @@ class AvatarPawn extends mix(Pawn).with(PM_Smoothed, PM_ThreeVisible, PM_Avatar)
             const mazeActor = this.wellKnownModel("ModelRoot").maze;
             this.drawMinimapCell(lastX, lastY, mazeActor.getCellColor(lastX,lastY));
         }
+        // I have no idea why I have to subtract 10 from y
+        compass.update(this.yaw, x * 11 - 5, (y-10) * 11 - 5);
         minimapCtx.globalAlpha = 0.9;
         minimapCtx.fillStyle = "#FFFFFF";
-        minimapCtx.fillRect(x*10-4, y*10-4, 8, 8);
+        minimapCtx.fillRect(x*11-4, y*11-4, 8, 8);
     }
 }
 

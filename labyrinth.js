@@ -85,13 +85,16 @@
 // Removed the compass - minimap now rotates.
 // Season icons are now displayed in the center of the screen.
 // View the rules screen.
+// Fixed respawn to update lastX and lastY. Could not shoot until you moved.
 //------------------------------------------------------------------------------------------
 // Bugs:
+// Sound effect when someone captures your cells is missing.
 // Sometimes, a delay will cause you to jump through a wall - including outside of
 // the maze. This is very bad.
 // Sometimes the floor glow objects are still in place when a reload occurs.
 //------------------------------------------------------------------------------------------
 // To do:
+// Add color blindness mode. 
 // New user goes to free slot.
 // More than 4 players?
 // Mobile buttons rotate too fast - hard to control.
@@ -258,7 +261,6 @@ const setTextDisplay = createTextDisplay();
 // Initialize fullscreen button
 new FullscreenButton();
 const device = new DeviceDetector();
-console.log("Running on ", device.isMobile? "mobile device":"desktop");
 setTextDisplay(device.isMobile? "mobile device":"desktop",10);
 
 const boxScore = new BoxScore();
@@ -287,7 +289,7 @@ import power_metalness from "./assets/textures/metal_hex/metal_0076_metallic_1k.
 import marble_color from "./assets/textures/marble_checker/marble_0013_color_1k.jpg";
 import marble_normal from "./assets/textures/marble_checker/marble_0013_normal_opengl_1k.png";
 import marble_roughness from "./assets/textures/marble_checker/marble_0013_roughness_1k.jpg";
-import marble_displacement from "./assets/textures/marble_checker/marble_0013_height_1k.png";
+//import marble_displacement from "./assets/textures/marble_checker/marble_0013_height_1k.png";
 
 import corinthian_color from "./assets/textures/corinthian/concrete_0014_color_1k.jpg";
 import corinthian_normal from "./assets/textures/corinthian/concrete_0014_normal_opengl_1k.png";
@@ -347,10 +349,10 @@ const MISSILE_SPEED = 0.50;
 
 export let csm; // CSM is Cascaded Shadow Maps
 export const seasons = {
-    Spring:{cell:{x:0,y:0}, icon: IconSpring, nextCell:{x:1,y:1}, angle:toRad(180+45), color:0xFFB6C1, color2:0xCC8A94, color3:0xd7324b},
-    Summer: {cell: {x:0,y:CELL_SIZE-2}, icon: IconSummer, nextCell:{x:1,y:CELL_SIZE-3}, angle:toRad(270+45), color:0x90EE90, color2:0x65AA65, color3:0x037403},
-    Autumn: {cell:{x:CELL_SIZE-2, y:CELL_SIZE-2}, icon: IconAutumn, nextCell:{x:CELL_SIZE-3,y:CELL_SIZE-3}, angle:toRad(0+45), color:0xFFE5B4, color2:0xCCB38B, color3:0x815608},
-    Winter: {cell:{x:CELL_SIZE-2, y:0}, icon: IconWinter, nextCell:{x:CELL_SIZE-3,y:1}, angle:toRad(90+45), color:0xA5F2F3, color2:0x73BFBF, color3:0x1248dd}};
+    Spring:{cell:{x:0,y:0}, icon: IconSpring, nextCell:{x:1,y:1}, angle:toRad(180+45), color:0xFFB6C1, color2:0xCC8A94, color3:0xCC79A7},
+    Summer: {cell: {x:0,y:CELL_SIZE-2}, icon: IconSummer, nextCell:{x:1,y:CELL_SIZE-3}, angle:toRad(270+45), color:0x90EE90, color2:0x65AA65, color3:0x009E73},
+    Autumn: {cell:{x:CELL_SIZE-2, y:CELL_SIZE-2}, icon: IconAutumn, nextCell:{x:CELL_SIZE-3,y:CELL_SIZE-3}, angle:toRad(0+45), color:0xFFE5B4, color2:0xCCB38B, color3:0xE69F00},
+    Winter: {cell:{x:CELL_SIZE-2, y:0}, icon: IconWinter, nextCell:{x:CELL_SIZE-3,y:1}, angle:toRad(90+45), color:0xA5F2F3, color2:0x73BFBF, color3:0x0072B2}};
 // Minimap canvas
 const minimapDiv = document.getElementById('minimap');
 const minimapCanvas = document.createElement('canvas');
@@ -593,7 +595,7 @@ new THREE.TextureLoader().load(fireballTexture, texture => {
 
 let sky_t, missile_color_t, missile_normal_t, missile_roughness_t, missile_displacement_t, missile_metalness_t,
 //    power_color_t, power_normal_t, power_roughness_t, power_displacement_t, power_metalness_t,
-    marble_color_t, marble_normal_t, marble_roughness_t, marble_displacement_t,
+    marble_color_t, marble_roughness_t, // marble_normal_t, marble_displacement_t,
     corinthian_color_t, corinthian_normal_t, corinthian_roughness_t, corinthian_displacement_t, eyeball_spring_t, eyeball_autumn_t, eyeball_winter_t;
 
 async function textureConstruct() {
@@ -607,7 +609,7 @@ async function textureConstruct() {
 
     return [sky_t, missile_color_t, missile_normal_t, missile_roughness_t, missile_displacement_t, missile_metalness_t,
     // power_color_t, power_normal_t, power_roughness_t, power_displacement_t, power_metalness_t,
-     marble_color_t, marble_normal_t, marble_roughness_t, marble_displacement_t,
+     marble_color_t, marble_roughness_t, //marble_normal_t, marble_displacement_t,
      corinthian_color_t, corinthian_normal_t, corinthian_roughness_t, corinthian_displacement_t,
      eyeball_spring_t, eyeball_autumn_t, eyeball_winter_t
     ] = await Promise.all( [
@@ -623,9 +625,9 @@ async function textureConstruct() {
         // textureLoader.loadAsync(power_displacement),
         // textureLoader.loadAsync(power_metalness),
         textureLoader.loadAsync(marble_color),
-        textureLoader.loadAsync(marble_normal),
+        //textureLoader.loadAsync(marble_normal),
         textureLoader.loadAsync(marble_roughness),
-        textureLoader.loadAsync(marble_displacement),
+       // textureLoader.loadAsync(marble_displacement),
         textureLoader.loadAsync(corinthian_color),
         textureLoader.loadAsync(corinthian_normal),
         textureLoader.loadAsync(corinthian_roughness),
@@ -678,9 +680,9 @@ textureConstruct().then( () => {
 
     complexMaterial({
         colorMap: marble_color_t,
-        normalMap: marble_normal_t,
+        //normalMap: marble_normal_t,
         roughnessMap: marble_roughness_t,
-        displacementMap: marble_displacement_t,
+    //    displacementMap: marble_displacement_t,
         anisotropy: 4,
         metalness: 0.1,
         repeat: [1, 1],
@@ -947,6 +949,7 @@ class AvatarActor extends mix(Actor).with(AM_Spatial, AM_Avatar) {
 
     init(options) {
         super.init(options);
+        this.colorBlind = false;
         this.throttleMin = 1.0;
         this.throttleMax = 2.0;
         const t = [CELL_SIZE*seasons[this.season].cell.x+10,AVATAR_HEIGHT,CELL_SIZE*seasons[this.season].cell.y+10];
@@ -966,6 +969,12 @@ class AvatarActor extends mix(Actor).with(AM_Spatial, AM_Avatar) {
         this.fireball.future(1000).hide();
         this.future(1000).buildGlow();
         this.setHighSpeed(this.throttleMax);
+        this.listen("colorBlind", this.setColorBlind);
+    }
+
+    setColorBlind(value) {
+        this.colorBlind = value;
+        this.say("colorBlindReady", this.colorBlind);
     }
 
     buildGlow() {
@@ -984,7 +993,7 @@ class AvatarActor extends mix(Actor).with(AM_Spatial, AM_Avatar) {
         if(!doCell.floor) {this.future(100).buildGlow(); return;}
         for(let i=0; i<4; i++) {
             doCell = mazeActor.map[glowPosition[i][0]][glowPosition[i][1]];
-            this.glow[i] = GlowActor.create({avatar: this,shape:"cube", color: seasons[this.season].color, depthTest: true, radius: 1.25, glowRadius: 0.5, falloff: 0.1, opacity: 0.75, sharpness: 0.5});
+            this.glow[i] = GlowActor.create({avatar: this,shape:"cube", color: this.color, depthTest: true, radius: 1.25, glowRadius: 0.5, falloff: 0.1, opacity: 0.75, sharpness: 0.5});
             this.glow[i].sink(1000, 1, doCell.floor.translation);
             this.glow[i].future(1000).hide();
         }
@@ -992,8 +1001,8 @@ class AvatarActor extends mix(Actor).with(AM_Spatial, AM_Avatar) {
 
     get season() {return this._season || "spring"}
 
-    get color() {return seasons[this.season].color}
-    get color2() {return seasons[this.season].color2}
+    get color() {return this.colorBlind? seasons[this.season].color3:seasons[this.season].color}
+    get color2() {return this.colorBlind? seasons[this.season].color3:seasons[this.season].color2}
     get color3() {return seasons[this.season].color3}
 
     claimCell(data) {
@@ -1008,7 +1017,7 @@ class AvatarActor extends mix(Actor).with(AM_Spatial, AM_Avatar) {
             if (data.lastX && mazeActor.map[data.lastX-1][data.lastY-1].season === this.season) {
                 // set the season of the cell you are moving to
                 if (!seasonCorner && mazeActor.setSeason(data.x, data.y, this.season, this.id)) {
-                    this.say("claimCellUpdate", {x:data.x, y:data.y, color:seasons[this.season].color});
+                    this.say("claimCellUpdate", {x:data.x, y:data.y, season:this.season});
                     //GlowActor.create({parent: cell.floor, shape:"cube", translation:[0,1,0], color: seasons[this.season].color, depthTest: true, radius: 1.25, glowRadius: 0.5, falloff: 0.1, opacity: 0.75, sharpness: 0.5});
                     const glow = this.glow[this.glowIndex];
                     this.glowIndex = (this.glowIndex+1)%4;
@@ -1030,7 +1039,7 @@ class AvatarActor extends mix(Actor).with(AM_Spatial, AM_Avatar) {
         this.canShoot = false;
         this.say("shootMissileSound", this.id);
         this.future(MISSILE_LIFE).reloadMissile();
-        MissileActor.create({avatar: this, color: seasons[this.season].color2});
+        MissileActor.create({avatar: this, color: this.color2});
     }
 
     reloadMissile() {
@@ -1150,14 +1159,19 @@ class AvatarPawn extends mix(Pawn).with(PM_Smoothed, PM_ThreeVisible, PM_Avatar)
         this.listen("recharged", this.rechargedSound);
         this.listen("claimCellUpdate", this.claimCellUpdate);
         this.listen("respawn", this.respawn);
+        this.listen("colorBlindReady", this.setColorBlind);
         this.subscribe(this.viewId, "synced", this.handleSynced);
         this.subscribe("maze", "clearCells", this.clearCells);
     }
 
     get season() {return this.actor.season}
-    get color() {return seasons[this.season].color}
-    get color2() {return seasons[this.season].color2}
+    get color() {return this.actor.colorBlind? seasons[this.season].color3:seasons[this.season].color}
+    get color2() {return this.actor.colorBlind? seasons[this.season].color3:seasons[this.season].color2}
     get color3() {return seasons[this.season].color3}
+
+    setColorBlind(value) {
+        this.redrawMinimap();
+    }
 
     handleSynced() {
         console.log("session is synced - enable sound");
@@ -1172,6 +1186,8 @@ class AvatarPawn extends mix(Pawn).with(PM_Smoothed, PM_ThreeVisible, PM_Avatar)
     respawn(data) {
         console.log("AvatarPawn respawn", data);
         this.positionTo(data.t, data.r);
+        this.lastX = seasons[this.season].cell.x+1;
+        this.lastY = seasons[this.season].cell.y+1;
         //this.set({translation: data.t, rotation: data.r});
         this.yaw = data.angle;
         minimapDiv.style.transform = `rotate(${this.yaw}rad)`;
@@ -1326,6 +1342,11 @@ class AvatarPawn extends mix(Pawn).with(PM_Smoothed, PM_ThreeVisible, PM_Avatar)
             case 'm': case 'M':
                 console.log("pause/play music");
                 soundLoops.forEach( sound => {if (sound.isPlaying) sound.pause(); else sound.play();} );
+                break;
+            case 'c': case 'C':
+                console.log("toggle color blindness mode");
+                setTextDisplay("Color Blind "+ (this.actor.colorBlind? "off":"on"),4);
+                this.say("colorBlind", !this.actor.colorBlind);
                 break;
             default:
         }
@@ -1537,13 +1558,13 @@ class AvatarPawn extends mix(Pawn).with(PM_Smoothed, PM_ThreeVisible, PM_Avatar)
 
     claimCellUpdate(data) {
         if(this.isMyAvatar) playSound(cellSound, null, false);
-        this.drawMinimapCell(data.x,data.y, data.color);
+        this.drawMinimapCell(data.x,data.y, data.season);
     }
 
     clearCells(data) {
         console.log("AvatarPawn clearCells", data.avatarId, this.actor.id);
         for (const cell of data.clearCells) {
-            this.drawMinimapCell(cell[0]+1,cell[1]+1, 0xFFFFFF);
+            this.drawMinimapCell(cell[0]+1,cell[1]+1, null);
         }
         if(this.isMyAvatar) {
             if(data.avatarId === this.actor.id) playSound(aweSound, this.renderObject, false);
@@ -1566,18 +1587,20 @@ class AvatarPawn extends mix(Pawn).with(PM_Smoothed, PM_ThreeVisible, PM_Avatar)
 
         for (let y = 1; y < mazeActor.rows; y++) {
             for (let x = 1; x < mazeActor.columns; x++) {
-                this.drawMinimapCell(x,y,  mazeActor.getCellColor(x,y));
+                this.drawMinimapCell(x,y,  mazeActor.getCellSeason(x,y));
             }
         }
         const xCell = 1+Math.floor(this.translation[0]/CELL_SIZE);
         const yCell = 1+Math.floor(this.translation[2]/CELL_SIZE);
         this.avatarMinimap(null, null, xCell, yCell);
-        //const minimapDiv = document.getElementById('minimap');
-       //minimapDiv.style.transform = `rotate(${seasons[this.season].angle+this.yaw}rad)`;
        minimapDiv.style.transform = `rotate(${this.yaw}rad)`;
     }
 
-    drawMinimapCell(x,y, color) {
+    drawMinimapCell(x,y, season) {
+        console.log("drawMinimapCell", x,y, season);
+        let color;
+        if (!season) color = 0xFFFFFF;
+        else color = this.actor.colorBlind ? seasons[season].color3:seasons[season].color;
         function hexNumberToColorString(hexNumber) {
             let hexString = hexNumber.toString(16);
             while (hexString.length < 6) {
@@ -1598,10 +1621,9 @@ class AvatarPawn extends mix(Pawn).with(PM_Smoothed, PM_ThreeVisible, PM_Avatar)
     avatarMinimap(lastX, lastY, x, y) {
         if (lastX) {
             const mazeActor = this.wellKnownModel("ModelRoot").maze;
-            this.drawMinimapCell(lastX, lastY, mazeActor.getCellColor(lastX,lastY));
+            this.drawMinimapCell(lastX, lastY, mazeActor.getCellSeason(lastX,lastY));
         }
 
- //       minimapDiv.style.transform = `rotate(${seasons[this.season].angle+this.yaw}deg)`;
         minimapDiv.style.transform = `rotate(${this.yaw}rad)`;
         minimapCtx.globalAlpha = 0.9;
         minimapCtx.fillStyle = "#FFFFFF";

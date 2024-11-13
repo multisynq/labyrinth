@@ -233,9 +233,9 @@ class MazeActor extends mix(Actor).with(AM_Spatial) {
         return count;
     }
 
-    getCellColor(x,y) {
+    getCellSeason(x,y) {
         const cell = this.map[x-1][y-1];
-        return cell.season ? seasons[cell.season].color : 0xFFFFFF;
+        return cell.season;
     }
 
     constructMaze() {

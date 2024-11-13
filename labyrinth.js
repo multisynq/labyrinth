@@ -90,6 +90,8 @@
 // the maze. This is very bad.
 //------------------------------------------------------------------------------------------
 // To do:
+// Mobile buttons rotate too fast - hard to control.
+// Last ten seconds of the game should have a countdown alert.
 // Sound effects are put on hold until the avatar's sound is ready, but should be ignored.
 // The center of the maze is at 10,10.
 // Shaders need to be "warmed-up" before they are used.
@@ -1144,7 +1146,6 @@ class AvatarPawn extends mix(Pawn).with(PM_Smoothed, PM_ThreeVisible, PM_Avatar)
         this.listen("respawn", this.respawn);
         this.subscribe(this.viewId, "synced", this.handleSynced);
         this.subscribe("maze", "clearCells", this.clearCells);
-        this.icon = createCenterIcon(seasons[this.season].icon, 128);
     }
 
     get season() {return this.actor.season}
@@ -1188,6 +1189,7 @@ class AvatarPawn extends mix(Pawn).with(PM_Smoothed, PM_ThreeVisible, PM_Avatar)
         //this.subscribe("input", "tap", this.doPointerTap);
         //this.subscribe("input", 'wheel', this.onWheel);
         this.createMinimap();
+        this.icon = createCenterIcon(seasons[this.season].icon, 128);
         const scores = this.wellKnownModel("ModelRoot").maze.seasons;
         boxScore.setScores(scores);
         this.subscribe("maze", "score", this.scoreUpdate);

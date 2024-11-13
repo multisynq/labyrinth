@@ -84,13 +84,14 @@
 // The iris of the eyes matches the season color.
 // Removed the compass - minimap now rotates.
 // Season icons are now displayed in the center of the screen.
+// View the rules screen.
 //------------------------------------------------------------------------------------------
 // Bugs:
 // Sometimes, a delay will cause you to jump through a wall - including outside of
 // the maze. This is very bad.
+// Sometimes the floor glow objects are still in place when a reload occurs.
 //------------------------------------------------------------------------------------------
 // To do:
-// View the rules screen.
 // New user goes to free slot.
 // More than 4 players?
 // Mobile buttons rotate too fast - hard to control.
@@ -1299,6 +1300,9 @@ class AvatarPawn extends mix(Pawn).with(PM_Smoothed, PM_ThreeVisible, PM_Avatar)
                 this.strafe = -1; break;
             case " ":
                 this.shootMissile();
+                break;
+            case "?": case "h": case "H":
+                showRules();
                 break;
             case "I": case "i":
                 console.log( "AvatarPawn", this );

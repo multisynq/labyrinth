@@ -1,5 +1,5 @@
 
-import { Actor, mix, AM_Spatial, q_axisAngle} from 'https://esm.run/@croquet/worldcore@2.0.0-alpha.28';
+import { Actor, mix, AM_Spatial, q_axisAngle} from '@croquet/worldcore';
 import {InstanceActor} from './Instance.js';
 import WallActor from './Wall.js';
 import { CELL_SIZE, seasons } from '../labyrinth.js';

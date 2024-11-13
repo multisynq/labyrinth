@@ -5,31 +5,21 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "start": "webpack serve --no-live-reload --no-hot --mode development --devtool source-map --config webpack.config.mjs",
-    "build": "webpack --mode production --config webpack.config.mjs"
+    "start": "webpack serve --mode development",
+    "build": "webpack --mode production"
   },
-  "files": [
-    "assets"
-  ],
-  "imports": {
-    "#glsl/*.glsl": "./shaders/*.glsl"
-  },
-  "author": "Croquet Corporation",
+  "author": "Croquet Labs",
+  "license": "Apache-2.0",
   "devDependencies": {
-    "@babel/core": "^7.26.0",
-    "@babel/plugin-syntax-dynamic-import": "^7.8.3",
-    "@babel/preset-env": "^7.26.0",
-    "babel-loader": "^9.2.1",
     "copy-webpack-plugin": "^12.0.2",
-    "eslint": "^8.43.0",
-    "eslint-config-airbnb-base": "^15.0.0",
-    "file-loader": "^6.2.0",
-    "html-minimizer-webpack-plugin": "^4.4.0",
     "html-webpack-plugin": "^5.6.3",
-    "inspectpack": "^4.7.1",
-    "source-map-loader": "^4.0.1",
-    "webpack": "^5.88.1",
+    "latest-version": "^9.0.0",
+    "source-map-loader": "^5.0.0",
+    "webpack": "^5.96.1",
     "webpack-cli": "^5.1.4",
-    "webpack-dev-server": "^4.15.2"
+    "webpack-dev-server": "^5.1.0"
+  },
+  "dependencies": {
+    "@croquet/worldcore": "^2.0.0-alpha.28"
   }
 }

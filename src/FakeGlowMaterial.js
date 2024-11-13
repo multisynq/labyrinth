@@ -2,7 +2,7 @@
  * FakeGlow material by Anderson Mancini - Fec 2024.
  */
 
-import { THREE } from 'https://esm.run/@croquet/worldcore@2.0.0-alpha.28';
+import { THREE } from '@croquet/worldcore';
 
 const ShaderMaterial = THREE.ShaderMaterial;
 const Uniform = THREE.Uniform;
@@ -73,7 +73,7 @@ class FakeGlowMaterial extends ShaderMaterial {
 
         #include <tonemapping_fragment>
         #include <colorspace_fragment>
-      } 
+      }
       `
 
     // Set default values or modify existing properties if needed

@@ -1,4 +1,4 @@
-import { Actor, mix, AM_Spatial, Pawn, PM_Smoothed, PM_ThreeVisible, PM_ThreeInstanced, toRad, THREE } from 'https://esm.run/@croquet/worldcore@2.0.0-alpha.28';
+import { Actor, mix, AM_Spatial, Pawn, PM_Smoothed, PM_ThreeVisible, PM_ThreeInstanced, toRad, THREE } from '@croquet/worldcore';
 import { csm } from '../labyrinth.js';
 export const instances = {};
 export const materials = {};

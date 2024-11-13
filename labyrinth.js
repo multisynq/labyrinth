@@ -80,7 +80,7 @@
 // Shock and awe are working.
 // Volume is working.
 // Added text display for volume and sound and other things as required.
-// Compass is now centered on the white square (removed). 
+// Compass is now centered on the white square (removed).
 // The iris of the eyes matches the season color.
 // Removed the compass - minimap now rotates.
 // Season icons are now displayed in the center of the screen.
@@ -110,7 +110,7 @@
 // are in mouse look mode. Perhaps press "c" to type a message, hit enter and then you are back.
 // Add a "ready" button to start the game.
 // Music is streamed to the game from the web. Players can turn it on and off - or play along
-// and vote for the songs they like. 
+// and vote for the songs they like.
 //------------------------------------------------------------------------------------------
 // Need artist:
 // The ivy needs to be cleaned up at the top.
@@ -119,7 +119,8 @@
 import { App, StartWorldcore, ViewService, ModelRoot, ViewRoot,Actor, mix, toRad,
     InputManager, AM_Spatial, PM_Spatial, PM_Smoothed, Pawn, AM_Avatar, PM_Avatar, UserManager, User,
     q_yaw, q_pitch, q_axisAngle, v3_add, v3_sub, v3_normalize, v3_rotate, v3_scale, v3_distanceSqr,
-    THREE, ADDONS, PM_ThreeVisible, ThreeRenderManager, PM_ThreeCamera, PM_ThreeInstanced, ThreeInstanceManager } from 'https://esm.run/@croquet/worldcore@2.0.0-alpha.28';
+    THREE, ADDONS, PM_ThreeVisible, ThreeRenderManager, PM_ThreeCamera, PM_ThreeInstanced, ThreeInstanceManager
+} from '@croquet/worldcore';
 
 import FullscreenButton from './src/Fullscreen.js';
 import FakeGlowMaterial from './src/FakeGlowMaterial.js';
@@ -135,39 +136,39 @@ function createCenterIcon(imagePath, baseSize = 32) {
     // Create container
     const iconContainer = document.createElement('div');
     iconContainer.className = 'center-icon';
-    
+
     // Create image element
     const icon = document.createElement('img');
     icon.src = imagePath;
-    
+
     // Set initial size directly
     icon.style.width = `${baseSize}px`;
     icon.style.height = `${baseSize}px`;
-    
+
     // Function to calculate size based on window dimensions
     const updateSize = () => {
         const windowWidth = window.innerWidth;
         const windowHeight = window.innerHeight;
         const minDimension = Math.min(windowWidth, windowHeight);
-        
+
         // Scale icon size based on screen size and baseSize
         const scaleFactor = minDimension / 1000;
         const newSize = Math.max(baseSize * 0.75, Math.min(baseSize * scaleFactor, baseSize * 1.5));
-        
+
         icon.style.width = `${newSize}px`;
         icon.style.height = `${newSize}px`;
     };
-    
+
     // Add image to container
     iconContainer.appendChild(icon);
-    
+
     // Add to DOM just above text display
     const textDisplay = document.querySelector('.text-display');
     textDisplay.parentNode.insertBefore(iconContainer, textDisplay);
-    
+
     // Handle window resize
     window.addEventListener('resize', updateSize);
-    
+
     return iconContainer;
 }
 
@@ -181,11 +182,11 @@ function createTextDisplay() {
     // Create container
     const textDisplay = document.createElement('div');
     textDisplay.className = 'text-display';
-    
+
     // Add to DOM just before version number
     const versionNumber = document.getElementById('version-number');
     versionNumber.parentNode.insertBefore(textDisplay, versionNumber);
-    
+
     // Add CSS for fade effect with longer transition
     const style = document.createElement('style');
     style.textContent = `
@@ -204,39 +205,39 @@ function createTextDisplay() {
             pointer-events: none;
             color: white;
         }
-        
+
         .text-display.fade {
             opacity: 0;
         }
-        
+
         .text-display.hidden {
             display: none;
         }
     `;
     document.head.appendChild(style);
-    
+
     let currentTimeout;
     let fadeTimeout;
-    
+
     // Return update function
     return (text, duration = 0) => {
         // Clear any existing timeouts
         if (currentTimeout) clearTimeout(currentTimeout);
         if (fadeTimeout) clearTimeout(fadeTimeout);
-        
+
         // Remove classes and show element
         textDisplay.classList.remove('fade', 'hidden');
         // Force a reflow
         textDisplay.offsetHeight;
-        
+
         // Update text
         textDisplay.textContent = text;
-        
+
         // Set up fade if duration provided
         if (duration > 0) {
             currentTimeout = setTimeout(() => {
                 textDisplay.classList.add('fade');
-                
+
                 // Set up the hide after fade completes
                 fadeTimeout = setTimeout(() => {
                     textDisplay.classList.add('hidden');
@@ -397,7 +398,7 @@ const loopSoundVolume = 0.25;
 export const playSound = function() {
     function play(soundURL, parent3D, force, loop = false) {
         if (!soundSwitch) return;
-        
+
         // Check if we're on mobile and the audio context is suspended
         const audioContext = THREE.AudioContext.getContext();
         if (device.isMobile && audioContext.state === 'suspended') {
@@ -441,7 +442,7 @@ function playSoundOnce(sound, parent3D, force, loop = false) {
 
 async function loadSounds() {
     const audioLoader = new THREE.AudioLoader();
-    
+
     // Add mobile audio unlock
     if (device.isMobile) {
         const unlockAudio = () => {
@@ -450,11 +451,11 @@ async function loadSounds() {
             if (audioContext.state === 'suspended') {
                 audioContext.resume();
             }
-            
+
             // Create and play a silent audio element
             const silentSound = new Audio();
             silentSound.play().catch(() => {});
-            
+
             // Remove the event listeners once unlocked
             ['touchstart', 'touchend', 'click'].forEach(event => {
                 document.removeEventListener(event, unlockAudio);
@@ -494,7 +495,7 @@ loadSounds().then( sounds => {
     soundList[implosionSound] = {buffer:sounds[7], count:0};
     soundList[cellSound] = {buffer:sounds[8], count:0};
     soundList[shockSound] = {buffer:sounds[9], count:0};
-    soundList[aweSound] = {buffer:sounds[10], count:0}; 
+    soundList[aweSound] = {buffer:sounds[10], count:0};
 });
 
 // Load 3D Models
@@ -502,7 +503,7 @@ loadSounds().then( sounds => {
 async function modelConstruct() {
     const gltfLoader = new ADDONS.GLTFLoader();
     const dracoLoader = new ADDONS.DRACOLoader();
-    dracoLoader.setDecoderPath('./src/draco/');
+    dracoLoader.setDecoderPath('draco/');
     gltfLoader.setDRACOLoader(dracoLoader);
     return [eyeball, column, ivy, hexasphere, horse, trees] = await Promise.all( [
         // add additional GLB files to load here
@@ -602,7 +603,7 @@ async function textureConstruct() {
     return [sky_t, missile_color_t, missile_normal_t, missile_roughness_t, missile_displacement_t, missile_metalness_t,
     // power_color_t, power_normal_t, power_roughness_t, power_displacement_t, power_metalness_t,
      marble_color_t, marble_normal_t, marble_roughness_t, marble_displacement_t,
-     corinthian_color_t, corinthian_normal_t, corinthian_roughness_t, corinthian_displacement_t, 
+     corinthian_color_t, corinthian_normal_t, corinthian_roughness_t, corinthian_displacement_t,
      eyeball_spring_t, eyeball_autumn_t, eyeball_winter_t
     ] = await Promise.all( [
         textureLoader.loadAsync(sky),
@@ -1005,7 +1006,7 @@ class AvatarActor extends mix(Actor).with(AM_Spatial, AM_Avatar) {
                     this.say("claimCellUpdate", {x:data.x, y:data.y, color:seasons[this.season].color});
                     //GlowActor.create({parent: cell.floor, shape:"cube", translation:[0,1,0], color: seasons[this.season].color, depthTest: true, radius: 1.25, glowRadius: 0.5, falloff: 0.1, opacity: 0.75, sharpness: 0.5});
                     const glow = this.glow[this.glowIndex];
-                    this.glowIndex = (this.glowIndex+1)%4;  
+                    this.glowIndex = (this.glowIndex+1)%4;
                     glow.sink(1000, 1, cell.floor.translation);
                     glow.show();
                     //this.future(1200).setHighSpeed(this.throttleMax);
@@ -1198,7 +1199,7 @@ class AvatarPawn extends mix(Pawn).with(PM_Smoothed, PM_ThreeVisible, PM_Avatar)
             // Create two joysticks
             this.leftJoystick = new Joystick({ id: 'left', side: 'left' });
             this.rightJoystick = new Joystick({ id: 'right', side: 'right' });
-            
+
             // Listen for left joystick events
             document.addEventListener('joystick-start-left', (e) => {
                 this.joystickStart("left");
@@ -1220,7 +1221,7 @@ class AvatarPawn extends mix(Pawn).with(PM_Smoothed, PM_ThreeVisible, PM_Avatar)
                 this.joystickTap(side);
                 //console.log('Left joystick tapped!');
             });
-            
+
             // Listen for right joystick events
             document.addEventListener('joystick-start-right', (e) => {
                 this.joystickStart("right");
@@ -1232,12 +1233,12 @@ class AvatarPawn extends mix(Pawn).with(PM_Smoothed, PM_ThreeVisible, PM_Avatar)
                 this.joystickMove(x, y, side);
                 //console.log('Right joystick:', x, y);
             });
-            
+
             document.addEventListener('joystick-release-right', (e) => {
                 this.joystickRelease("right");
                 //console.log('Right joystick released:', e.detail);
             });
-    
+
             document.addEventListener('joystick-tap-right', (e) => {
                 const { side } = e.detail;
                 this.joystickTap(side);
@@ -1393,7 +1394,7 @@ class AvatarPawn extends mix(Pawn).with(PM_Smoothed, PM_ThreeVisible, PM_Avatar)
 
     joystickLook() {
         //console.log("AvatarPawn lookingAround");
-        if(this.looking){ 
+        if(this.looking){
             this.yaw -= this.lookX * 0.075;
             this.yaw = this.normalizeRotation(this.yaw);
             minimapDiv.style.transform = `rotate(${this.yaw}rad)`;
@@ -1866,7 +1867,7 @@ export class PointFlickerPawn extends mix(Pawn).with(PM_Smoothed, PM_ThreeVisibl
     }
 }
 PointFlickerPawn.register("PointFlickerPawn");
-// FireballActor 
+// FireballActor
 // When a missile hits an avatar a fireball is generated. It is attached to the avatar.
 //------------------------------------------------------------------------------------------
 class FireballActor extends mix(Actor).with(AM_Spatial) {
@@ -1907,7 +1908,7 @@ export class FireballPawn extends mix(Pawn).with(PM_Smoothed, PM_ThreeVisible) {
         this.pointLight = new THREE.PointLight(0xff8844, 1, 4, 2);
         this.fireball.add(this.pointLight);
         this.setRenderObject(this.fireball);
-        this.doVisible(this.actor.visible); 
+        this.doVisible(this.actor.visible);
         this.listen("visible", this.doVisible);
         //playSound(implosionSound, this.fireball, false);
     }

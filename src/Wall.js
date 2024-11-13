@@ -1,4 +1,4 @@
-import { Actor, mix, AM_Spatial, PM_Spatial,Pawn, PM_ThreeVisible, PM_ThreeInstanced, THREE, ADDONS } from 'https://esm.run/@croquet/worldcore@2.0.0-alpha.28';
+import { Actor, mix, AM_Spatial, PM_Spatial,Pawn, PM_ThreeVisible, PM_ThreeInstanced, THREE, ADDONS } from '@croquet/worldcore';
 import { csm } from '../labyrinth.js';
 import { materials } from './Instance.js';
 

@@ -90,6 +90,9 @@
 // the maze. This is very bad.
 //------------------------------------------------------------------------------------------
 // To do:
+// View the rules screen.
+// New user goes to free slot.
+// More than 4 players?
 // Mobile buttons rotate too fast - hard to control.
 // Last ten seconds of the game should have a countdown alert.
 // Sound effects are put on hold until the avatar's sound is ready, but should be ignored.
@@ -129,7 +132,8 @@ import BoxScore from './src/BoxScore.js';
 import Joystick from './src/Joystick.js';
 import Countdown from './src/Countdown.js';
 import MazeActor from './src/MazeActor.js';
-import {InstanceActor, instances, materials} from './src/Instance.js';
+import {InstanceActor, instances, materials} from './src/Instance.js';  
+import showRules from './src/rules.js';
 import apiKey from "./src/apiKey.js";
 
 function createCenterIcon(imagePath, baseSize = 32) {
@@ -177,7 +181,7 @@ import IconSummer from './assets/textures/IconSummer.png';
 import IconAutumn from './assets/textures/IconAutumn.png';
 import IconWinter from './assets/textures/IconWinter.png';
 
-
+showRules();
 function createTextDisplay() {
     // Create container
     const textDisplay = document.createElement('div');
@@ -1670,10 +1674,10 @@ class MissileActor extends mix(Actor).with(AM_Spatial) {
         this.yawQ = q_axisAngle([0,1,0], this.yaw);
         this.direction = v3_scale(v3_rotate(this.forward, this.yawQ), -1);
         this.velocity = v3_scale(this.direction, MISSILE_SPEED*2);
-        this.timeScale = 0.00025 + Math.random()*0.00002;
+        //this.timeScale = 0.00025 + Math.random()*0.00002;
         this.hasBounced = false; // I can kill my avatar if I bounce off a wall first
-        InstanceActor.create({name: "hexasphere", parent: this});
-        GlowActor.create({parent: this, color: options.color||0xff8844, depthTest: true, radius: 1.25, glowRadius: 0.5, falloff: 0.1, opacity: 0.75, sharpness: 0.5});
+        this.hexasphere = InstanceActor.create({name: "hexasphere", parent: this});
+        this.glow = GlowActor.create({parent: this, color: options.color||0xff8844, depthTest: true, radius: 1.25, glowRadius: 0.5, falloff: 0.1, opacity: 0.75, sharpness: 0.5});
         this.flicker = PointFlickerActor.create({parent: this, playSound: true,color: options.color||0xff8844});
         this.tick(0);
         //console.log("MissileActor init", this);
@@ -1688,7 +1692,8 @@ class MissileActor extends mix(Actor).with(AM_Spatial) {
         const actors = this.wellKnownModel('ActorManager').actors;
         this.translation = v3_add(this.translation, this.velocity);
         actors.forEach(actor => { if (!this.doomed && actor.isCollider) this.testCollision(actor); });
-
+//        const scale = Math.sin(this.now()*0.01)*0.5 + 1.5;
+//        this.hexasphere.set({scale: [scale,scale,scale]});
         if (!this.doomed) {
             this.verifyMaze();
             this.future(20).tick(count+1);

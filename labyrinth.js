@@ -90,33 +90,26 @@
 // We don't go off the map anymore, but we can tunnel through walls or jump 2 cells.
 // Missiles are warmed up.
 // Fixed the floor glow objects that became visible when a reload occurs.
+// Tuned mobile controls. May need more work based on testing.
 //------------------------------------------------------------------------------------------
 // Bugs:
 // We don't go off the map anymore, but we can tunnel through walls or jump 2 cells.
 //------------------------------------------------------------------------------------------
-// To do:
-// Tune mobile controls.
+// Priority To do:
 // Add a "[Season] Wins!"
 // Add a "Start Game" button to start the game.
-// Claiming another player's cell should take longer than claiming a free cell.
 // New user goes to free avatar slot.
+// Sounds may need to be warmed up.
 // More than 4 players?
-// Mobile buttons rotate too fast - hard to control.
+// Lobby generates a new game to join. Once a game is full, it starts.
+// 
+// Nice to have:
+// Claiming another player's cell should take longer than claiming a free cell.
 // Last ten seconds of the game should have a countdown alert.
 // Sound effects are put on hold until the avatar's sound is ready, but should be ignored.
 // The center of the maze is at 10,10.
-// Shaders need to be "warmed-up" before they are used.
-// - Missile shaders
-// Sounds may need to be warmed up.
-// Resize elements when the window is resized.
-// - Scoreboard
-// - Clock
-// - Minimap
 // Three big weenies.
 // Rooms (Brian Upton suggestion)?
-// Add end game and effects.
-// Need a rules screen at the start. See:
-// https://docs.google.com/document/d/1qjPm6pxaejuq5KydRh0C6Honory8DLICO3jfQkpJotc/edit?usp=sharing
 // Chat -broadcast messages to all players, colors are their team color. This is difficult, as we
 // are in mouse look mode. Perhaps press "c" to type a message, hit enter and then you are back.
 // Add a "ready" button to start the game.
@@ -1213,7 +1206,7 @@ class AvatarPawn extends mix(Pawn).with(PM_Smoothed, PM_ThreeVisible, PM_Avatar)
         this.positionTo(data.t, data.r);
         const x = seasons[this.season].cell.x+1;
         const y = seasons[this.season].cell.y+1;
-        this.avatarMinimap(this.lastX, this.lastY, x, y);
+        if(this.isMyAvatar) this.avatarMinimap(this.lastX, this.lastY, x, y);
         this.lastX = x;
         this.lastY = y;
         //this.set({translation: data.t, rotation: data.r});

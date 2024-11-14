@@ -29,11 +29,17 @@ function createRules(headingText, contentText) {
     const content = document.createElement('div');
     content.className = 'rules-content';
 
-    // Add each content item as a paragraph
+    // Add each content item as a paragraph or horizontal line
     contentText.forEach(text => {
-        const p = document.createElement('p');
-        p.textContent = text;
-        content.appendChild(p);
+        if (text.trim() === '-') {
+            const hr = document.createElement('hr');
+            hr.className = 'rules-divider';
+            content.appendChild(hr);
+        } else {
+            const p = document.createElement('p');
+            p.textContent = text;
+            content.appendChild(p);
+        }
     });
 
     rulesContainer.appendChild(content);
@@ -54,14 +60,14 @@ function createRules(headingText, contentText) {
     style.textContent = `
         .rules-overlay {
             position: fixed;
-            top: 50%;
+            top: 20px;  /* Match countdown timer position */
             left: 50%;
-            transform: translate(-50%, -50%);
+            transform: translateX(-50%);
             background: rgba(0, 0, 0, 0.8);
             color: white;
             border-radius: 8px;
             z-index: 10000;
-            max-height: 80vh;
+            max-height: calc(100vh - 40px);  /* Account for top margin */
             width: min(80vh, 90vw);
             display: flex;
             flex-direction: column;
@@ -203,7 +209,12 @@ function createHelpButton() {
             transition: background-color 0.3s;
             padding: 0;
         }
-
+        .rules-divider {
+            border: none;
+            border-top: 1px solid rgba(255, 255, 255, 0.2);
+            margin: 15px 0;
+            width: 100%;
+        }
         .help-button:hover {
             background: rgba(0, 0, 0, 0.7);
         }
@@ -229,7 +240,7 @@ function createHelpButton() {
 }
 
 function initRules() {
-    const heading = "Labyrinth of Seasons";
+    const heading = "🌿 Labyrinth of Seasons 🌿";
     const content = [
         "Welcome to the Labyrinth! ",
         "Labyrinth is a multiplayer strategy/shooter game where you compete by claiming territory.",
@@ -240,11 +251,11 @@ function initRules() {
         "You can only shoot at someone when you are standing on your season's color.",
         "You move faster on your claimed territory.",
         "If your territory gets cut off from your base, you lose those cells.",
-        " - ",
+        "-",
         "The winner is the player with the most territory when time runs out.",
         "They receive the game generated NFT as well as other prizes!",
-        " - ",
-        "PC Controls:",
+        "-",
+        "⌨️ PC Controls:",
         "MOVE: WASD or Arrow Keys",
         "LOOK: Mouse",
         "SHOOT: Space/Mouse Button",
@@ -252,7 +263,8 @@ function initRules() {
         "VOLUME: +/-",
         "HELP (this screen): H/?",
         "COLOR BLIND MODE: C",
-        "Mobile Controls:",
+        "-",
+        "📱 Mobile Controls:",
         "MOVE/LOOK: Joystick",
         "SHOOT: Tap",
         "HELP (this screen): Help button",

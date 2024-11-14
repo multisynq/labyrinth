@@ -249,10 +249,11 @@ function initRules() {
         "SOUND: /",
         "VOLUME: +/-",
         "HELP (this screen): H/?",
+        "COLOR BLIND MODE: C",
         "Mobile Controls:",
         "MOVE/LOOK: Joystick",
         "SHOOT: Tap",
-        "HELP (this screen): help button",
+        "HELP (this screen): Help button",
     ];
     
     rulesOverlay = createRules(heading, content);

@@ -86,16 +86,16 @@
 // Season icons are now displayed in the center of the screen.
 // View the rules screen.
 // Fixed respawn to update lastX and lastY. Could not shoot until you moved.
+// Added color blindness mode for minimap.
 //------------------------------------------------------------------------------------------
 // Bugs:
-// Sound effect when someone captures your cells is missing.
 // Sometimes, a delay will cause you to jump through a wall - including outside of
 // the maze. This is very bad.
 // Sometimes the floor glow objects are still in place when a reload occurs.
 //------------------------------------------------------------------------------------------
 // To do:
-// Add color blindness mode. 
-// New user goes to free slot.
+// Claiming another player's cell should take longer than claiming a free cell.
+// New user goes to free avatar slot.
 // More than 4 players?
 // Mobile buttons rotate too fast - hard to control.
 // Last ten seconds of the game should have a countdown alert.
@@ -1186,8 +1186,11 @@ class AvatarPawn extends mix(Pawn).with(PM_Smoothed, PM_ThreeVisible, PM_Avatar)
     respawn(data) {
         console.log("AvatarPawn respawn", data);
         this.positionTo(data.t, data.r);
-        this.lastX = seasons[this.season].cell.x+1;
-        this.lastY = seasons[this.season].cell.y+1;
+        const x = seasons[this.season].cell.x+1;
+        const y = seasons[this.season].cell.y+1;
+        this.avatarMinimap(this.lastX, this.lastY, x, y);
+        this.lastX = x;
+        this.lastY = y;
         //this.set({translation: data.t, rotation: data.r});
         this.yaw = data.angle;
         minimapDiv.style.transform = `rotate(${this.yaw}rad)`;
@@ -1447,12 +1450,14 @@ class AvatarPawn extends mix(Pawn).with(PM_Smoothed, PM_ThreeVisible, PM_Avatar)
         this.positionTo(this.translation, this.yawQ);
 
         // update the eyeball's pitch
+        /*
         let p = this.eyeball.pitch;
         p -= y * scale;
         p = Math.max(-PI_4, Math.min(PI_4, p));
         this.eyeball.pitch = p;
         this.eyeball.pitchQ = q_axisAngle([1,0,0], this.eyeball.pitch);
         this.eyeball.set({rotation: this.eyeball.pitchQ});
+        */
     }
 
     update(time, delta) {
@@ -1562,13 +1567,13 @@ class AvatarPawn extends mix(Pawn).with(PM_Smoothed, PM_ThreeVisible, PM_Avatar)
     }
 
     clearCells(data) {
-        console.log("AvatarPawn clearCells", data.avatarId, this.actor.id);
-        for (const cell of data.clearCells) {
-            this.drawMinimapCell(cell[0]+1,cell[1]+1, null);
-        }
+//        console.log("AvatarPawn clearCells", data.avatarId, this.actor.id);
         if(this.isMyAvatar) {
             if(data.avatarId === this.actor.id) playSound(aweSound, this.renderObject, false);
             else playSound(shockSound, null, false);
+        }
+        for (const cell of data.clearCells) {
+            this.drawMinimapCell(cell[0]+1,cell[1]+1, null);
         }
     }
 
@@ -1597,7 +1602,7 @@ class AvatarPawn extends mix(Pawn).with(PM_Smoothed, PM_ThreeVisible, PM_Avatar)
     }
 
     drawMinimapCell(x,y, season) {
-        console.log("drawMinimapCell", x,y, season);
+        // console.log("drawMinimapCell", x,y, season);
         let color;
         if (!season) color = 0xFFFFFF;
         else color = this.actor.colorBlind ? seasons[season].color3:seasons[season].color;

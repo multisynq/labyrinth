@@ -87,13 +87,16 @@
 // View the rules screen.
 // Fixed respawn to update lastX and lastY. Could not shoot until you moved.
 // Added color blindness mode for minimap.
+// We don't go off the map anymore, but we can tunnel through walls or jump 2 cells.
+// Missiles are warmed up.
 //------------------------------------------------------------------------------------------
 // Bugs:
-// Sometimes, a delay will cause you to jump through a wall - including outside of
-// the maze. This is very bad.
+// We don't go off the map anymore, but we can tunnel through walls or jump 2 cells.
 // Sometimes the floor glow objects are still in place when a reload occurs.
 //------------------------------------------------------------------------------------------
 // To do:
+// Add a "[Season] Wins!"
+// Add a "Start Game" button to start the game.
 // Claiming another player's cell should take longer than claiming a free cell.
 // New user goes to free avatar slot.
 // More than 4 players?
@@ -140,131 +143,10 @@ import {InstanceActor, instances, materials} from './src/Instance.js';
 import showRules from './src/rules.js';
 import apiKey from "./src/apiKey.js";
 
-function createCenterIcon(imagePath, baseSize = 32) {
-    // Create container
-    const iconContainer = document.createElement('div');
-    iconContainer.className = 'center-icon';
-
-    // Create image element
-    const icon = document.createElement('img');
-    icon.src = imagePath;
-
-    // Set initial size directly
-    icon.style.width = `${baseSize}px`;
-    icon.style.height = `${baseSize}px`;
-
-    // Function to calculate size based on window dimensions
-    const updateSize = () => {
-        const windowWidth = window.innerWidth;
-        const windowHeight = window.innerHeight;
-        const minDimension = Math.min(windowWidth, windowHeight);
-
-        // Scale icon size based on screen size and baseSize
-        const scaleFactor = minDimension / 1000;
-        const newSize = Math.max(baseSize * 0.75, Math.min(baseSize * scaleFactor, baseSize * 1.5));
-
-        icon.style.width = `${newSize}px`;
-        icon.style.height = `${newSize}px`;
-    };
-
-    // Add image to container
-    iconContainer.appendChild(icon);
-
-    // Add to DOM just above text display
-    const textDisplay = document.querySelector('.text-display');
-    textDisplay.parentNode.insertBefore(iconContainer, textDisplay);
-
-    // Handle window resize
-    window.addEventListener('resize', updateSize);
-
-    return iconContainer;
-}
-
 import IconSpring from './assets/textures/IconSpring.png';
 import IconSummer from './assets/textures/IconSummer.png';
 import IconAutumn from './assets/textures/IconAutumn.png';
 import IconWinter from './assets/textures/IconWinter.png';
-
-showRules();
-function createTextDisplay() {
-    // Create container
-    const textDisplay = document.createElement('div');
-    textDisplay.className = 'text-display';
-
-    // Add to DOM just before version number
-    const versionNumber = document.getElementById('version-number');
-    versionNumber.parentNode.insertBefore(textDisplay, versionNumber);
-
-    // Add CSS for fade effect with longer transition
-    const style = document.createElement('style');
-    style.textContent = `
-        .text-display {
-            position: fixed;
-            bottom: 40px;
-            left: 50%;
-            transform: translateX(-50%);
-            font-family: Arial, sans-serif;
-            background: rgba(0, 0, 0, 0.5);
-            padding: 8px 16px;
-            border-radius: 4px;
-            z-index: 1000;
-            opacity: 1;
-            transition: opacity 2s ease-out;
-            pointer-events: none;
-            color: white;
-        }
-
-        .text-display.fade {
-            opacity: 0;
-        }
-
-        .text-display.hidden {
-            display: none;
-        }
-    `;
-    document.head.appendChild(style);
-
-    let currentTimeout;
-    let fadeTimeout;
-
-    // Return update function
-    return (text, duration = 0) => {
-        // Clear any existing timeouts
-        if (currentTimeout) clearTimeout(currentTimeout);
-        if (fadeTimeout) clearTimeout(fadeTimeout);
-
-        // Remove classes and show element
-        textDisplay.classList.remove('fade', 'hidden');
-        // Force a reflow
-        textDisplay.offsetHeight;
-
-        // Update text
-        textDisplay.textContent = text;
-
-        // Set up fade if duration provided
-        if (duration > 0) {
-            currentTimeout = setTimeout(() => {
-                textDisplay.classList.add('fade');
-
-                // Set up the hide after fade completes
-                fadeTimeout = setTimeout(() => {
-                    textDisplay.classList.add('hidden');
-                }, 2000); // Match the transition duration
-            }, duration * 1000);
-        }
-    };
-}
-
-const setTextDisplay = createTextDisplay();
-//const iconSpring = createCenterIcon(IconSpring, 128);
-
-// Initialize fullscreen button
-new FullscreenButton();
-const device = new DeviceDetector();
-setTextDisplay(device.isMobile? "mobile device":"desktop",10);
-
-const boxScore = new BoxScore();
-boxScore.setScores({"Spring": 4, "Summer": 4, "Autumn": 4, "Winter": 4});
 
 // Textures
 //------------------------------------------------------------------------------------------
@@ -348,11 +230,156 @@ const MAZE_COLUMNS = 20;
 const MISSILE_SPEED = 0.50;
 
 export let csm; // CSM is Cascaded Shadow Maps
+
+
+let readyToLoad3D = false;
+let readyToLoadTextures = false;
+let readyToLoadSounds = false;
+
+// 3D Models
+let eyeball;
+let column;
+let hexasphere;
+let horse;
+let trees;
+let plants;
+let ivy;
+
 export const seasons = {
     Spring:{cell:{x:0,y:0}, icon: IconSpring, nextCell:{x:1,y:1}, angle:toRad(180+45), color:0xFFB6C1, color2:0xCC8A94, color3:0xCC79A7},
     Summer: {cell: {x:0,y:CELL_SIZE-2}, icon: IconSummer, nextCell:{x:1,y:CELL_SIZE-3}, angle:toRad(270+45), color:0x90EE90, color2:0x65AA65, color3:0x009E73},
     Autumn: {cell:{x:CELL_SIZE-2, y:CELL_SIZE-2}, icon: IconAutumn, nextCell:{x:CELL_SIZE-3,y:CELL_SIZE-3}, angle:toRad(0+45), color:0xFFE5B4, color2:0xCCB38B, color3:0xE69F00},
     Winter: {cell:{x:CELL_SIZE-2, y:0}, icon: IconWinter, nextCell:{x:CELL_SIZE-3,y:1}, angle:toRad(90+45), color:0xA5F2F3, color2:0x73BFBF, color3:0x0072B2}};
+
+// 2D Elements
+//------------------------------------------------------------------------------------------
+
+function createCenterIcon(imagePath, baseSize = 32) {
+    // Create container
+    const iconContainer = document.createElement('div');
+    iconContainer.className = 'center-icon';
+
+    // Create image element
+    const icon = document.createElement('img');
+    icon.src = imagePath;
+
+    // Set initial size directly
+    icon.style.width = `${baseSize}px`;
+    icon.style.height = `${baseSize}px`;
+
+    // Function to calculate size based on window dimensions
+    const updateSize = () => {
+        const windowWidth = window.innerWidth;
+        const windowHeight = window.innerHeight;
+        const minDimension = Math.min(windowWidth, windowHeight);
+
+        // Scale icon size based on screen size and baseSize
+        const scaleFactor = minDimension / 1000;
+        const newSize = Math.max(baseSize * 0.75, Math.min(baseSize * scaleFactor, baseSize * 1.5));
+
+        icon.style.width = `${newSize}px`;
+        icon.style.height = `${newSize}px`;
+    };
+
+    // Add image to container
+    iconContainer.appendChild(icon);
+
+    // Add to DOM just above text display
+    const textDisplay = document.querySelector('.text-display');
+    textDisplay.parentNode.insertBefore(iconContainer, textDisplay);
+
+    // Handle window resize
+    window.addEventListener('resize', updateSize);
+
+    return iconContainer;
+}
+// display the rules window
+showRules();
+
+// display the centered bottom text info display
+function createTextDisplay() {
+    // Create container
+    const textDisplay = document.createElement('div');
+    textDisplay.className = 'text-display';
+
+    // Add to DOM just before version number
+    const versionNumber = document.getElementById('version-number');
+    versionNumber.parentNode.insertBefore(textDisplay, versionNumber);
+
+    // Add CSS for fade effect with longer transition
+    const style = document.createElement('style');
+    style.textContent = `
+        .text-display {
+            position: fixed;
+            bottom: 40px;
+            left: 50%;
+            transform: translateX(-50%);
+            font-family: Arial, sans-serif;
+            background: rgba(0, 0, 0, 0.5);
+            padding: 8px 16px;
+            border-radius: 4px;
+            z-index: 1000;
+            opacity: 1;
+            transition: opacity 2s ease-out;
+            pointer-events: none;
+            color: white;
+        }
+
+        .text-display.fade {
+            opacity: 0;
+        }
+
+        .text-display.hidden {
+            display: none;
+        }
+    `;
+    document.head.appendChild(style);
+
+    let currentTimeout;
+    let fadeTimeout;
+
+    // Return update function
+    return (text, duration = 0) => {
+        // Clear any existing timeouts
+        if (currentTimeout) clearTimeout(currentTimeout);
+        if (fadeTimeout) clearTimeout(fadeTimeout);
+
+        // Remove classes and show element
+        textDisplay.classList.remove('fade', 'hidden');
+        // Force a reflow
+        textDisplay.offsetHeight;
+
+        // Update text
+        textDisplay.textContent = text;
+
+        // Set up fade if duration provided
+        if (duration > 0) {
+            currentTimeout = setTimeout(() => {
+                textDisplay.classList.add('fade');
+
+                // Set up the hide after fade completes
+                fadeTimeout = setTimeout(() => {
+                    textDisplay.classList.add('hidden');
+                }, 2000); // Match the transition duration
+            }, duration * 1000);
+        }
+    };
+}
+
+const setTextDisplay = createTextDisplay();
+//const iconSpring = createCenterIcon(IconSpring, 128);
+
+// Initialize fullscreen button
+new FullscreenButton();
+
+// Determine if we are mobile or desktop
+const device = new DeviceDetector();
+setTextDisplay(device.isMobile? "mobile device":"desktop",10);
+
+// Initialize the scoreboard
+const boxScore = new BoxScore();
+boxScore.setScores({"Spring": 4, "Summer": 4, "Autumn": 4, "Winter": 4});
+
 // Minimap canvas
 const minimapDiv = document.getElementById('minimap');
 const minimapCanvas = document.createElement('canvas');
@@ -377,18 +404,6 @@ function scaleMinimap() {
     minimapCanvas.style.width = `${sideLength}px`;
     minimapCanvas.style.height = `${sideLength}px`;
 }
-
-let readyToLoad3D = false;
-let readyToLoadTextures = false;
-let readyToLoadSounds = false;
-let eyeball;
-let column;
-let hexasphere;
-let horse;
-let trees;
-let plants;
-let ivy;
-
 scaleMinimap();
 
 // Sound Manager
@@ -968,6 +983,8 @@ class AvatarActor extends mix(Actor).with(AM_Spatial, AM_Avatar) {
         this.fireball =  FireballActor.create({parent: this, radius:this.radius});
         this.fireball.future(1000).hide();
         this.future(1000).buildGlow();
+        const translation = [this.translation[0], this.translation[1]-5, this.translation[2]];
+        MissileActor.create({parent: this, color: this.color2, translation});
         this.setHighSpeed(this.throttleMax);
         this.listen("colorBlind", this.setColorBlind);
     }
@@ -1464,7 +1481,8 @@ class AvatarPawn extends mix(Pawn).with(PM_Smoothed, PM_ThreeVisible, PM_Avatar)
         super.update(time,delta);
         if (this.driving) {
             if (this.gas || this.strafe) {
-                const factor = delta/1000;
+                if(delta/1000 > 0.1) console.log("AvatarPawn update", delta);
+                const factor = Math.min(delta/1000,0.1);
                 const speed = this.gas * 20 * factor * this.actor.highGear;
                 const strafeSpeed = this.strafe * 20 * factor * this.actor.highGear;
                 const forward = v3_rotate([0,0,-1], this.yawQ);
@@ -1548,7 +1566,7 @@ class AvatarPawn extends mix(Pawn).with(PM_Smoothed, PM_ThreeVisible, PM_Avatar)
                     else z -= offsetZ + cellInset;
                 }
             }
-        } // else {}// if we find ourselves off the map, then jump back
+        } else { return this.translation;}// if we find ourselves off the map, then jump back
         this.tryClaimCell(xCell, yCell);
         return [x, y, z];
     }
@@ -1694,23 +1712,25 @@ class MissileActor extends mix(Actor).with(AM_Spatial) {
 
     init(options) {
         super.init(options);
-        this.isCollider = true;
-        this.future(4000).destroy(); // destroy after some time
-        this.radius = MISSILE_RADIUS;
-        const t = [...this._avatar.translation];
-        t[1]=5;
-        this.translation = [...t];
-        this.rotation = [...this._avatar.rotation];
-        this.yaw = q_yaw(this.rotation);
-        this.yawQ = q_axisAngle([0,1,0], this.yaw);
-        this.direction = v3_scale(v3_rotate(this.forward, this.yawQ), -1);
-        this.velocity = v3_scale(this.direction, MISSILE_SPEED*2);
-        //this.timeScale = 0.00025 + Math.random()*0.00002;
-        this.hasBounced = false; // I can kill my avatar if I bounce off a wall first
         this.hexasphere = InstanceActor.create({name: "hexasphere", parent: this});
         this.glow = GlowActor.create({parent: this, color: options.color||0xff8844, depthTest: true, radius: 1.25, glowRadius: 0.5, falloff: 0.1, opacity: 0.75, sharpness: 0.5});
         this.flicker = PointFlickerActor.create({parent: this, playSound: true,color: options.color||0xff8844});
-        this.tick(0);
+        this.future(this._avatar ? 4000 : 1000).destroy(); // destroy after some time
+        if (this._avatar) {
+            this.isCollider = true;
+            this.radius = MISSILE_RADIUS;
+            const t = [...this._avatar.translation];
+            t[1]=5;
+            this.translation = [...t];
+            this.rotation = [...this._avatar.rotation];
+            this.yaw = q_yaw(this.rotation);
+            this.yawQ = q_axisAngle([0,1,0], this.yaw);
+            this.direction = v3_scale(v3_rotate(this.forward, this.yawQ), -1);
+            this.velocity = v3_scale(this.direction, MISSILE_SPEED*2);
+            //this.timeScale = 0.00025 + Math.random()*0.00002;
+            this.hasBounced = false; // I can kill my avatar if I bounce off a wall first
+            this.tick(0);
+        }
         //console.log("MissileActor init", this);
     }
 

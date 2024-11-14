@@ -89,10 +89,10 @@
 // Added color blindness mode for minimap.
 // We don't go off the map anymore, but we can tunnel through walls or jump 2 cells.
 // Missiles are warmed up.
+// Fixed the floor glow objects that became visible when a reload occurs.
 //------------------------------------------------------------------------------------------
 // Bugs:
 // We don't go off the map anymore, but we can tunnel through walls or jump 2 cells.
-// Sometimes the floor glow objects are still in place when a reload occurs.
 //------------------------------------------------------------------------------------------
 // To do:
 // Add a "[Season] Wins!"
@@ -2113,6 +2113,7 @@ export class GlowPawn extends mix(Pawn).with(PM_Smoothed, PM_ThreeVisible) {
         this.glow.renderOrder = 5000; // this must be set to a large number to keep the associated pawn visible
         this.setRenderObject(this.glow);
         this.listen("visible", this.doVisible);
+        this.doVisible(this.actor.visible);
     }
 
     doVisible(value) {

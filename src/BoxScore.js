@@ -9,7 +9,7 @@ class BoxScore {
         };
         
         // Initialize positions
-        Object.values(this.scores).forEach(score => {
+        Object.values(this.scores).forEach((score, index) => {
             score.element.style.position = 'absolute';
             score.element.style.left = '0';
             score.element.style.right = '0';
@@ -41,9 +41,6 @@ class BoxScore {
         const fontSize = this.rowHeight * 0.5;
         this.container.style.fontSize = `${fontSize}px`;
         
-        // Force layout recalculation
-        this.container.offsetHeight;
-        
         // Update positions immediately
         this.updatePositions();
     }
@@ -68,7 +65,7 @@ class BoxScore {
             .sort(([,a], [,b]) => b.value - a.value);
 
         sortedScores.forEach(([, score], index) => {
-            const yPosition = index * this.rowHeight;
+            const yPosition = (index-0.4) * this.rowHeight;
             score.element.style.transform = `translateY(${yPosition}px)`;
         });
     }

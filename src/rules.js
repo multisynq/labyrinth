@@ -60,7 +60,7 @@ function createRules(headingText, contentText) {
             background: rgba(0, 0, 0, 0.8);
             color: white;
             border-radius: 8px;
-            z-index: 1000;
+            z-index: 10000;
             max-height: 80vh;
             width: min(80vh, 90vw);
             display: flex;

@@ -95,6 +95,7 @@
 // We don't go off the map anymore, but we can tunnel through walls or jump 2 cells.
 //------------------------------------------------------------------------------------------
 // To do:
+// Tune mobile controls.
 // Add a "[Season] Wins!"
 // Add a "Start Game" button to start the game.
 // Claiming another player's cell should take longer than claiming a free cell.
@@ -403,6 +404,13 @@ function scaleMinimap() {
     minimapDiv.style.height = `${sideLength}px`;
     minimapCanvas.style.width = `${sideLength}px`;
     minimapCanvas.style.height = `${sideLength}px`;
+
+        // Adjust top position based on orientation
+        if (window.innerHeight > window.innerWidth) { // portrait mode
+            minimapDiv.style.top = '80px';
+        } else { // landscape mode
+            minimapDiv.style.top = '50px';
+        }
 }
 scaleMinimap();
 
@@ -1444,7 +1452,7 @@ class AvatarPawn extends mix(Pawn).with(PM_Smoothed, PM_ThreeVisible, PM_Avatar)
     joystickLook() {
         //console.log("AvatarPawn lookingAround");
         if(this.looking){
-            this.yaw -= this.lookX * 0.075;
+            this.yaw -= this.lookX * 0.05;
             this.yaw = this.normalizeRotation(this.yaw);
             minimapDiv.style.transform = `rotate(${this.yaw}rad)`;
             this.yawQ = q_axisAngle([0,1,0], this.yaw);

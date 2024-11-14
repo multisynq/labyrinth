@@ -63,7 +63,7 @@ function createRules(headingText, contentText) {
             top: 20px;  /* Match countdown timer position */
             left: 50%;
             transform: translateX(-50%);
-            background: rgba(0, 0, 0, 0.8);
+            background: rgba(0, 0, 0, 0.7);
             color: white;
             border-radius: 8px;
             z-index: 10000;
@@ -255,7 +255,9 @@ function initRules() {
         "The winner is the player with the most territory when time runs out.",
         "They receive the game generated NFT as well as other prizes!",
         "-",
-        "⌨️ PC Controls:",
+        "💻  PC Controls:",
+        "Click in the window to enter Pointer Lock to play.",
+        "Press ESC to exit Pointer Lock.",
         "MOVE: WASD or Arrow Keys",
         "LOOK: Mouse",
         "SHOOT: Space/Mouse Button",
@@ -264,7 +266,7 @@ function initRules() {
         "HELP (this screen): H/?",
         "COLOR BLIND MODE: C",
         "-",
-        "📱 Mobile Controls:",
+        "📱  Mobile Controls:",
         "MOVE/LOOK: Joystick",
         "SHOOT: Tap",
         "HELP (this screen): Help button",

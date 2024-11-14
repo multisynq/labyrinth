@@ -1056,7 +1056,7 @@ class AvatarActor extends mix(Actor).with(AM_Spatial, AM_Avatar) {
         console.log("AvatarActor shootMissile");
         this.canShoot = false;
         this.say("shootMissileSound", this.id);
-        this.future(MISSILE_LIFE).reloadMissile();
+        this.future(MISSILE_LIFE/2).reloadMissile();
         MissileActor.create({avatar: this, color: this.color2});
     }
 

@@ -91,18 +91,23 @@
 // Missiles are warmed up.
 // Fixed the floor glow objects that became visible when a reload occurs.
 // Tuned mobile controls. May need more work based on testing.
+// Sounds are now warmed up.
 //------------------------------------------------------------------------------------------
 // Bugs:
 // We don't go off the map anymore, but we can tunnel through walls or jump 2 cells.
 //------------------------------------------------------------------------------------------
 // Priority To do:
+// Mobile controls - copy Call of Duty mobile.
+// - right is look around
+// - left is move (strafe and forward)
+// - tap is shoot
 // Add a "[Season] Wins!"
 // Add a "Start Game" button to start the game.
 // New user goes to free avatar slot.
-// Sounds may need to be warmed up.
 // More than 4 players?
 // Lobby generates a new game to join. Once a game is full, it starts.
-// 
+// Add season color to avatar.
+//------------------------------------------------------------------------------------------
 // Nice to have:
 // Claiming another player's cell should take longer than claiming a free cell.
 // Last ten seconds of the game should have a countdown alert.
@@ -118,6 +123,10 @@
 //------------------------------------------------------------------------------------------
 // Need artist:
 // The ivy needs to be cleaned up at the top.
+//------------------------------------------------------------------------------------------
+// Education:
+// - Anything that can stay in the view, keep in the view. If no one else needs to
+//   see it or know it, don't show it.
 //------------------------------------------------------------------------------------------
 
 import { App, StartWorldcore, ViewService, ModelRoot, ViewRoot,Actor, mix, toRad,
@@ -240,10 +249,10 @@ let plants;
 let ivy;
 
 export const seasons = {
-    Spring:{cell:{x:0,y:0}, icon: IconSpring, nextCell:{x:1,y:1}, angle:toRad(180+45), color:0xFFB6C1, color2:0xCC8A94, color3:0xCC79A7},
-    Summer: {cell: {x:0,y:CELL_SIZE-2}, icon: IconSummer, nextCell:{x:1,y:CELL_SIZE-3}, angle:toRad(270+45), color:0x90EE90, color2:0x65AA65, color3:0x009E73},
-    Autumn: {cell:{x:CELL_SIZE-2, y:CELL_SIZE-2}, icon: IconAutumn, nextCell:{x:CELL_SIZE-3,y:CELL_SIZE-3}, angle:toRad(0+45), color:0xFFE5B4, color2:0xCCB38B, color3:0xE69F00},
-    Winter: {cell:{x:CELL_SIZE-2, y:0}, icon: IconWinter, nextCell:{x:CELL_SIZE-3,y:1}, angle:toRad(90+45), color:0xA5F2F3, color2:0x73BFBF, color3:0x0072B2}};
+    Spring:{cell:{x:0,y:0}, icon: IconSpring, nextCell:{x:1,y:1}, angle:toRad(180+45), color:0xFFB6C1, color2:0xCC8A94, colorBlind:0xCC79A7, colorEye: 0xFFEEEE},
+    Summer: {cell: {x:0,y:CELL_SIZE-2}, icon: IconSummer, nextCell:{x:1,y:CELL_SIZE-3}, angle:toRad(270+45), color:0x90EE90, color2:0x65AA65, colorBlind:0x009E73, colorEye: 0xD0FFD0},
+    Autumn: {cell:{x:CELL_SIZE-2, y:CELL_SIZE-2}, icon: IconAutumn, nextCell:{x:CELL_SIZE-3,y:CELL_SIZE-3}, angle:toRad(0+45), color:0xFFE5B4, color2:0xCCB38B, colorBlind:0xE69F00, colorEye: 0xFFE5B4},
+    Winter: {cell:{x:CELL_SIZE-2, y:0}, icon: IconWinter, nextCell:{x:CELL_SIZE-3,y:1}, angle:toRad(90+45), color:0xA5F2F3, color2:0x73BFBF, colorBlind:0x0072B2, colorEye: 0xE0E0FF}};
 
 // 2D Elements
 //------------------------------------------------------------------------------------------
@@ -559,6 +568,22 @@ loadSounds().then( sounds => {
 
 // Load 3D Models
 //------------------------------------------------------------------------------------------
+function  deepClone(original) {
+
+    let clone;
+    if (original.isMesh) 
+        clone = new THREE.Mesh(original.geometry.clone(),original.material.clone());
+    else clone = new THREE.Group();
+    
+    original.children.forEach((child) => clone.add(deepClone(child)));
+ // Copy transform
+    clone.position.copy(original.position);
+    clone.rotation.copy(original.rotation);
+    clone.scale.copy(original.scale);
+    
+    return clone;
+}
+
 async function modelConstruct() {
     const gltfLoader = new ADDONS.GLTFLoader();
     const dracoLoader = new ADDONS.DRACOLoader();
@@ -919,13 +944,13 @@ export class MyViewRoot extends ViewRoot {
     onStart() {
         this.buildView();
         this.countdownTimer = new Countdown(this.wellKnownModel("ModelRoot").timer);
-        console.log("MyViewRoot onStart", this);
+        //("MyViewRoot onStart", this);
         this.skyRotation = new THREE.Euler(0, 0, 0);
         this.subscribe("root", "rotateSky", this.rotateSky);
         this.subscribe("input", "resize", scaleMinimap);
         this.subscribe("root", "countDown", this.countDown);
         const actors = this.wellKnownModel('ActorManager').actors;
-        console.log("MyViewRoot onStart actors", actors);
+        //console.log("MyViewRoot onStart actors", actors);
     }
 
     countDown(timer) {
@@ -1004,7 +1029,9 @@ class AvatarActor extends mix(Actor).with(AM_Spatial, AM_Avatar) {
         super.init(options);
         this.throttleMin = 1.0;
         this.throttleMax = 2.0;
-        const t = [CELL_SIZE*seasons[this.season].cell.x+10,AVATAR_HEIGHT,CELL_SIZE*seasons[this.season].cell.y+10];
+        const x = seasons[this.season].cell.x;
+        const y = seasons[this.season].cell.y;
+        const t = [CELL_SIZE*x+10,AVATAR_HEIGHT,CELL_SIZE*y+10];
         const angle = seasons[this.season].angle; //Math.PI*2*seasons[this.season].angle/360;
         const r = q_axisAngle([0,1,0],angle);
         this.set({translation: t, rotation: r});
@@ -1052,7 +1079,7 @@ class AvatarActor extends mix(Actor).with(AM_Spatial, AM_Avatar) {
 
     get color() {return seasons[this.season].color}
     get color2() {return seasons[this.season].color2}
-    get color3() {return seasons[this.season].color3}
+    get colorBlind() {return seasons[this.season].colorBlind}
 
     claimCell(data) {
         const mazeActor = this.wellKnownModel("ModelRoot").maze;
@@ -1084,7 +1111,7 @@ class AvatarActor extends mix(Actor).with(AM_Spatial, AM_Avatar) {
     }
 
     shootMissile() {
-        console.log("AvatarActor shootMissile");
+        //console.log("AvatarActor shootMissile");
         this.canShoot = false;
         this.say("shootMissileSound", this.id);
         this.future(MISSILE_LIFE/2).reloadMissile();
@@ -1097,7 +1124,7 @@ class AvatarActor extends mix(Actor).with(AM_Spatial, AM_Avatar) {
     }
 
     kill() {
-        console.log("kill", this.id, "KILLED");
+        // console.log("kill", this.id, "KILLED");
         this.fireball.show();
         this.fireball.future(3000).hide();
         this.future(1000).respawn();
@@ -1114,7 +1141,7 @@ class AvatarActor extends mix(Actor).with(AM_Spatial, AM_Avatar) {
     }
 
     destroy() {
-        console.log("AvatarActor destroy", this);
+        // console.log("AvatarActor destroy", this);
         super.destroy();
         for(let i=0; i<4; i++) {this.glow[i].destroy();}
     }
@@ -1146,15 +1173,29 @@ class EyeballPawn extends mix(Pawn).with(PM_Smoothed, PM_ThreeVisible, PM_ThreeC
     load3D() {
         if (this.doomed) return;
         if (readyToLoad3D && eyeball) {
-            this.eye = eyeball.scene.clone();
-            console.log("EyeballPawn load3D", this.parent.season);
-            if(this.parent.season === "Spring") this.eye.children[0].children[0].material.map = eyeball_spring_t;
-            else if(this.parent.season === "Autumn") this.eye.children[0].children[0].material.map = eyeball_autumn_t;
-            else if(this.parent.season === "Winter") this.eye.children[0].children[0].material.map = eyeball_winter_t;
+            let color = seasons[this.parent.season].colorEye;
+            // console.log("load3D", this.parent.season, color.toString(16));
+            if(this.parent.season === "Summer") this.eye = eyeball.scene;
+            else this.eye = deepClone(eyeball.scene);
 
+            //console.log("EyeballPawn load3D", this.parent.season);
+            //console.log("EYES:", this.eye, eyeball.scene);
+
+            const material = this.eye.children[0].children[0].material;
+            material.color = new THREE.Color(color);
+            // console.log("material color", color, color.toString(16),material.color);
+            if(this.parent.season === "Spring") material.map = eyeball_spring_t;
+            else if(this.parent.season === "Autumn") material.map = eyeball_autumn_t;
+            else if(this.parent.season === "Winter") material.map = eyeball_winter_t;
+            material.needsUpdate = true;
+            this.eye.traverse( m => {
+                if (m.geometry) {    
+                    m.castShadow=true; 
+                    m.receiveShadow=true; 
+                }
+            });
             this.eye.scale.set(40,40,40);
             this.eye.rotation.set(0,Math.PI,0);
-            this.eye.traverse( m => {if (m.geometry) { m.castShadow=true; m.receiveShadow=true; } });
             this.group = new THREE.Group();
             this.group.add(this.eye);
             this.setRenderObject(this.group);
@@ -1198,11 +1239,10 @@ class AvatarPawn extends mix(Pawn).with(PM_Smoothed, PM_ThreeVisible, PM_Avatar)
         this.isAvatar = true;
         this.radius = actor.radius;
         this.yaw = q_yaw(this.rotation);
-        minimapDiv.style.transform = `rotate(${this.yaw}rad)`;
         this.yawQ = q_axisAngle([0,1,0], this.yaw);
         this.lastX = seasons[this.season].cell.x+1;
         this.lastY = seasons[this.season].cell.y+1;
-        console.log("AvatarPawn constructor", this.lastX, this.lastY);
+        // console.log("AvatarPawn constructor", this.lastX, this.lastY);
         this.service("AvatarManager").avatars.add(this);
         this.listen("shootMissileSound", this.didShootSound);
         this.listen("recharged", this.rechargedSound);
@@ -1214,9 +1254,9 @@ class AvatarPawn extends mix(Pawn).with(PM_Smoothed, PM_ThreeVisible, PM_Avatar)
     }
 
     get season() {return this.actor.season}
-    get color() {return colorBlind? seasons[this.season].color3:seasons[this.season].color}
-    get color2() {return colorBlind? seasons[this.season].color3:seasons[this.season].color2}
-    get color3() {return seasons[this.season].color3}
+    get color() {return colorBlind? seasons[this.season].colorBlind:seasons[this.season].color}
+    get color2() {return colorBlind? seasons[this.season].colorBlind:seasons[this.season].color2}
+    get colorBlind() {return seasons[this.season].colorBlind}
 
     setColorBlind() {
         this.redrawMinimap();
@@ -1262,8 +1302,10 @@ class AvatarPawn extends mix(Pawn).with(PM_Smoothed, PM_ThreeVisible, PM_Avatar)
         this.subscribe("input", "pointerDelta", this.doPointerDelta);
         //this.subscribe("input", "tap", this.doPointerTap);
         //this.subscribe("input", 'wheel', this.onWheel);
+        this.yaw = q_yaw(this.rotation);
         this.createMinimap();
-        this.icon = createIcon(seasons[this.season].icon, 128);
+        minimapDiv.style.transform = `rotate(${this.yaw}rad)`;
+        this.icon = createIcon(seasons[this.season].icon, 64);
         const scores = this.wellKnownModel("ModelRoot").maze.seasons;
         boxScore.setScores(scores);
         this.subscribe("maze", "score", this.scoreUpdate);
@@ -1637,7 +1679,7 @@ class AvatarPawn extends mix(Pawn).with(PM_Smoothed, PM_ThreeVisible, PM_Avatar)
     }
 
     redrawMinimap() {
-        if (!this.isMyAvatar) return;
+       // if (!this.isMyAvatar) return;
         //console.log("redrawMinimap");
         const mazeActor = this.wellKnownModel("ModelRoot").maze;
         minimapCtx.clearRect(0, 0, minimapCanvas.width, minimapCanvas.height);
@@ -1651,14 +1693,13 @@ class AvatarPawn extends mix(Pawn).with(PM_Smoothed, PM_ThreeVisible, PM_Avatar)
         const yCell = 1+Math.floor(this.translation[2]/CELL_SIZE);
         this.avatarMinimap(null, null, xCell, yCell);
         minimapDiv.style.transform = `rotate(${this.yaw}rad)`;
-        //minimapDiv.style.transform = `rotate(${this.yaw}rad)`;
     }
 
     drawMinimapCell(x,y, season) {
         // console.log("drawMinimapCell", x,y, season);
         let color;
         if (!season) color = 0xFFFFFF;
-        else color = colorBlind ? seasons[season].color3:seasons[season].color;
+        else color = colorBlind ? seasons[season].colorBlind:seasons[season].color;
         function hexNumberToColorString(hexNumber) {
             let hexString = hexNumber.toString(16);
             while (hexString.length < 6) {
@@ -1681,8 +1722,6 @@ class AvatarPawn extends mix(Pawn).with(PM_Smoothed, PM_ThreeVisible, PM_Avatar)
             const mazeActor = this.wellKnownModel("ModelRoot").maze;
             this.drawMinimapCell(lastX, lastY, mazeActor.getCellSeason(lastX,lastY));
         }
-
-        //minimapDiv.style.transform = `rotate(${this.yaw}rad)`;
         minimapDiv.style.transform = `rotate(${this.yaw}rad)`;
         minimapCtx.globalAlpha = 0.9;
         minimapCtx.fillStyle = "#FFFFFF";
@@ -1707,7 +1746,7 @@ MyUserManager.register('MyUserManager');
 class MyUser extends User {
     init(options) {
         super.init(options);
-        console.log("MyUser init", this);
+       // console.log("MyUser init", this);
         let cellX = Math.floor(18.9*Math.random());
         let cellY = Math.floor(18.9*Math.random());
 
@@ -1894,7 +1933,7 @@ class MissileActor extends mix(Actor).with(AM_Spatial) {
     }
 
     kill() { // missiles can kill missiles
-        console.log("testCollision", this.id, "KILLED");
+        //console.log("testCollision", this.id, "KILLED");
         if ( !this.doomed ) {
             FireballActor.create({translation: this.translation, radius: this.radius});
             this.destroy();
@@ -1940,7 +1979,7 @@ export class PointFlickerPawn extends mix(Pawn).with(PM_Smoothed, PM_ThreeVisibl
 
     constructor(actor) {
         super(actor);
-        console.log("PointFlickerPawn constructor", this);
+        // console.log("PointFlickerPawn constructor", this);
         this.pointLight = new THREE.PointLight(this.actor.color, 20, 20, 2);
         this.setRenderObject(this.pointLight);
         if (this.actor.playSound) {

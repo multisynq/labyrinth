@@ -13,6 +13,7 @@ export class InstanceActor extends mix(Actor).with(AM_Spatial) {
     get pawn() {return "InstancePawn"}
     get name() { return this._name || "column"}
     get color() { return this._color || 0xffffff }
+    get max() { return this._max || 400 }
     setColor(color) { this._color = color; this.say("color", color); }
 }
 InstanceActor.register('InstanceActor');
@@ -46,7 +47,7 @@ export class InstancePawn extends mix(Pawn).with(PM_Smoothed, PM_ThreeVisible, P
                 const im = this.service("ThreeInstanceManager");
                 im.addMaterial(name, material);
                 im.addGeometry(name, geometry);
-                im.addMesh(name, name, name, 400);
+                im.addMesh(name, name, name, this.actor.max);
                 instance = this.useInstance(name);
                 instance.mesh.material.needsUpdate = true;
                 csm.setupMaterial(instance.mesh.material);

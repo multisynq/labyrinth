@@ -92,6 +92,9 @@
 // Fixed the floor glow objects that became visible when a reload occurs.
 // Tuned mobile controls. May need more work based on testing.
 // Sounds are now warmed up.
+// Added season color to avatar.
+// Only generate the number of instances that are actually needed.
+// Turned the WallActor into an InstanceActor.
 //------------------------------------------------------------------------------------------
 // Bugs:
 // We don't go off the map anymore, but we can tunnel through walls or jump 2 cells.
@@ -101,12 +104,14 @@
 // - right is look around
 // - left is move (strafe and forward)
 // - tap is shoot
-// Add a "[Season] Wins!"
-// Add a "Start Game" button to start the game.
-// New user goes to free avatar slot.
-// More than 4 players?
-// Lobby generates a new game to join. Once a game is full, it starts.
-// Add season color to avatar.
+// - score board needs to be larger
+// Winning:
+// - Add a "[Season] Wins!"
+// - Add a "Start Game" button to start the game.
+// Lobby:
+// - New user goes to free avatar slot.
+// - More than 4 players?
+// - Lobby generates a new game to join. Once a game is full, it starts.
 //------------------------------------------------------------------------------------------
 // Nice to have:
 // Claiming another player's cell should take longer than claiming a free cell.
@@ -129,6 +134,8 @@
 //   see it or know it, don't show it.
 // - Sending messages from the view to the model is expensive. Try to avoid it.
 // - Sending messages from the model to view is very cheap. Send as much as you want.
+// - The purpose of the model is to provide shared computations. This is particularly
+//   true for simulations.
 //------------------------------------------------------------------------------------------
 
 import { App, StartWorldcore, ViewService, ModelRoot, ViewRoot,Actor, mix, toRad,
@@ -144,7 +151,7 @@ import BoxScore from './src/BoxScore.js';
 import Joystick from './src/Joystick.js';
 import Countdown from './src/Countdown.js';
 import MazeActor from './src/MazeActor.js';
-import {InstanceActor, instances, materials} from './src/Instance.js';  
+import {InstanceActor, instances, materials, geometries} from './src/Instance.js';  
 import showRules from './src/rules.js';
 import apiKey from "./src/apiKey.js";
 
@@ -616,6 +623,12 @@ modelConstruct().then( () => {
     instances.hexasphere = hexasphere.scene.children[0].children[0];
     instances.hexasphere.geometry.scale(0.05,0.05,0.05);
     fixUV(instances.hexasphere.geometry);
+    const width = 20;
+    const height = 10;
+    const frontWall = new THREE.PlaneGeometry(width, height);
+    const backWall = new THREE.PlaneGeometry(width, height);
+    backWall.rotateY(Math.PI);
+    geometries.wall = ADDONS.BufferGeometryUtils.mergeGeometries([frontWall, backWall], false);
     plants = {Spring: new THREE.Group(), Summer: new THREE.Group(), Autumn: new THREE.Group(), Winter: new THREE.Group()};
     horse = horse.scene.clone();
     horse.traverse( m => {if (m.geometry) { m.castShadow=true; m.receiveShadow=true; m.position.set(0,0,0);} });
@@ -897,12 +910,14 @@ class MyModelRoot extends ModelRoot {
         const zOffset = (MAZE_COLUMNS*CELL_SIZE)/2;
         this.base = BaseActor.create({ translation:[xOffset,0,zOffset]});
         this.maze = MazeActor.create({translation: [0,5,0], rows: MAZE_ROWS, columns: MAZE_COLUMNS, cellSize: CELL_SIZE});
+        /*
         for (let y = 0; y < MAZE_ROWS; y++) {
             for (let x = 0; x < MAZE_COLUMNS; x++) {
                 const t = [x*CELL_SIZE, 0, y*CELL_SIZE];
                 InstanceActor.create({name:"column", color:0xFFA07A,translation: t});
             }
         }
+        */
         this.horse = HorseActor.create({translation:[210.9,10,209.70], scale:[8.75,8.75,8.75]});
         const s = 9.0;
         this.spring = PlantActor.create({plant:"Spring",translation: [20, 0.5, 20], scale:[s,s,s]});
@@ -1790,7 +1805,7 @@ class MissileActor extends mix(Actor).with(AM_Spatial) {
 
     init(options) {
         super.init(options);
-        this.hexasphere = InstanceActor.create({name: "hexasphere", parent: this});
+        this.hexasphere = InstanceActor.create({name: "hexasphere", parent: this, max:8});
         this.glow = GlowActor.create({parent: this, color: options.color||0xff8844, depthTest: true, radius: 1.25, glowRadius: 0.5, falloff: 0.1, opacity: 0.75, sharpness: 0.5});
         this.flicker = PointFlickerActor.create({parent: this, playSound: true,color: options.color||0xff8844});
         this.future(this._avatar ? 4000 : 1000).destroy(); // destroy after some time

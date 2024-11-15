@@ -2,7 +2,7 @@ import { Actor, mix, AM_Spatial, Pawn, PM_Smoothed, PM_ThreeVisible, PM_ThreeIns
 import { csm } from '../labyrinth.js';
 export const instances = {};
 export const materials = {};
-const geometries = {};
+export const geometries = {};
 // Floor cell instance geometry
 geometries.floor = new THREE.PlaneGeometry(20,20,2,2);
 geometries.floor.rotateX(toRad(-90));
@@ -38,6 +38,7 @@ export class InstancePawn extends mix(Pawn).with(PM_Smoothed, PM_ThreeVisible, P
         if (this.doomed) return;
         const name = this.actor.name;
         let instance = this.useInstance(name);
+        //if(instance) console.log("InstancePawn", name);
         if (!instance) { // does the instance not exist?
             if (instances[name] || geometries[name]) { // is it ready to load?
                 const geometry = geometries[name] || instances[name].geometry.clone();

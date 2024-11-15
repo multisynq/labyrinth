@@ -39,7 +39,7 @@ class BoxScore {
         this.container.style.height = `${boxSize * 0.8}px`;
         
         // Calculate new row height
-        this.rowHeight = Math.floor((boxSize * 0.8) / 4);
+        this.rowHeight = Math.floor((boxSize * 0.8) / 3);
         
         // Update font sizes
         const fontSize = this.rowHeight * 0.5;

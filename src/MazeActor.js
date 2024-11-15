@@ -1,7 +1,6 @@
 
 import { Actor, mix, AM_Spatial, q_axisAngle} from '@croquet/worldcore';
 import {InstanceActor} from './Instance.js';
-import WallActor from './Wall.js';
 import { CELL_SIZE, seasons } from '../labyrinth.js';
 const PI_2 = Math.PI/2;
 
@@ -241,19 +240,22 @@ class MazeActor extends mix(Actor).with(AM_Spatial) {
     constructMaze() {
         const r = q_axisAngle([0,1,0],PI_2);
         const ivyRotation = q_axisAngle([0,1,0],Math.PI);
-        let wallCount = 0, ivy0Count = 0, ivy1Count = 0, floorCount = 0;
-
+        let ivy0Count = 0, ivy1Count = 0, floorCount = 0, wallCount2 = 0, columnCount = 0;
+        const wallCount = this.countWalls();
         for (let y = 0; y < this.rows; y++) {
             for (let x = 0; x < this.columns; x++) {
                 if (x<this.columns-1 && y<this.rows-1) {
-                    this.map[x][y].floor = InstanceActor.create({name:"floor", translation: [x*CELL_SIZE+CELL_SIZE/2, 0, y*CELL_SIZE+CELL_SIZE/2]});
+                    this.map[x][y].floor = InstanceActor.create({name:"floor", translation: [x*CELL_SIZE+CELL_SIZE/2, 0, y*CELL_SIZE+CELL_SIZE/2], max:391});
                     floorCount++;
                 }
+                const t = [x*CELL_SIZE, 0, y*CELL_SIZE];
+                InstanceActor.create({name:"column", color:0xFFA07A,translation: t});
+                columnCount++;
                 // south walls
                 if (!this.map[x][y].S && x>0) {
                 const t = [x*this.cellSize - this.cellSize/2, 0, y*this.cellSize];
-                const wall = WallActor.create({parent: this, translation: t});
-                wallCount++;
+                const wall = InstanceActor.create({name:"wall", parent: this, translation: t, max: wallCount});
+                wallCount2++;
                 if (Math.random() < 0.25) {
                     InstanceActor.create({name: "ivy0", parent: wall});
                     InstanceActor.create({name: "ivy1", parent: wall});
@@ -267,8 +269,8 @@ class MazeActor extends mix(Actor).with(AM_Spatial) {
             // east walls
             if (!this.map[x][y].E && y>0) {
                 const t = [x*this.cellSize, 0, (y+1)*this.cellSize - 3*this.cellSize/2];
-                const wall = WallActor.create({parent: this, translation: t, rotation: r});
-                wallCount++;
+                const wall = InstanceActor.create({name:"wall",parent: this, translation: t, rotation: r, max: wallCount});
+                wallCount2++;
                 if (Math.random() < 0.25) {
                     InstanceActor.create({name: "ivy0", parent: wall});
                     InstanceActor.create({name: "ivy1", parent: wall});
@@ -280,7 +282,20 @@ class MazeActor extends mix(Actor).with(AM_Spatial) {
             }
         }
       }
-      console.log("Maze Constructed wallCount: ", wallCount, "ivyCount: ", ivy0Count,   "floorCount: ", floorCount);
+      console.log("Maze Constructed wallCount: ", wallCount, wallCount2, "columnCount", columnCount, "ivyCount: ", ivy0Count,   "floorCount: ", floorCount);
+    }
+
+    countWalls() {
+      let wallCount = 0;
+      for (let y = 0; y < this.rows; y++) {
+        for (let x = 0; x < this.columns; x++) {
+              // south walls
+              if (!this.map[x][y].S && x>0) wallCount++;
+              // east walls
+              if (!this.map[x][y].E && y>0) wallCount++;
+        }
+      }
+      return wallCount;
     }
  }
 MazeActor.register("MazeActor");

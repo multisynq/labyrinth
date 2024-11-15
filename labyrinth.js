@@ -435,6 +435,25 @@ const soundList = {};
 const soundLoops = [];
 const loopSoundVolume = 0.25;
 
+function warmupAudio() {
+    // Create and play a silent buffer
+    const audioContext = listener.context;
+    const silentBuffer = audioContext.createBuffer(1, 1, 22050);
+    const source = audioContext.createBufferSource();
+    source.buffer = silentBuffer;
+    source.connect(audioContext.destination);
+    source.start();
+    source.stop();
+    
+    // Resume audio context if it's suspended
+    if (audioContext.state === 'suspended') {
+        audioContext.resume();
+    }
+}
+document.addEventListener('click', () => {
+    warmupAudio();
+}, { once: true });
+
 export const playSound = function() {
     function play(soundURL, parent3D, force, loop = false) {
         if (!soundSwitch) return;

@@ -78,23 +78,30 @@
             .joystick-stick:active {
                 cursor: grabbing;
             }
-            .minimap {
+            .minimap-wrapper {
                 position: fixed;
-                top: 50px;          /* Moved from bottom to top, increased from 20px */
-                right: 40px;        /* Increased from 20px */
+                top: 50px;
+                left: 50%;
+                transform: translateX(-50%);
+                pointer-events: none;
+                z-index: 1000;
+            }
+
+            .minimap {
+                position: relative;  /* Changed from fixed */
+                top: 0;             /* Reset positioning */
+                left: 0;            /* Reset positioning */
                 width: 220px;
                 height: 220px;
                 background-color: rgba(0, 0, 0, 0.1);
                 border: 1px solid rgba(255, 255, 255, 0.5);
-                transform: rotate(45deg);
-                pointer-events: none;
-                z-index: 1000;
+                transform-origin: center center;
             }
             .countdown {
                 position: fixed;
-                top: 20px;
-                left: 50%;         /* Center horizontally */
-                transform: translateX(-50%);  /* Offset by half width for true center */
+                top: 40vh;          /* Match box-score's position at 40% */
+                right: 20px;
+                transform: translateY(-50%);  /* Center the element vertically */
                 font-family: 'Arial', sans-serif;
                 font-size: 36px;
                 font-weight: bold;
@@ -109,17 +116,17 @@
             .box-score {
                 position: fixed;
                 left: 20px;
-                top: 80px;
+                top: 40vh;  /* Changed to 40% from top */
+                transform: translateY(-50%);  /* Center the box itself */
                 background: rgba(0, 0, 0, 0.3);
                 padding: 15px;
                 border-radius: 8px;
                 font-family: Arial, sans-serif;
                 color: white;
                 z-index: 1000;
-                overflow: hidden; /* Ensure content stays within bounds */
+                overflow: hidden;
                 transition: width 0.3s ease, height 0.3s ease;
             }
-
             .score-row {
                 display: flex;
                 justify-content: space-between;
@@ -217,7 +224,9 @@
         <%= croquet_script %>
     </head>
     <body>
-        <div id="minimap" class="minimap"></div>
+        <div class="minimap-wrapper">
+            <div id="minimap" class="minimap"></div>
+        </div>
         <div id="countdown" class="countdown">0:00</div>
 
         <div class="box-score">
@@ -238,7 +247,7 @@
                 <span class="score">4</span>
             </div>
         </div>
-        <div id="version-number" class="version-display">v0.1.0-alpha.45</div>
+        <div id="version-number" class="version-display">v0.1.0-alpha.46</div>
         <!-- <a id="codelink" href="https://github.com/multisynq/physics-fountain/blob/main/index.html"
         title="View source code on GitHub" target="_blank">{...}</a> -->
     </body>

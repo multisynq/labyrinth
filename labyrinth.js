@@ -248,42 +248,58 @@ export const seasons = {
 // 2D Elements
 //------------------------------------------------------------------------------------------
 
-function createCenterIcon(imagePath, baseSize = 32) {
+function createIcon(imagePath, baseSize = 32, isLarge = false) {
+    // Remove existing icon of the same type
+    const className = isLarge ? 'icon-large' : 'icon';
+    const existingIcon = document.querySelector(`.${className}`);
+    if (existingIcon) {
+        existingIcon.remove();
+    }
+
     // Create container
     const iconContainer = document.createElement('div');
-    iconContainer.className = 'center-icon';
+    iconContainer.className = className;
 
     // Create image element
     const icon = document.createElement('img');
     icon.src = imagePath;
 
-    // Set initial size directly
-    icon.style.width = `${baseSize}px`;
-    icon.style.height = `${baseSize}px`;
-
-    // Function to calculate size based on window dimensions
-    const updateSize = () => {
-        const windowWidth = window.innerWidth;
-        const windowHeight = window.innerHeight;
-        const minDimension = Math.min(windowWidth, windowHeight);
-
-        // Scale icon size based on screen size and baseSize
-        const scaleFactor = minDimension / 1000;
-        const newSize = Math.max(baseSize * 0.75, Math.min(baseSize * scaleFactor, baseSize * 1.5));
-
-        icon.style.width = `${newSize}px`;
-        icon.style.height = `${newSize}px`;
-    };
+    // Add CSS for both icon types
+    const style = document.createElement('style');
+    style.textContent = `
+        .icon, .icon-large {
+            position: fixed;
+            right: 20px;
+            bottom: 20px;
+            z-index: 1000;
+            pointer-events: none;
+            display: block;
+        }
+        .icon-large {
+            z-index: 999;  /* Below the small icon */
+        }
+        .icon img, .icon-large img {
+            display: block;
+            object-fit: contain;
+            filter:
+                drop-shadow(0 4px 3px rgba(0, 0, 0, 0.5))
+                drop-shadow(0 2px 2px rgba(0, 0, 0, 0.9))
+                drop-shadow(0 1px 1px rgba(0, 0, 0, 0.7));
+        }
+        .icon-large img {
+            width: ${baseSize * 2}px;
+            height: ${baseSize * 2}px;
+        }
+        .icon img {
+            width: ${baseSize}px;
+            height: ${baseSize}px;
+        }
+    `;
+    document.head.appendChild(style);
 
     // Add image to container
     iconContainer.appendChild(icon);
-
-    // Add to DOM just above text display
-    const textDisplay = document.querySelector('.text-display');
-    textDisplay.parentNode.insertBefore(iconContainer, textDisplay);
-
-    // Handle window resize
-    window.addEventListener('resize', updateSize);
+    document.body.appendChild(iconContainer);
 
     return iconContainer;
 }
@@ -397,13 +413,14 @@ function scaleMinimap() {
     minimapDiv.style.height = `${sideLength}px`;
     minimapCanvas.style.width = `${sideLength}px`;
     minimapCanvas.style.height = `${sideLength}px`;
-
+/*
         // Adjust top position based on orientation
         if (window.innerHeight > window.innerWidth) { // portrait mode
             minimapDiv.style.top = '80px';
         } else { // landscape mode
             minimapDiv.style.top = '50px';
         }
+            */
 }
 scaleMinimap();
 
@@ -960,12 +977,12 @@ export class MyViewRoot extends ViewRoot {
 // This is you. Most of the control code for the avatar is in the pawn.
 // The AvatarActor has minimal need for replicated state except for user events.
 //------------------------------------------------------------------------------------------
+let colorBlind = false;
 class AvatarActor extends mix(Actor).with(AM_Spatial, AM_Avatar) {
     get pawn() { return "AvatarPawn" }
 
     init(options) {
         super.init(options);
-        this.colorBlind = false;
         this.throttleMin = 1.0;
         this.throttleMax = 2.0;
         const t = [CELL_SIZE*seasons[this.season].cell.x+10,AVATAR_HEIGHT,CELL_SIZE*seasons[this.season].cell.y+10];
@@ -987,13 +1004,8 @@ class AvatarActor extends mix(Actor).with(AM_Spatial, AM_Avatar) {
         const translation = [this.translation[0], this.translation[1]-5, this.translation[2]];
         MissileActor.create({parent: this, color: this.color2, translation});
         this.setHighSpeed(this.throttleMax);
-        this.listen("colorBlind", this.setColorBlind);
     }
 
-    setColorBlind(value) {
-        this.colorBlind = value;
-        this.say("colorBlindReady", this.colorBlind);
-    }
 
     buildGlow() {
         this.glow = [];
@@ -1019,8 +1031,8 @@ class AvatarActor extends mix(Actor).with(AM_Spatial, AM_Avatar) {
 
     get season() {return this._season || "spring"}
 
-    get color() {return this.colorBlind? seasons[this.season].color3:seasons[this.season].color}
-    get color2() {return this.colorBlind? seasons[this.season].color3:seasons[this.season].color2}
+    get color() {return seasons[this.season].color}
+    get color2() {return seasons[this.season].color2}
     get color3() {return seasons[this.season].color3}
 
     claimCell(data) {
@@ -1177,17 +1189,17 @@ class AvatarPawn extends mix(Pawn).with(PM_Smoothed, PM_ThreeVisible, PM_Avatar)
         this.listen("recharged", this.rechargedSound);
         this.listen("claimCellUpdate", this.claimCellUpdate);
         this.listen("respawn", this.respawn);
-        this.listen("colorBlindReady", this.setColorBlind);
+        //this.listen("colorBlindReady", this.setColorBlind);
         this.subscribe(this.viewId, "synced", this.handleSynced);
         this.subscribe("maze", "clearCells", this.clearCells);
     }
 
     get season() {return this.actor.season}
-    get color() {return this.actor.colorBlind? seasons[this.season].color3:seasons[this.season].color}
-    get color2() {return this.actor.colorBlind? seasons[this.season].color3:seasons[this.season].color2}
+    get color() {return colorBlind? seasons[this.season].color3:seasons[this.season].color}
+    get color2() {return colorBlind? seasons[this.season].color3:seasons[this.season].color2}
     get color3() {return seasons[this.season].color3}
 
-    setColorBlind(value) {
+    setColorBlind() {
         this.redrawMinimap();
     }
 
@@ -1206,7 +1218,7 @@ class AvatarPawn extends mix(Pawn).with(PM_Smoothed, PM_ThreeVisible, PM_Avatar)
         this.positionTo(data.t, data.r);
         const x = seasons[this.season].cell.x+1;
         const y = seasons[this.season].cell.y+1;
-        if(this.isMyAvatar) this.avatarMinimap(this.lastX, this.lastY, x, y);
+        this.avatarMinimap(this.lastX, this.lastY, x, y);
         this.lastX = x;
         this.lastY = y;
         //this.set({translation: data.t, rotation: data.r});
@@ -1232,7 +1244,7 @@ class AvatarPawn extends mix(Pawn).with(PM_Smoothed, PM_ThreeVisible, PM_Avatar)
         //this.subscribe("input", "tap", this.doPointerTap);
         //this.subscribe("input", 'wheel', this.onWheel);
         this.createMinimap();
-        this.icon = createCenterIcon(seasons[this.season].icon, 128);
+        this.icon = createIcon(seasons[this.season].icon, 128);
         const scores = this.wellKnownModel("ModelRoot").maze.seasons;
         boxScore.setScores(scores);
         this.subscribe("maze", "score", this.scoreUpdate);
@@ -1366,8 +1378,9 @@ class AvatarPawn extends mix(Pawn).with(PM_Smoothed, PM_ThreeVisible, PM_Avatar)
                 break;
             case 'c': case 'C':
                 console.log("toggle color blindness mode");
-                setTextDisplay("Color Blind "+ (this.actor.colorBlind? "off":"on"),4);
-                this.say("colorBlind", !this.actor.colorBlind);
+                setTextDisplay("Color Blind "+ (colorBlind? "off":"on"),4);
+                colorBlind = !colorBlind;
+                this.setColorBlind();
                 break;
             default:
         }
@@ -1605,6 +1618,7 @@ class AvatarPawn extends mix(Pawn).with(PM_Smoothed, PM_ThreeVisible, PM_Avatar)
     }
 
     redrawMinimap() {
+        if (!this.isMyAvatar) return;
         //console.log("redrawMinimap");
         const mazeActor = this.wellKnownModel("ModelRoot").maze;
         minimapCtx.clearRect(0, 0, minimapCanvas.width, minimapCanvas.height);
@@ -1617,14 +1631,15 @@ class AvatarPawn extends mix(Pawn).with(PM_Smoothed, PM_ThreeVisible, PM_Avatar)
         const xCell = 1+Math.floor(this.translation[0]/CELL_SIZE);
         const yCell = 1+Math.floor(this.translation[2]/CELL_SIZE);
         this.avatarMinimap(null, null, xCell, yCell);
-       minimapDiv.style.transform = `rotate(${this.yaw}rad)`;
+        minimapDiv.style.transform = `rotate(${this.yaw}rad)`;
+        //minimapDiv.style.transform = `rotate(${this.yaw}rad)`;
     }
 
     drawMinimapCell(x,y, season) {
         // console.log("drawMinimapCell", x,y, season);
         let color;
         if (!season) color = 0xFFFFFF;
-        else color = this.actor.colorBlind ? seasons[season].color3:seasons[season].color;
+        else color = colorBlind ? seasons[season].color3:seasons[season].color;
         function hexNumberToColorString(hexNumber) {
             let hexString = hexNumber.toString(16);
             while (hexString.length < 6) {
@@ -1634,7 +1649,7 @@ class AvatarPawn extends mix(Pawn).with(PM_Smoothed, PM_ThreeVisible, PM_Avatar)
         }
         if (color !== 0xFFFFFF) {
             minimapCtx.clearRect(x*11-5, y*11-5, 10, 10);
-            minimapCtx.globalAlpha = 0.6;
+            minimapCtx.globalAlpha = 0.5;
             minimapCtx.fillStyle = hexNumberToColorString(color);
             minimapCtx.fillRect(x*11-5, y*11-5, 10, 10);
         } else {
@@ -1648,6 +1663,7 @@ class AvatarPawn extends mix(Pawn).with(PM_Smoothed, PM_ThreeVisible, PM_Avatar)
             this.drawMinimapCell(lastX, lastY, mazeActor.getCellSeason(lastX,lastY));
         }
 
+        //minimapDiv.style.transform = `rotate(${this.yaw}rad)`;
         minimapDiv.style.transform = `rotate(${this.yaw}rad)`;
         minimapCtx.globalAlpha = 0.9;
         minimapCtx.fillStyle = "#FFFFFF";

@@ -15,7 +15,11 @@ class BoxScore {
             score.element.style.right = '0';
             score.element.style.height = '25%'; // Set fixed height for each score
         });
-        
+        // Change the container's positioning
+        this.container.style.position = 'fixed';
+        this.container.style.left = '20px';
+        this.container.style.top = '40vh';  // Changed to 40% from top
+        this.container.style.transform = 'translateY(-50%)';  // Center the box itself
         this.resize();
         // Debounce resize event
         let resizeTimeout;
@@ -35,7 +39,7 @@ class BoxScore {
         this.container.style.height = `${boxSize * 0.8}px`;
         
         // Calculate new row height
-        this.rowHeight = Math.floor((boxSize * 0.8) / 4); // Ensure whole pixels
+        this.rowHeight = Math.floor((boxSize * 0.8) / 4);
         
         // Update font sizes
         const fontSize = this.rowHeight * 0.5;

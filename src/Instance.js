@@ -46,7 +46,7 @@ export class InstancePawn extends mix(Pawn).with(PM_Smoothed, PM_ThreeVisible, P
                 const im = this.service("ThreeInstanceManager");
                 im.addMaterial(name, material);
                 im.addGeometry(name, geometry);
-                im.addMesh(name, name, name);
+                im.addMesh(name, name, name, 400);
                 instance = this.useInstance(name);
                 instance.mesh.material.needsUpdate = true;
                 csm.setupMaterial(instance.mesh.material);

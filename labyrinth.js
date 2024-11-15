@@ -127,6 +127,8 @@
 // Education:
 // - Anything that can stay in the view, keep in the view. If no one else needs to
 //   see it or know it, don't show it.
+// - Sending messages from the view to the model is expensive. Try to avoid it.
+// - Sending messages from the model to view is very cheap. Send as much as you want.
 //------------------------------------------------------------------------------------------
 
 import { App, StartWorldcore, ViewService, ModelRoot, ViewRoot,Actor, mix, toRad,
@@ -1161,8 +1163,8 @@ class EyeballPawn extends mix(Pawn).with(PM_Smoothed, PM_ThreeVisible, PM_ThreeC
     constructor(actor) {
         super(actor);
         this.radius = AVATAR_RADIUS;
-        this.pitch = q_pitch(this.rotation);
-        this.pitchQ = q_axisAngle([1,0,0], this.pitch);
+        //this.pitch = q_pitch(this.rotation);
+        //this.pitchQ = q_axisAngle([1,0,0], this.pitch);
         if ( !this.parent.isMyAvatar ) {
             this.load3D();
         } else this.parent.eyeball = this;
@@ -1275,15 +1277,16 @@ class AvatarPawn extends mix(Pawn).with(PM_Smoothed, PM_ThreeVisible, PM_Avatar)
     respawn(data) {
         console.log("AvatarPawn respawn", data);
         this.positionTo(data.t, data.r);
+        this.yaw = data.angle;
+        this.yawQ = data.r;
         const x = seasons[this.season].cell.x+1;
         const y = seasons[this.season].cell.y+1;
-        this.avatarMinimap(this.lastX, this.lastY, x, y);
+        if (this.isMyAvatar) {
+            this.avatarMinimap(this.lastX, this.lastY, x, y);
+            minimapDiv.style.transform = `rotate(${this.yaw}rad)`;
+        }
         this.lastX = x;
         this.lastY = y;
-        //this.set({translation: data.t, rotation: data.r});
-        this.yaw = data.angle;
-        minimapDiv.style.transform = `rotate(${this.yaw}rad)`;
-        this.yawQ = data.r;
     }
 
     // If this is YOUR avatar, the AvatarPawn automatically calls this.drive() in the constructor.
@@ -1524,10 +1527,10 @@ class AvatarPawn extends mix(Pawn).with(PM_Smoothed, PM_ThreeVisible, PM_Avatar)
             minimapDiv.style.transform = `rotate(${this.yaw}rad)`;
             this.yawQ = q_axisAngle([0,1,0], this.yaw);
             this.positionTo(this.translation, this.yawQ);
-            const linearToExponential = (x, exponent = 2) => Math.pow(Math.max(0, Math.min(1, x)), exponent);
-            this.eyeball.pitch = linearToExponential(this.lookY) * PI_4;
-            this.eyeball.pitchQ = q_axisAngle([1,0,0], this.eyeball.pitch);
-            this.eyeball.set({rotation: this.eyeball.pitchQ});
+            //const linearToExponential = (x, exponent = 2) => Math.pow(Math.max(0, Math.min(1, x)), exponent);
+            // = linearToExponential(this.lookY) * PI_4;
+            //this.eyeball.pitchQ = q_axisAngle([1,0,0], this.eyeball.pitch);
+            //this.eyeball.set({rotation: this.eyeball.pitchQ});
 
             this.future(50).joystickLook();
         }

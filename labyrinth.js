@@ -95,6 +95,7 @@
 // Added season color to avatar.
 // Only generate the number of instances that are actually needed.
 // Turned the WallActor into an InstanceActor.
+// Safari pointer lock support.
 //------------------------------------------------------------------------------------------
 // Bugs:
 // We don't go off the map anymore, but we can tunnel through walls or jump 2 cells.
@@ -955,7 +956,7 @@ MyModelRoot.register("MyModelRoot");
 export class MyViewRoot extends ViewRoot {
 
     static viewServices() {
-        return [InputManager, ThreeRenderManager, AvatarManager, ThreeInstanceManager];
+        return [MyInputManager, ThreeRenderManager, AvatarManager, ThreeInstanceManager];
     }
 
     onStart() {
@@ -1507,15 +1508,14 @@ class AvatarPawn extends mix(Pawn).with(PM_Smoothed, PM_ThreeVisible, PM_Avatar)
     }
 
     doPointerDown(e) {
-    //    console.log("AvatarPawn.onPointerDown()", e);
         if (!device.isMobile) {
-            const im = this.service("InputManager");
-            if ( im.inPointerLock ) this.shootMissile();
+            const im = this.service("MyInputManager");
+            if (im.inPointerLock) this.shootMissile();
             else {
                 im.enterPointerLock();
                 soundSwitch = true;
             }
-        }else soundSwitch = true; // turn sound on for mobile
+        } else soundSwitch = true; // turn sound on for mobile
     }
 
     doPointerUp(e) {
@@ -1530,7 +1530,7 @@ class AvatarPawn extends mix(Pawn).with(PM_Smoothed, PM_ThreeVisible, PM_Avatar)
     doPointerDelta(e) {
         //console.log("AvatarPawn.onPointerDelta()", e.xy);
         // update the avatar's yaw
-        const im = this.service("InputManager");
+        const im = this.service("MyInputManager");
         if ( im.inPointerLock ) this.keyboardLook(e.xy[0], e.xy[1], 0.002);
     }
 
@@ -1797,6 +1797,24 @@ class AvatarManager extends ViewService {
         this.avatars = new Set();
     }
 }
+// MyInputManager
+// Patching the InputManager to support Safari pointer lock. 
+// This is a bit of a hack - we need to have the pointer lock in the direct user thread.
+//------------------------------------------------------------------------------------------
+
+class MyInputManager extends InputManager {
+    constructor() {
+        super("MyInputManager");
+    }
+    onPointerDown(event) {
+        if(!this.inPointerLock) {
+            this.enterPointerLock();
+            soundSwitch = true;
+        }
+        else super.onPointerDown(event);
+    }
+}
+
 // MissileActor
 // Fired by the avatar - they destroy the other players but bounce off of everything else
 //------------------------------------------------------------------------------------------

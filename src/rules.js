@@ -43,7 +43,60 @@ function createRules(headingText, contentText) {
     });
 
     rulesContainer.appendChild(content);
+
+    // Create scroll indicator border
+    const scrollBorder = document.createElement('div');
+    scrollBorder.className = 'scroll-border';
+    const scrollArrow = document.createElement('div');
+    scrollArrow.className = 'scroll-arrow';
+    scrollArrow.innerHTML = '⌄';
+    scrollBorder.appendChild(scrollArrow);
+    rulesContainer.appendChild(scrollBorder);
+
+    // Add click/touch handler for the scroll border
+    const handleScroll = (e) => {
+        e.stopPropagation();
+        const contentElement = content;
+        const currentScroll = contentElement.scrollTop;
+        const pageHeight = contentElement.clientHeight;
+        const totalHeight = contentElement.scrollHeight;
+
+        // If near bottom, scroll all the way to bottom
+        if (totalHeight - currentScroll - pageHeight < pageHeight) {
+            contentElement.scrollTop = totalHeight;
+        } else {
+            // Otherwise, scroll one page
+            contentElement.scrollTop = currentScroll + pageHeight;
+        }
+    };
+
+    scrollBorder.addEventListener('pointerdown', handleScroll);
+    scrollBorder.addEventListener('touchstart', (e) => {
+        e.preventDefault();  // Prevent double-firing on some devices
+        e.stopPropagation();
+        handleScroll(e);
+    }, { passive: false });
+
     document.body.appendChild(rulesContainer);
+
+    // Add scroll event listener to content
+    content.addEventListener('scroll', () => {
+        const isScrolledToBottom = 
+            content.scrollHeight - content.scrollTop <= content.clientHeight + 1;
+        
+        if (isScrolledToBottom) {
+            scrollBorder.classList.add('hidden');
+        } else {
+            scrollBorder.classList.remove('hidden');
+        }
+    });
+
+    // Initial check if content is scrollable
+    setTimeout(() => {
+        if (content.scrollHeight <= content.clientHeight) {
+            scrollBorder.classList.add('hidden');
+        }
+    }, 100);
 
     // Prevent pointer events from reaching the game
     rulesContainer.addEventListener('pointerdown', (e) => {
@@ -118,7 +171,7 @@ function createRules(headingText, contentText) {
             padding-right: 25px;
             overflow-y: scroll;
             flex-grow: 1;
-            max-height: calc(80vh - 90px);
+            max-height: calc(80vh - 130px);  /* Adjusted to make room for scroll border */
             scrollbar-width: thin;
             scrollbar-color: rgba(255, 255, 255, 0.3) transparent;
         }
@@ -149,6 +202,35 @@ function createRules(headingText, contentText) {
             font-size: 1.1em;
         }
 
+        .scroll-border {
+            height: 40px;
+            border-top: 1px solid rgba(255, 255, 255, 0.2);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            transition: opacity 0.3s;
+            cursor: pointer;
+        }
+
+        .scroll-border:hover {
+            background: rgba(255, 255, 255, 0.1);
+        }
+
+        .scroll-arrow {
+            font-size: 24px;
+            color: white;
+            animation: bounce 1.5s infinite;
+        }
+
+        @keyframes bounce {
+            0%, 100% { transform: translateY(0); }
+            50% { transform: translateY(5px); }
+        }
+
+        .scroll-border.hidden {
+            opacity: 0;
+        }
+
         @media (max-width: 768px) {
             .rules-overlay {
                 width: 90vw;
@@ -163,13 +245,25 @@ function createRules(headingText, contentText) {
                 padding: 15px;
                 padding-right: 20px;
                 font-size: 0.9em;
-                max-height: calc(85vh - 80px);
+                max-height: calc(85vh - 120px);  /* Adjusted for scroll border */
             }
 
             .rules-close {
                 width: 36px;
                 height: 36px;
                 font-size: 28px;
+            }
+
+            .scroll-border {
+                height: 50px;  /* Larger touch target on mobile */
+            }
+
+            .scroll-border:hover {
+                background: none;  /* Prevent hover state from sticking on mobile */
+            }
+
+            .scroll-border:active {
+                background: rgba(255, 255, 255, 0.1);  /* Show feedback on active touch */
             }
         }
     `;

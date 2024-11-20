@@ -96,11 +96,13 @@
 // Only generate the number of instances that are actually needed.
 // Turned the WallActor into an InstanceActor.
 // Safari pointer lock support.
+// Scrollable window displays an arrow to show that it is scrollable.
 //------------------------------------------------------------------------------------------
 // Bugs:
 // We don't go off the map anymore, but we can tunnel through walls or jump 2 cells.
 //------------------------------------------------------------------------------------------
 // Priority To do:
+// Ask the AI to take the source code for labyrinth and document the entire thing so that it could be nicely formatted as a book.
 // Mobile controls - copy Call of Duty mobile.
 // - right is look around
 // - left is move (strafe and forward)

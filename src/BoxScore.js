@@ -32,7 +32,7 @@ class BoxScore {
     resize() {
         // Calculate new dimensions based on window size
         const height = Math.min(window.innerHeight, window.innerWidth);
-        const boxSize = height / 5;
+        const boxSize = height / 4;
         
         // Update container size
         this.container.style.width = `${boxSize}px`;

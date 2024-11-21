@@ -113,14 +113,14 @@ function createRules(headingText, contentText) {
     style.textContent = `
         .rules-overlay {
             position: fixed;
-            top: 20px;  /* Match countdown timer position */
+            top: 20px;
             left: 50%;
             transform: translateX(-50%);
             background: rgba(0, 0, 0, 0.7);
             color: white;
             border-radius: 8px;
             z-index: 10000;
-            max-height: calc(100vh - 40px);  /* Account for top margin */
+            max-height: calc(100vh - 40px);
             width: min(80vh, 90vw);
             display: flex;
             flex-direction: column;
@@ -136,6 +136,7 @@ function createRules(headingText, contentText) {
             padding: 15px 20px;
             border-bottom: 1px solid rgba(255, 255, 255, 0.2);
             flex-shrink: 0;
+            flex-direction: row-reverse;
         }
 
         .rules-header h2 {
@@ -155,11 +156,16 @@ function createRules(headingText, contentText) {
             padding: 0;
             width: 44px;
             height: 44px;
+            min-width: 44px;
+            min-height: 44px;
             display: flex;
             align-items: center;
             justify-content: center;
             line-height: 1;
-            margin-left: 20px;
+            margin-right: 20px;
+            margin-left: 0;
+            aspect-ratio: 1 / 1;
+            transform: translateY(-1px);
         }
 
         .rules-close:hover {
@@ -171,7 +177,7 @@ function createRules(headingText, contentText) {
             padding-right: 25px;
             overflow-y: scroll;
             flex-grow: 1;
-            max-height: calc(80vh - 130px);  /* Adjusted to make room for scroll border */
+            max-height: calc(80vh - 130px);
             scrollbar-width: thin;
             scrollbar-color: rgba(255, 255, 255, 0.3) transparent;
         }
@@ -231,39 +237,70 @@ function createRules(headingText, contentText) {
             opacity: 0;
         }
 
-        @media (max-width: 768px) {
+        .rules-divider {
+            border: none;
+            border-top: 1px solid rgba(255, 255, 255, 0.2);
+            margin: 15px 0;
+            width: 100%;
+        }
+
+        /* Desktop styles */
+        @media screen and (min-width: 1025px) {
+            .rules-overlay {
+                width: min(80vh, 90vw);
+            }
+        }
+
+        /* Mobile landscape */
+        @media screen and (max-width: 1024px) and (orientation: landscape) {
+            .rules-overlay {
+                width: 85vw !important;
+                max-height: 90vh;
+                top: 5vh;
+            }
+            
+            .rules-content {
+                max-height: calc(90vh - 130px);
+            }
+        }
+
+        /* Mobile portrait */
+        @media screen and (max-width: 1024px) and (orientation: portrait) {
             .rules-overlay {
                 width: 90vw;
                 max-height: 85vh;
             }
             
-            .rules-header h2 {
-                font-size: 1.4em;
-            }
-            
             .rules-content {
+                max-height: calc(85vh - 120px);
                 padding: 15px;
                 padding-right: 20px;
                 font-size: 0.9em;
-                max-height: calc(85vh - 120px);  /* Adjusted for scroll border */
+            }
+            
+            .rules-header h2 {
+                font-size: 1.4em;
             }
 
             .rules-close {
                 width: 36px;
                 height: 36px;
+                min-width: 36px;
+                min-height: 36px;
                 font-size: 28px;
+                margin-right: 15px;
             }
 
             .scroll-border {
-                height: 50px;  /* Larger touch target on mobile */
+                height: 50px;
             }
 
             .scroll-border:hover {
-                background: none;  /* Prevent hover state from sticking on mobile */
+                background: none;
             }
 
             .scroll-border:active {
-                background: rgba(255, 255, 255, 0.1);  /* Show feedback on active touch */
+                background: rgba(255, 255, 255, 0.1);
             }
         }
     `;
@@ -272,12 +309,32 @@ function createRules(headingText, contentText) {
     // Handle window resize
     function handleResize() {
         if (rulesContainer.style.display !== 'none') {
-            rulesContainer.style.width = `min(80vh, 90vw)`;
-            rulesContainer.style.maxHeight = '80vh';
+            requestAnimationFrame(() => {
+                rulesContainer.style.removeProperty('width');
+                
+                const content = rulesContainer.querySelector('.rules-content');
+                if (content) {
+                    const header = rulesContainer.querySelector('.rules-header');
+                    const scrollBorder = rulesContainer.querySelector('.scroll-border');
+                    const headerHeight = header ? header.offsetHeight : 0;
+                    const scrollHeight = scrollBorder ? scrollBorder.offsetHeight : 0;
+                    
+                    if (window.innerWidth > window.innerHeight) {
+                        content.style.maxHeight = `calc(90vh - ${headerHeight + scrollHeight + 40}px)`;
+                    } else {
+                        content.style.maxHeight = `calc(85vh - ${headerHeight + scrollHeight + 40}px)`;
+                    }
+                }
+            });
         }
     }
-    window.addEventListener('resize', handleResize);
 
+    window.addEventListener('resize', handleResize);
+    window.addEventListener('orientationchange', () => {
+        setTimeout(handleResize, 100);
+    });
+
+    handleResize();
     return rulesContainer;
 }
 
@@ -303,17 +360,11 @@ function createHelpButton() {
             transition: background-color 0.3s;
             padding: 0;
         }
-        .rules-divider {
-            border: none;
-            border-top: 1px solid rgba(255, 255, 255, 0.2);
-            margin: 15px 0;
-            width: 100%;
-        }
+
         .help-button:hover {
             background: rgba(0, 0, 0, 0.7);
         }
 
-        /* Adjust scorebox position */
         #boxScore {
             top: 80px !important;
         }
@@ -325,7 +376,6 @@ function createHelpButton() {
     helpButton.innerHTML = '?';
     helpButton.onclick = showRules;
     
-    // Prevent pointer events from reaching the game
     helpButton.addEventListener('pointerdown', (e) => {
         e.stopPropagation();
     });
@@ -376,7 +426,6 @@ function showRules() {
         initRules();
     }
     
-    // Toggle visibility
     if (rulesOverlay.style.display === 'block') {
         rulesOverlay.style.display = 'none';
         rulesOverlay.style.pointerEvents = 'none';

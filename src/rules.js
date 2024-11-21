@@ -361,7 +361,8 @@ function initRules() {
         "COLOR BLIND MODE: C",
         "-",
         "📱  Mobile Controls:",
-        "MOVE/LOOK: Joystick",
+        "MOVE: Left side of screen",
+        "LOOK: Right side of screen",
         "SHOOT: Tap",
         "HELP (this screen): Help button",
     ];

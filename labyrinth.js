@@ -97,16 +97,19 @@
 // Turned the WallActor into an InstanceActor.
 // Safari pointer lock support.
 // Scrollable window displays an arrow to show that it is scrollable.
+// Mobile controls - copy Call of Duty mobile.
+// - right is look around
+// - left is move (strafe and forward)
+// - tap is shoot
 //------------------------------------------------------------------------------------------
 // Bugs:
 // We don't go off the map anymore, but we can tunnel through walls or jump 2 cells.
 //------------------------------------------------------------------------------------------
 // Priority To do:
-// Ask the AI to take the source code for labyrinth and document the entire thing so that it could be nicely formatted as a book.
-// Mobile controls - copy Call of Duty mobile.
-// - right is look around
-// - left is move (strafe and forward)
-// - tap is shoot
+// Mobile
+// - rules window on mobile is too long - cuts off the bottom
+// - rules window close button is on top of the full screen button - move it to the left side
+// - rules window close button gets scaled in the y direction when the window is resized
 // - score board needs to be larger
 // Winning:
 // - Add a "[Season] Wins!"
@@ -115,6 +118,7 @@
 // - New user goes to free avatar slot.
 // - More than 4 players?
 // - Lobby generates a new game to join. Once a game is full, it starts.
+// - Ask the AI to take the source code for labyrinth and document the entire thing so that it could be nicely formatted as a book.
 //------------------------------------------------------------------------------------------
 // Nice to have:
 // Claiming another player's cell should take longer than claiming a free cell.
@@ -151,7 +155,7 @@ import FullscreenButton from './src/Fullscreen.js';
 import FakeGlowMaterial from './src/FakeGlowMaterial.js';
 import DeviceDetector from './src/DeviceDetector.js';
 import BoxScore from './src/BoxScore.js';
-import Joystick from './src/Joystick.js';
+// import Joystick from './src/Joystick.js';
 import Countdown from './src/Countdown.js';
 import MazeActor from './src/MazeActor.js';
 import {InstanceActor, instances, materials, geometries} from './src/Instance.js';  
@@ -1271,6 +1275,195 @@ class AvatarPawn extends mix(Pawn).with(PM_Smoothed, PM_ThreeVisible, PM_Avatar)
         //this.listen("colorBlindReady", this.setColorBlind);
         this.subscribe(this.viewId, "synced", this.handleSynced);
         this.subscribe("maze", "clearCells", this.clearCells);
+        if (device.isMobile) {
+            // Separate touch tracking for each side
+            this.leftTouch = {
+                startX: 0,
+                startY: 0,
+                currentX: 0,
+                currentY: 0,
+                startTime: 0,
+                active: false,
+                identifier: null
+            };
+            
+            this.rightTouch = {
+                startX: 0,
+                startY: 0,
+                currentX: 0,
+                currentY: 0,
+                startTime: 0,
+                active: false,
+                identifier: null
+            };
+
+            this.gas = 0;
+            this.strafe = 0;
+            
+            // Add the control overlay with visible divider
+            const style = document.createElement('style');
+            style.textContent = `
+                #mobileControls {
+                    position: fixed;
+                    top: 0;
+                    left: 0;
+                    width: 100%;
+                    height: 100%;
+                    z-index: 100;
+                    display: flex;
+                }
+                #leftControl, #rightControl {
+                    flex: 1;
+                    height: 100%;
+                    touch-action: none;
+                }
+                #rightControl {
+                    border-left: 2px solid rgba(255, 255, 255, 0.2);
+                }
+            `;
+            document.head.appendChild(style);
+
+            // Create and add the control elements
+            const controls = document.createElement('div');
+            controls.id = 'mobileControls';
+            
+            const leftControl = document.createElement('div');
+            leftControl.id = 'leftControl';
+            
+            const rightControl = document.createElement('div');
+            rightControl.id = 'rightControl';
+            
+            controls.appendChild(leftControl);
+            controls.appendChild(rightControl);
+            document.body.appendChild(controls);
+
+            // Debug logging
+            console.log("Mobile controls initialized");
+
+            // Add event listeners
+            const addTouchListeners = (element, side) => {
+                element.addEventListener('touchstart', (e) => {
+                    console.log(`${side} touchstart`);
+                    this.handleTouchStart(e, side);
+                });
+                element.addEventListener('touchmove', (e) => {
+                    console.log(`${side} touchmove`);
+                    this.handleTouchMove(e, side);
+                });
+                element.addEventListener('touchend', (e) => {
+                    console.log(`${side} touchend`);
+                    this.handleTouchEnd(e, side);
+                });
+            };
+
+            addTouchListeners(leftControl, 'left');
+            addTouchListeners(rightControl, 'right');
+        }
+    }
+
+    handleTouchStart(e, side) {
+        e.preventDefault();
+        
+        // Get the touch that occurred in this control's area
+        const rect = document.getElementById(side === 'left' ? 'leftControl' : 'rightControl').getBoundingClientRect();
+        const touch = Array.from(e.touches).find(t => {
+            const x = t.clientX;
+            return side === 'left' ? 
+                (x < rect.right && x >= rect.left) : 
+                (x >= rect.left && x < rect.right);
+        });
+        
+        if (!touch) return;
+
+        if (side === 'left') {
+            this.leftTouch = {
+                startX: touch.clientX,
+                startY: touch.clientY,
+                currentX: touch.clientX,
+                currentY: touch.clientY,
+                startTime: Date.now(),
+                active: true,
+                identifier: touch.identifier
+            };
+        } else {
+            this.rightTouch = {
+                startX: touch.clientX,
+                startY: touch.clientY,
+                currentX: touch.clientX,
+                currentY: touch.clientY,
+                startTime: Date.now(),
+                active: true,
+                identifier: touch.identifier
+            };
+        }
+    }
+
+    handleTouchMove(e, side) {
+        e.preventDefault();
+        
+        // Find the touch that matches our stored identifier
+        const touchData = side === 'left' ? this.leftTouch : this.rightTouch;
+        if (!touchData.active) return;
+
+        const touch = Array.from(e.touches).find(t => t.identifier === touchData.identifier);
+        if (!touch) return;
+
+        const control = document.getElementById(side === 'left' ? 'leftControl' : 'rightControl');
+        const rect = control.getBoundingClientRect();
+        const width = rect.width;
+        const height = rect.height;
+
+        if (side === 'left') {
+            this.leftTouch.currentX = touch.clientX;
+            this.leftTouch.currentY = touch.clientY;
+            
+            const divider = Math.min(width, height) * 0.25;
+            const deltaX = (this.leftTouch.currentX - this.leftTouch.startX) / divider;
+            const deltaY = (this.leftTouch.currentY - this.leftTouch.startY) / divider;
+            
+            this.gas = -Math.max(-1, Math.min(1, deltaY));
+            this.strafe = -Math.max(-1, Math.min(1, deltaX));
+            
+        } else {
+            this.rightTouch.currentX = touch.clientX;
+            this.rightTouch.currentY = touch.clientY;
+            
+            const deltaX = this.rightTouch.currentX - this.rightTouch.startX;
+            const scaledDeltaX = (deltaX / width) * Math.PI;
+            
+            this.pointerLook(scaledDeltaX, 0, 1);
+            this.rightTouch.startX = this.rightTouch.currentX;
+            this.rightTouch.startY = this.rightTouch.currentY;
+        }
+    }
+
+    handleTouchEnd(e, side) {
+        e.preventDefault();
+        
+        // Check if our tracked touch has ended
+        const touchData = side === 'left' ? this.leftTouch : this.rightTouch;
+        const touchStillActive = Array.from(e.touches).some(t => t.identifier === touchData.identifier);
+        
+        if (!touchStillActive) {
+            const touchDuration = Date.now() - touchData.startTime;
+            
+            if (touchDuration < 100 && touchData.active && 
+                Math.abs(touchData.currentX - touchData.startX) < 10 &&
+                Math.abs(touchData.currentY - touchData.startY) < 10) {
+                console.log("shoot");
+                this.shootMissile();
+            }
+            
+            if (side === 'left') {
+                this.gas = 0;
+                this.strafe = 0;
+                this.leftTouch.active = false;
+                this.leftTouch.identifier = null;
+            } else {
+                this.rightTouch.active = false;
+                this.rightTouch.identifier = null;
+            }
+        }
     }
 
     get season() {return this.actor.season}
@@ -1330,57 +1523,6 @@ class AvatarPawn extends mix(Pawn).with(PM_Smoothed, PM_ThreeVisible, PM_Avatar)
         const scores = this.wellKnownModel("ModelRoot").maze.seasons;
         boxScore.setScores(scores);
         this.subscribe("maze", "score", this.scoreUpdate);
-
-        if ( device.isMobile) {
-            // Create two joysticks
-            this.leftJoystick = new Joystick({ id: 'left', side: 'left' });
-            this.rightJoystick = new Joystick({ id: 'right', side: 'right' });
-
-            // Listen for left joystick events
-            document.addEventListener('joystick-start-left', (e) => {
-                this.joystickStart("left");
-                //console.log("joystick-start-left");
-            });
-
-            document.addEventListener('joystick-move-left', (e) => {
-                const { x, y, side } = e.detail;
-                this.joystickMove(x, y, side);
-                //console.log('Left joystick:', x, y);
-            });
-            document.addEventListener('joystick-release-left', (e) => {
-                this.joystickRelease("left");
-                //console.log('Left joystick released:', e.detail);
-            });
-
-            document.addEventListener('joystick-tap-left', (e) => {
-                const { side } = e.detail;
-                this.joystickTap(side);
-                //console.log('Left joystick tapped!');
-            });
-
-            // Listen for right joystick events
-            document.addEventListener('joystick-start-right', (e) => {
-                this.joystickStart("right");
-                //console.log('Right joystick started:', e.detail);
-            });
-
-            document.addEventListener('joystick-move-right', (e) => {
-                const { x, y, side } = e.detail;
-                this.joystickMove(x, y, side);
-                //console.log('Right joystick:', x, y);
-            });
-
-            document.addEventListener('joystick-release-right', (e) => {
-                this.joystickRelease("right");
-                //console.log('Right joystick released:', e.detail);
-            });
-
-            document.addEventListener('joystick-tap-right', (e) => {
-                const { side } = e.detail;
-                this.joystickTap(side);
-                //console.log('Right joystick tapped!');
-            });
-        }
     }
 
     scoreUpdate( data ){
@@ -1484,30 +1626,7 @@ class AvatarPawn extends mix(Pawn).with(PM_Smoothed, PM_ThreeVisible, PM_Avatar)
             default:
         }
     }
-    joystickStart(side) {
-        this.looking = true;
-        this.lookX = 0;
-        this.lookY = 0;
-        this.moving = true;
-        // this.lookY = 0;
-        this.joystickLook();
-    }
 
-    joystickMove(x, y, side) {
-        this.lookX = x;
-        this.gas = -y;
-        this.strafe = 0;
-    }
-
-    joystickRelease(side) {
-        this.looking = false;
-        this.moving = false;
-    }
-
-    joystickTap(side) {
-        this.shootMissile();
-        console.log("AvatarPawn joystickTap", side);
-    }
 
     doPointerDown(e) {
         if (!device.isMobile) {
@@ -1533,27 +1652,10 @@ class AvatarPawn extends mix(Pawn).with(PM_Smoothed, PM_ThreeVisible, PM_Avatar)
         //console.log("AvatarPawn.onPointerDelta()", e.xy);
         // update the avatar's yaw
         const im = this.service("MyInputManager");
-        if ( im.inPointerLock ) this.keyboardLook(e.xy[0], e.xy[1], 0.002);
+        if ( im.inPointerLock ) this.pointerLook(e.xy[0], e.xy[1], 0.002);
     }
 
-    joystickLook() {
-        //console.log("AvatarPawn lookingAround");
-        if(this.looking){
-            this.yaw -= this.lookX * 0.05;
-            this.yaw = this.normalizeRotation(this.yaw);
-            minimapDiv.style.transform = `rotate(${this.yaw}rad)`;
-            this.yawQ = q_axisAngle([0,1,0], this.yaw);
-            this.positionTo(this.translation, this.yawQ);
-            //const linearToExponential = (x, exponent = 2) => Math.pow(Math.max(0, Math.min(1, x)), exponent);
-            // = linearToExponential(this.lookY) * PI_4;
-            //this.eyeball.pitchQ = q_axisAngle([1,0,0], this.eyeball.pitch);
-            //this.eyeball.set({rotation: this.eyeball.pitchQ});
-
-            this.future(50).joystickLook();
-        }
-    }
-
-    keyboardLook(x,y,scale) {
+   pointerLook(x,y,scale) {
        // console.log("AvatarPawn lookAround", x,y,scale);
         this.yaw -= x * scale;
         this.yaw = this.normalizeRotation(this.yaw);
@@ -1804,16 +1906,23 @@ class AvatarManager extends ViewService {
 // This is a bit of a hack - we need to have the pointer lock in the direct user thread.
 //------------------------------------------------------------------------------------------
 
+// Mobile controls - copy Call of Duty mobile.
+// - right is look around
+// - left is move (strafe and forward)
+// - tap is shoot
+// - score board needs to be larger
+//------------------------------------------------------------------------------------------
 class MyInputManager extends InputManager {
     constructor() {
-        super("MyInputManager");
+        super("MyInputManager");    
     }
+    // Override pointer lock for mobile
     onPointerDown(event) {
-        if(!this.inPointerLock) {
+        if (device.isMobile) return;
+        if (!this.inPointerLock) {
             this.enterPointerLock();
             soundSwitch = true;
-        }
-        else super.onPointerDown(event);
+        } else super.onPointerDown(event);
     }
 }
 

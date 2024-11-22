@@ -59,8 +59,9 @@ class EmojiDisplay {
             color: #${color.toString(16).padStart(6, '0')};
             margin-top: 2px;
             text-shadow: 
-                0 2px 2px rgba(0, 0, 0, 0.5),
-                0 1px 1px rgba(0, 0, 0, 0.9);
+                0 2px 2px rgba(0, 0, 0, 0.9),
+                0 4px 4px rgba(0, 0, 0, 0.9),
+                0 6px 8px rgba(0, 0, 0, 0.9);
             width: 100%;
         `;
         textElement1.textContent = text1;
@@ -79,8 +80,9 @@ class EmojiDisplay {
                 color: #${color.toString(16).padStart(6, '0')};
                 margin-top: 2px;
                 text-shadow: 
-                    0 2px 2px rgba(0, 0, 0, 0.5),
-                    0 1px 1px rgba(0, 0, 0, 0.9);
+                    0 2px 2px rgba(0, 0, 0, 0.9),
+                    0 4px 4px rgba(0, 0, 0, 0.9),
+                    0 6px 8px rgba(0, 0, 0, 0.9);
                 width: 100%;
             `;
             textElement2.textContent = text2;

@@ -111,6 +111,8 @@
 // Fixed the rules window so the arrow at the bottom is visible in various orientations and ratios on all devices.
 // Added a win sound
 // Added text display for recharged.
+// Reset the world to start a new game.
+// Emoji display text has stronger shadow.
 //------------------------------------------------------------------------------------------
 // Bugs:
 // We don't go off the map anymore, but we can tunnel through walls or jump 2 cells.
@@ -119,7 +121,6 @@
 // Winning:
 // - Add a count down sound.
 // - Add a "Start Game" button to restart the game.
-// - Reset the world to start a new game.
 // iPhone:
 // - figure out how to get it to work full screen.
 // Lobby:
@@ -169,6 +170,7 @@ import MazeActor from './src/MazeActor.js';
 import {InstanceActor, instances, materials, geometries} from './src/Instance.js';  
 import showRules from './src/rules.js';
 import EmojiDisplay from './src/EmojiDisplay.js';
+import GameButton from './src/GameButton.js';
 
 import apiKey from "./src/apiKey.js";
 
@@ -239,10 +241,11 @@ import cellSound from "./assets/sounds/Heartbeat4.wav";
 import shockSound from "./assets/sounds/Shock.wav";
 import aweSound from "./assets/sounds/Awe.wav";
 import winSound from "./assets/sounds/Win.wav";
+import startGameSound from "./assets/sounds/StartGame.wav";
 
 // Global Variables
 //------------------------------------------------------------------------------------------
-const GAME_MINUTES = 1;
+const GAME_MINUTES = 15;
 const PI_2 = Math.PI/2;
 const PI_4 = Math.PI/4;
 const MISSILE_LIFE = 4000;
@@ -509,6 +512,7 @@ async function loadSounds() {
         audioLoader.loadAsync(shockSound),
         audioLoader.loadAsync(aweSound),
         audioLoader.loadAsync(winSound),
+        audioLoader.loadAsync(startGameSound),
     ]);
 }
 loadSounds().then( sounds => {
@@ -526,6 +530,7 @@ loadSounds().then( sounds => {
     soundList[shockSound] = {buffer:sounds[9], count:0};
     soundList[aweSound] = {buffer:sounds[10], count:0};
     soundList[winSound] = {buffer:sounds[11], count:0};
+    soundList[startGameSound] = {buffer:sounds[12], count:0};
 });
 
 // Load 3D Models
@@ -884,7 +889,7 @@ MyModelRoot.register("MyModelRoot");
 // MyViewRoot
 // Construct the visual world
 //------------------------------------------------------------------------------------------
-
+const victoryEmojiDisplay = new EmojiDisplay();
 export class MyViewRoot extends ViewRoot {
 
     static viewServices() {
@@ -893,7 +898,8 @@ export class MyViewRoot extends ViewRoot {
 
     onStart() {
         this.buildView();
-        this.countdownTimer = new Countdown(this.wellKnownModel("ModelRoot").maze.timer);
+        const timer = this.wellKnownModel("ModelRoot").maze.timer
+        this.countdownTimer = new Countdown(timer);
         // Initialize the scoreboard
         this.boxScore = new BoxScore();
         this.boxScore.setScores({"Spring": 4, "Summer": 4, "Autumn": 4, "Winter": 4});
@@ -906,14 +912,18 @@ export class MyViewRoot extends ViewRoot {
         const scores = this.wellKnownModel("ModelRoot").maze.seasons;
         this.boxScore.setScores(scores);
         this.subscribe("maze", "score", this.scoreUpdate);
-        this.emojiDisplay = new EmojiDisplay();
         this.subscribe("maze", "reset", this.reset);
+        this.gameButton = new GameButton();
+        // We joined at the end of the game...
+        if(timer === 0) this.newGameButton();
         //const actors = this.wellKnownModel('ActorManager').actors;
         //console.log("MyViewRoot onStart actors", actors);
     }
 
     reset(){
-        this.emojiDisplay.hide();
+        victoryEmojiDisplay.hide();
+        this.gameButton.hide();
+        playSound(startGameSound);
     }
 
     countDown(timer) {
@@ -933,8 +943,17 @@ export class MyViewRoot extends ViewRoot {
             if (scores[season] > scores[winner]) winner = season;
         }
 
-        this.emojiDisplay.show(seasons[winner].emoji, device.isMobile?128:256, seasons[winner].color, winner, "Wins!");
+        victoryEmojiDisplay.show(seasons[winner].emoji, device.isMobile?128:256, seasons[winner].color, winner, "Wins!");
+        this.future(4000).newGameButton();
         playSound( winSound );
+    }
+
+    newGameButton() {
+    // Show the button when game ends
+        this.gameButton.show(() => {
+            // Your reset game logic here
+            this.publish("game", "reset");
+        });
     }
 
     buildView() {
@@ -1215,6 +1234,7 @@ EyeballPawn.register("EyeballPawn");
 // between when you see your actions and the other users do, this should have a minimal
 // impact on gameplay.
 //------------------------------------------------------------------------------------------
+const avatarEmojiDisplay = new EmojiDisplay();
 class AvatarPawn extends mix(Pawn).with(PM_Smoothed, PM_ThreeVisible, PM_Avatar) {
 
     constructor(actor) {
@@ -1485,8 +1505,7 @@ class AvatarPawn extends mix(Pawn).with(PM_Smoothed, PM_ThreeVisible, PM_Avatar)
         this.yaw = q_yaw(this.rotation);
         this.createMinimap();
         minimapDiv.style.transform = `rotate(${this.yaw}rad)`;
-        this.emojiDisplay = new EmojiDisplay();
-        this.emojiDisplay.show(seasons[this.season].emoji, device.isMobile?64:128, seasons[this.season].color, this.season);
+        avatarEmojiDisplay.show(seasons[this.season].emoji, device.isMobile?64:128, seasons[this.season].color, this.season);
     }
 
     park() {
@@ -1883,12 +1902,27 @@ class MyInputManager extends InputManager {
         super("MyInputManager");    
     }
     // Override pointer lock for mobile
+    // Override pointer lock for mobile and Safari
     onPointerDown(event) {
         if (device.isMobile) return;
+        
+        // Check if Safari
+        const isSafari = /^((?!chrome|android).)*safari/i.test(navigator.userAgent);
+        
         if (!this.inPointerLock) {
-            this.enterPointerLock();
-            soundSwitch = true;
-        } else super.onPointerDown(event);
+            if (isSafari && document.fullscreenElement) {
+                // For Safari in fullscreen, exit fullscreen before requesting pointer lock
+                document.exitFullscreen().then(() => {
+                    this.enterPointerLock();
+                    soundSwitch = true;
+                });
+            } else {
+                this.enterPointerLock();
+                soundSwitch = true;
+            }
+        } else {
+            super.onPointerDown(event);
+        }
     }
 }
 

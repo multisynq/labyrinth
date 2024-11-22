@@ -109,13 +109,14 @@
 // Switch to emoji for victory display
 // Winning display displays the season and name.
 // Fixed the rules window so the arrow at the bottom is visible in various orientations and ratios on all devices.
+// Added a win sound
+// Added text display for recharged.
 //------------------------------------------------------------------------------------------
 // Bugs:
 // We don't go off the map anymore, but we can tunnel through walls or jump 2 cells.
 //------------------------------------------------------------------------------------------
 // Priority To do:
 // Winning:
-// - Add a "win" sound.
 // - Add a count down sound.
 // - Add a "Start Game" button to restart the game.
 // - Reset the world to start a new game.
@@ -167,15 +168,9 @@ import Countdown from './src/Countdown.js';
 import MazeActor from './src/MazeActor.js';
 import {InstanceActor, instances, materials, geometries} from './src/Instance.js';  
 import showRules from './src/rules.js';
-import VictoryDisplay from './src/VictoryDisplay.js';
 import EmojiDisplay from './src/EmojiDisplay.js';
 
 import apiKey from "./src/apiKey.js";
-
-import IconSpring from './assets/textures/IconSpring.png';
-import IconSummer from './assets/textures/IconSummer.png';
-import IconAutumn from './assets/textures/IconAutumn.png';
-import IconWinter from './assets/textures/IconWinter.png';
 
 // Textures
 //------------------------------------------------------------------------------------------
@@ -243,10 +238,11 @@ import implosionSound from "./assets/sounds/Implosion.mp3";
 import cellSound from "./assets/sounds/Heartbeat4.wav";
 import shockSound from "./assets/sounds/Shock.wav";
 import aweSound from "./assets/sounds/Awe.wav";
+import winSound from "./assets/sounds/Win.wav";
 
 // Global Variables
 //------------------------------------------------------------------------------------------
-const GAME_MINUTES = 15;
+const GAME_MINUTES = 1;
 const PI_2 = Math.PI/2;
 const PI_4 = Math.PI/4;
 const MISSILE_LIFE = 4000;
@@ -275,10 +271,10 @@ let plants;
 let ivy;
 
 export const seasons = {
-    Spring:{cell:{x:0,y:0}, emoji: "🌸", icon: IconSpring, nextCell:{x:1,y:1}, angle:toRad(180+45), color:0xFFB6C1, color2:0xCC8A94, colorBlind:0xCC79A7, colorEye: 0xFFEEEE},
-    Summer: {cell: {x:0,y:CELL_SIZE-2}, emoji: "🌿", icon: IconSummer, nextCell:{x:1,y:CELL_SIZE-3}, angle:toRad(270+45), color:0x90EE90, color2:0x65AA65, colorBlind:0x009E73, colorEye: 0xD0FFD0},
-    Autumn: {cell:{x:CELL_SIZE-2, y:CELL_SIZE-2}, emoji: "🍁", icon: IconAutumn, nextCell:{x:CELL_SIZE-3,y:CELL_SIZE-3}, angle:toRad(0+45), color:0xFFE5B4, color2:0xCCB38B, colorBlind:0xE69F00, colorEye: 0xFFE5B4},
-    Winter: {cell:{x:CELL_SIZE-2, y:0}, emoji: "❄️", icon: IconWinter, nextCell:{x:CELL_SIZE-3,y:1}, angle:toRad(90+45), color:0xA5F2F3, color2:0x73BFBF, colorBlind:0x0072B2, colorEye: 0xE0E0FF}
+    Spring:{cell:{x:0,y:0}, emoji: "🌸", nextCell:{x:1,y:1}, angle:toRad(180+45), color:0xFFB6C1, color2:0xCC8A94, colorBlind:0xCC79A7, colorEye: 0xFFEEEE},
+    Summer: {cell: {x:0,y:CELL_SIZE-2}, emoji: "🌿", nextCell:{x:1,y:CELL_SIZE-3}, angle:toRad(270+45), color:0x90EE90, color2:0x65AA65, colorBlind:0x009E73, colorEye: 0xD0FFD0},
+    Autumn: {cell:{x:CELL_SIZE-2, y:CELL_SIZE-2}, emoji: "🍁", nextCell:{x:CELL_SIZE-3,y:CELL_SIZE-3}, angle:toRad(0+45), color:0xFFE5B4, color2:0xCCB38B, colorBlind:0xE69F00, colorEye: 0xFFE5B4},
+    Winter: {cell:{x:CELL_SIZE-2, y:0}, emoji: "❄️", nextCell:{x:CELL_SIZE-3,y:1}, angle:toRad(90+45), color:0xA5F2F3, color2:0x73BFBF, colorBlind:0x0072B2, colorEye: 0xE0E0FF}
 };
 
 // display the rules window
@@ -355,7 +351,6 @@ function createTextDisplay() {
 }
 
 const setTextDisplay = createTextDisplay();
-//const iconSpring = createCenterIcon(IconSpring, 128);
 
 // Initialize fullscreen button
 new FullscreenButton();
@@ -513,6 +508,7 @@ async function loadSounds() {
         audioLoader.loadAsync(cellSound),
         audioLoader.loadAsync(shockSound),
         audioLoader.loadAsync(aweSound),
+        audioLoader.loadAsync(winSound),
     ]);
 }
 loadSounds().then( sounds => {
@@ -529,6 +525,7 @@ loadSounds().then( sounds => {
     soundList[cellSound] = {buffer:sounds[8], count:0};
     soundList[shockSound] = {buffer:sounds[9], count:0};
     soundList[aweSound] = {buffer:sounds[10], count:0};
+    soundList[winSound] = {buffer:sounds[11], count:0};
 });
 
 // Load 3D Models
@@ -897,7 +894,6 @@ export class MyViewRoot extends ViewRoot {
     onStart() {
         this.buildView();
         this.countdownTimer = new Countdown(this.wellKnownModel("ModelRoot").maze.timer);
-        this.victoryDisplay = new VictoryDisplay();
         // Initialize the scoreboard
         this.boxScore = new BoxScore();
         this.boxScore.setScores({"Spring": 4, "Summer": 4, "Autumn": 4, "Winter": 4});
@@ -906,19 +902,24 @@ export class MyViewRoot extends ViewRoot {
         this.subscribe("input", "resize", scaleMinimap);
         this.subscribe("maze", "countDown", this.countDown);
         this.subscribe("maze", "victory", this.victory);
+        this.subscribe("game", "reset", this.reset);
         const scores = this.wellKnownModel("ModelRoot").maze.seasons;
         this.boxScore.setScores(scores);
         this.subscribe("maze", "score", this.scoreUpdate);
         this.emojiDisplay = new EmojiDisplay();
+        this.subscribe("maze", "reset", this.reset);
         //const actors = this.wellKnownModel('ActorManager').actors;
         //console.log("MyViewRoot onStart actors", actors);
+    }
+
+    reset(){
+        this.emojiDisplay.hide();
     }
 
     countDown(timer) {
         // console.log("countDown", timer);
         this.countdownTimer.set(timer);
     }
-
 
     scoreUpdate( data ){
         this.boxScore.setScores(data);
@@ -933,7 +934,7 @@ export class MyViewRoot extends ViewRoot {
         }
 
         this.emojiDisplay.show(seasons[winner].emoji, device.isMobile?128:256, seasons[winner].color, winner, "Wins!");
-       // this.victoryDisplay.show(season);
+        playSound( winSound );
     }
 
     buildView() {
@@ -1028,8 +1029,12 @@ class AvatarActor extends mix(Actor).with(AM_Spatial, AM_Avatar) {
         const translation = [this.translation[0], this.translation[1]-5, this.translation[2]];
         MissileActor.create({parent: this, color: this.color2, translation});
         this.setHighSpeed(this.throttleMax);
+        this.subscribe("game", "reset", this.reset);
     }
 
+    reset() {
+        this.future(1000).respawn();
+    }
 
     buildGlow() {
         this.glow = [];
@@ -1229,6 +1234,8 @@ class AvatarPawn extends mix(Pawn).with(PM_Smoothed, PM_ThreeVisible, PM_Avatar)
         //this.listen("colorBlindReady", this.setColorBlind);
         this.subscribe(this.viewId, "synced", this.handleSynced);
         this.subscribe("maze", "clearCells", this.clearCells);
+        this.subscribe("maze", "reset", this.reset);
+    
         if (device.isMobile) {
             // Separate touch tracking for each side
             this.leftTouch = {
@@ -1420,6 +1427,11 @@ class AvatarPawn extends mix(Pawn).with(PM_Smoothed, PM_ThreeVisible, PM_Avatar)
         }
     }
 
+    // Reset the minimap for new game
+    reset() {
+        this.redrawMinimap();
+    }
+    
     get season() {return this.actor.season}
     get color() {return colorBlind? seasons[this.season].colorBlind:seasons[this.season].color}
     get color2() {return colorBlind? seasons[this.season].colorBlind:seasons[this.season].color2}
@@ -1504,7 +1516,10 @@ class AvatarPawn extends mix(Pawn).with(PM_Smoothed, PM_ThreeVisible, PM_Avatar)
 
     rechargedSound() {
         console.log("recharged");
-        if (this.isMyAvatar) playSound(rechargedSound, this.renderObject, false);
+        if (this.isMyAvatar) {
+            playSound(rechargedSound, this.renderObject, false);
+            setTextDisplay("Recharged!", 2);
+        }
     }
 
     keyDown(e) {
@@ -1553,6 +1568,9 @@ class AvatarPawn extends mix(Pawn).with(PM_Smoothed, PM_ThreeVisible, PM_Avatar)
                 colorBlind = !colorBlind;
                 this.setColorBlind();
                 break;
+            case 'r': case 'R':
+                this.publish("game", "reset");
+                break;
             default:
         }
     }
@@ -1573,7 +1591,6 @@ class AvatarPawn extends mix(Pawn).with(PM_Smoothed, PM_ThreeVisible, PM_Avatar)
             default:
         }
     }
-
 
     doPointerDown(e) {
         if (!device.isMobile) {
@@ -1749,7 +1766,7 @@ class AvatarPawn extends mix(Pawn).with(PM_Smoothed, PM_ThreeVisible, PM_Avatar)
 
     redrawMinimap() {
        // if (!this.isMyAvatar) return;
-        //console.log("redrawMinimap");
+        console.log("redrawMinimap");
         const mazeActor = this.wellKnownModel("ModelRoot").maze;
         minimapCtx.clearRect(0, 0, minimapCanvas.width, minimapCanvas.height);
 
@@ -1760,8 +1777,10 @@ class AvatarPawn extends mix(Pawn).with(PM_Smoothed, PM_ThreeVisible, PM_Avatar)
         }
         const xCell = 1+Math.floor(this.translation[0]/CELL_SIZE);
         const yCell = 1+Math.floor(this.translation[2]/CELL_SIZE);
-        this.avatarMinimap(null, null, xCell, yCell);
-        minimapDiv.style.transform = `rotate(${this.yaw}rad)`;
+        if (this.isMyAvatar) {
+            this.avatarMinimap(null, null, xCell, yCell);
+            minimapDiv.style.transform = `rotate(${this.yaw}rad)`;
+        }
     }
 
     drawMinimapCell(x,y, season) {

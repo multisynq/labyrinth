@@ -17,8 +17,24 @@ class MazeActor extends mix(Actor).with(AM_Spatial) {
         this.seasons = {"Spring": 4, "Summer": 4, "Autumn": 4, "Winter": 4};
         this.createMaze(this.rows,this.columns);
         this.constructMaze();
+        this.startMinutes = this.minutes;
         this.timer = this.minutes*60000;
         this.future(1000).countDown();
+        this.subscribe("game", "reset", this.reset);
+    }
+
+    // Reset the maze to start a new game.
+    reset() {
+        this._minutes = this.startMinutes;
+        this.seasons = {"Spring": 4, "Summer": 4, "Autumn": 4, "Winter": 4};
+        if (this.timer===0) this.future(1000).countDown();
+        this.timer = this.minutes*60000;
+        this.instances.forEach(instance => instance.destroy());
+        this.instances = [];
+        this.createMaze(this.rows,this.columns);
+        this.constructMaze();
+        this.publish("maze", "score", this.seasons);
+        this.future(1000).publish("maze", "reset");
     }
 
     get minutes() {return this._minutes || 8}
@@ -257,40 +273,43 @@ class MazeActor extends mix(Actor).with(AM_Spatial) {
         const ivyRotation = q_axisAngle([0,1,0],Math.PI);
         let ivy0Count = 0, ivy1Count = 0, floorCount = 0, wallCount2 = 0, columnCount = 0;
         const wallCount = this.countWalls();
+        this.instances = [];
         for (let y = 0; y < this.rows; y++) {
             for (let x = 0; x < this.columns; x++) {
                 if (x<this.columns-1 && y<this.rows-1) {
                     this.map[x][y].floor = InstanceActor.create({name:"floor", translation: [x*CELL_SIZE+CELL_SIZE/2, 0, y*CELL_SIZE+CELL_SIZE/2], max:391});
+                    this.instances.push(this.map[x][y].floor);
                     floorCount++;
                 }
                 const t = [x*CELL_SIZE, 0, y*CELL_SIZE];
-                InstanceActor.create({name:"column", color:0xFFA07A,translation: t});
+                this.instances.push(InstanceActor.create({name:"column", color:0xFFA07A,translation: t}));
                 columnCount++;
                 // south walls
                 if (!this.map[x][y].S && x>0) {
                 const t = [x*this.cellSize - this.cellSize/2, 0, y*this.cellSize];
-                const wall = InstanceActor.create({name:"wall", parent: this, translation: t, max: wallCount});
+                const wall = InstanceActor.create({name:"wall", parent: this, translation: t});
+                this.instances.push(wall);
                 wallCount2++;
                 if (Math.random() < 0.25) {
-                    InstanceActor.create({name: "ivy0", parent: wall});
-                    InstanceActor.create({name: "ivy1", parent: wall});
-                    InstanceActor.create({name: "ivy0", parent: wall, rotation:ivyRotation});
-                    InstanceActor.create({name: "ivy1", parent: wall, rotation:ivyRotation});
+                    this.instances.push(InstanceActor.create({name: "ivy0", parent: wall}));
+                    this.instances.push(InstanceActor.create({name: "ivy1", parent: wall}));
+                    this.instances.push(InstanceActor.create({name: "ivy0", parent: wall, rotation:ivyRotation}));
+                    this.instances.push(InstanceActor.create({name: "ivy1", parent: wall, rotation:ivyRotation}));
                     ivy0Count+=2;
                     ivy1Count+=2;
                 }
-
             }
             // east walls
             if (!this.map[x][y].E && y>0) {
                 const t = [x*this.cellSize, 0, (y+1)*this.cellSize - 3*this.cellSize/2];
-                const wall = InstanceActor.create({name:"wall",parent: this, translation: t, rotation: r, max: wallCount});
+                const wall = InstanceActor.create({name:"wall",parent: this, translation: t, rotation: r});
+                this.instances.push(wall);
                 wallCount2++;
                 if (Math.random() < 0.25) {
-                    InstanceActor.create({name: "ivy0", parent: wall});
-                    InstanceActor.create({name: "ivy1", parent: wall});
-                    InstanceActor.create({name: "ivy0", parent: wall, rotation:ivyRotation});
-                    InstanceActor.create({name: "ivy1", parent: wall, rotation:ivyRotation});
+                    this.instances.push(InstanceActor.create({name: "ivy0", parent: wall}));
+                    this.instances.push(InstanceActor.create({name: "ivy1", parent: wall}));
+                    this.instances.push(InstanceActor.create({name: "ivy0", parent: wall, rotation:ivyRotation}));
+                    this.instances.push(InstanceActor.create({name: "ivy1", parent: wall, rotation:ivyRotation}));
                     ivy0Count+=2;
                     ivy1Count+=2;
                 }

@@ -17,8 +17,23 @@ class MazeActor extends mix(Actor).with(AM_Spatial) {
         this.seasons = {"Spring": 4, "Summer": 4, "Autumn": 4, "Winter": 4};
         this.createMaze(this.rows,this.columns);
         this.constructMaze();
+        this.timer = this.minutes*60000;
+        this.future(1000).countDown();
     }
 
+    get minutes() {return this._minutes || 8}
+
+    countDown() {
+        this.timer -= 1000;
+        if (this.timer <= 0)
+            {
+                this.timer = 0;
+                this.publish("maze", "victory", this.seasons);
+            }
+        else this.future(1000).countDown();
+        this.publish("maze", "countDown", this.timer);
+    }
+  
     createMaze(width, height) {
       this.map = [];
       this.DIRECTIONS = {

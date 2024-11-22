@@ -49,9 +49,9 @@
             }
             .countdown {
                 position: fixed;
-                top: 40vh;          /* Match box-score's position at 40% */
+                top: 40vh;
                 right: 20px;
-                transform: translateY(-50%);  /* Center the element vertically */
+                transform: translateY(-50%);
                 font-family: 'Arial', sans-serif;
                 font-size: 36px;
                 font-weight: bold;
@@ -62,6 +62,7 @@
                 z-index: 1000;
                 text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.5);
                 letter-spacing: 2px;
+                pointer-events: none;  /* Add this line */
             }
             .box-score {
                 position: fixed;
@@ -159,6 +160,37 @@
             .fullscreen-button:active {
                 transform: scale(0.95);           /* Slight press effect */
             }
+            .victory-display {
+                position: fixed;
+                top: 50%;
+                left: 50%;
+                transform: translate(-50%, -50%);
+                display: flex;
+                flex-direction: column;
+                align-items: center;
+                z-index: 2000;
+                pointer-events: none;
+                background: rgba(0, 0, 0, 0.3); /* Add semi-transparent background */
+            }
+
+            .victory-icon {
+                width: 66vh;
+                height: 66vh;
+                max-width: 66vw;
+                max-height: 66vw;
+                object-fit: contain;
+                display: block; /* Ensure image is displayed as block */
+            }
+
+            .victory-text {
+                font-family: 'Arial', sans-serif;
+                font-size: 48px;
+                font-weight: bold;
+                margin-top: 20px;
+                text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.5);
+                padding: 20px; /* Add some padding */
+            }
+
             #codelink {
                 position: fixed; bottom: 10px; right: 10px; padding: .5em; border-radius: 30px;
                 opacity: 50%; background: lightgray; box-shadow: 1px 1px 5px black;
@@ -178,7 +210,10 @@
             <div id="minimap" class="minimap"></div>
         </div>
         <div id="countdown" class="countdown">0:00</div>
-
+        <div id="victory-display" style="display: none;">
+            <img class="victory-icon" alt="Winner">
+            <div class="victory-text"></div>
+        </div>
         <div class="box-score">
             <div class="score-row" data-season="Spring">
                 <span class="season spring">🌸 Spring</span>
@@ -197,7 +232,7 @@
                 <span class="score">4</span>
             </div>
         </div>
-        <div id="version-number" class="version-display">v0.1.0-alpha.58</div>
+        <div id="version-number" class="version-display">v0.1.0-alpha.60</div>
         <!-- <a id="codelink" href="https://github.com/multisynq/physics-fountain/blob/main/index.html"
         title="View source code on GitHub" target="_blank">{...}</a> -->
     </body>

@@ -92,11 +92,25 @@ function createRules(headingText, contentText) {
     });
 
     // Initial check if content is scrollable
-    setTimeout(() => {
-        if (content.scrollHeight <= content.clientHeight) {
-            scrollBorder.classList.add('hidden');
+    const checkScrollable = () => {
+        const content = rulesContainer.querySelector('.rules-content');
+        const scrollBorder = rulesContainer.querySelector('.scroll-border');
+        if (content && scrollBorder) {
+            if (content.scrollHeight <= content.clientHeight) {
+                scrollBorder.classList.add('hidden');
+            } else {
+                scrollBorder.classList.remove('hidden');
+            }
         }
-    }, 100);
+    };
+
+    // Check multiple times to ensure content has rendered
+    setTimeout(checkScrollable, 0);
+    setTimeout(checkScrollable, 100);
+    setTimeout(checkScrollable, 500);
+
+    // Also check when window is resized
+    window.addEventListener('resize', checkScrollable);
 
     // Prevent pointer events from reaching the game
     rulesContainer.addEventListener('pointerdown', (e) => {
@@ -147,29 +161,25 @@ function createRules(headingText, contentText) {
         }
 
         .rules-close {
-            background: none;
-            border: 2px solid white;
-            border-radius: 50%;
+            background: rgba(255, 255, 255, 0.1);
+            border: none;
+            border-radius: 4px;
             color: white;
-            font-size: 36px;
+            font-size: 24px;
             cursor: pointer;
-            padding: 0;
-            width: 44px;
-            height: 44px;
+            padding: 8px 16px;
             min-width: 44px;
             min-height: 44px;
             display: flex;
             align-items: center;
             justify-content: center;
-            line-height: 1;
             margin-right: 20px;
             margin-left: 0;
-            aspect-ratio: 1 / 1;
-            transform: translateY(-1px);
+            transition: background-color 0.2s;
         }
 
         .rules-close:hover {
-            background: rgba(255, 255, 255, 0.1);
+            background: rgba(255, 255, 255, 0.2);
         }
 
         .rules-content {
@@ -306,36 +316,48 @@ function createRules(headingText, contentText) {
     `;
     document.head.appendChild(style);
 
-    // Handle window resize
-    function handleResize() {
-        if (rulesContainer.style.display !== 'none') {
-            requestAnimationFrame(() => {
-                rulesContainer.style.removeProperty('width');
-                
-                const content = rulesContainer.querySelector('.rules-content');
-                if (content) {
-                    const header = rulesContainer.querySelector('.rules-header');
-                    const scrollBorder = rulesContainer.querySelector('.scroll-border');
-                    const headerHeight = header ? header.offsetHeight : 0;
-                    const scrollHeight = scrollBorder ? scrollBorder.offsetHeight : 0;
-                    
-                    if (window.innerWidth > window.innerHeight) {
-                        content.style.maxHeight = `calc(90vh - ${headerHeight + scrollHeight + 40}px)`;
-                    } else {
-                        content.style.maxHeight = `calc(85vh - ${headerHeight + scrollHeight + 40}px)`;
-                    }
-                }
-            });
-        }
-    }
-
-    window.addEventListener('resize', handleResize);
+    window.addEventListener('resize', () => handleResize(rulesContainer));
     window.addEventListener('orientationchange', () => {
-        setTimeout(handleResize, 100);
+        setTimeout(() => handleResize(rulesContainer), 100);
     });
 
-    handleResize();
+    handleResize(rulesContainer);
     return rulesContainer;
+}
+
+// Handle window resize
+function handleResize(container) {
+    if (!container || container.style.display === 'none') return;
+
+    requestAnimationFrame(() => {
+        container.style.removeProperty('width');
+        
+        const content = container.querySelector('.rules-content');
+        const header = container.querySelector('.rules-header');
+        const scrollBorder = container.querySelector('.scroll-border');
+        
+        if (content && header && scrollBorder) {
+            const headerHeight = header.offsetHeight;
+            const scrollHeight = scrollBorder.offsetHeight;
+            
+            // Set max-height based on orientation
+            if (window.innerWidth > window.innerHeight) {
+                content.style.maxHeight = `calc(90vh - ${headerHeight + scrollHeight + 40}px)`;
+            } else {
+                content.style.maxHeight = `calc(85vh - ${headerHeight + scrollHeight + 40}px)`;
+            }
+            
+            // Force layout calculation and check scroll
+            void content.offsetHeight;
+            
+            // Check if content is scrollable
+            if (content.scrollHeight <= content.clientHeight) {
+                scrollBorder.classList.add('hidden');
+            } else {
+                scrollBorder.classList.remove('hidden');
+            }
+        }
+    });
 }
 
 function createHelpButton() {
@@ -432,6 +454,30 @@ function showRules() {
     } else {
         rulesOverlay.style.display = 'block';
         rulesOverlay.style.pointerEvents = 'auto';
+        
+        // Force layout calculations and check scroll arrow
+        const checkLayout = () => {
+            handleResize(rulesOverlay);
+            
+            const content = rulesOverlay.querySelector('.rules-content');
+            const scrollBorder = rulesOverlay.querySelector('.scroll-border');
+            
+            if (content && scrollBorder) {
+                void content.offsetHeight;
+                if (content.scrollHeight <= content.clientHeight) {
+                    scrollBorder.classList.add('hidden');
+                } else {
+                    scrollBorder.classList.remove('hidden');
+                }
+            }
+        };
+        
+        // Check multiple times to ensure proper layout
+        checkLayout();
+        requestAnimationFrame(checkLayout);
+        setTimeout(checkLayout, 50);
+        setTimeout(checkLayout, 100);
+        setTimeout(checkLayout, 300);
     }
 }
 

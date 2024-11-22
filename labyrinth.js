@@ -101,19 +101,26 @@
 // - right is look around
 // - left is move (strafe and forward)
 // - tap is shoot
+// - rules window close button is on top of the full screen button - move it to the left side
+// - rules window close button gets scaled in the y direction when the window is resized
+// - rules window is too narrow when the window is rotated
+// - score board needs to be larger
+// Switch to emoji for season display
+// Switch to emoji for victory display
+// Winning display displays the season and name.
+// Fixed the rules window so the arrow at the bottom is visible in various orientations and ratios on all devices.
 //------------------------------------------------------------------------------------------
 // Bugs:
 // We don't go off the map anymore, but we can tunnel through walls or jump 2 cells.
 //------------------------------------------------------------------------------------------
 // Priority To do:
-// Mobile
-// - rules window on mobile is too long - cuts off the bottom
-// - rules window close button is on top of the full screen button - move it to the left side
-// - rules window close button gets scaled in the y direction when the window is resized
-// - score board needs to be larger
 // Winning:
-// - Add a "[Season] Wins!"
-// - Add a "Start Game" button to start the game.
+// - Add a "win" sound.
+// - Add a count down sound.
+// - Add a "Start Game" button to restart the game.
+// - Reset the world to start a new game.
+// iPhone:
+// - figure out how to get it to work full screen.
 // Lobby:
 // - New user goes to free avatar slot.
 // - More than 4 players?
@@ -160,6 +167,9 @@ import Countdown from './src/Countdown.js';
 import MazeActor from './src/MazeActor.js';
 import {InstanceActor, instances, materials, geometries} from './src/Instance.js';  
 import showRules from './src/rules.js';
+import VictoryDisplay from './src/VictoryDisplay.js';
+import EmojiDisplay from './src/EmojiDisplay.js';
+
 import apiKey from "./src/apiKey.js";
 
 import IconSpring from './assets/textures/IconSpring.png';
@@ -236,6 +246,7 @@ import aweSound from "./assets/sounds/Awe.wav";
 
 // Global Variables
 //------------------------------------------------------------------------------------------
+const GAME_MINUTES = 15;
 const PI_2 = Math.PI/2;
 const PI_4 = Math.PI/4;
 const MISSILE_LIFE = 4000;
@@ -249,7 +260,6 @@ const MAZE_COLUMNS = 20;
 const MISSILE_SPEED = 0.50;
 
 export let csm; // CSM is Cascaded Shadow Maps
-
 
 let readyToLoad3D = false;
 let readyToLoadTextures = false;
@@ -265,69 +275,12 @@ let plants;
 let ivy;
 
 export const seasons = {
-    Spring:{cell:{x:0,y:0}, icon: IconSpring, nextCell:{x:1,y:1}, angle:toRad(180+45), color:0xFFB6C1, color2:0xCC8A94, colorBlind:0xCC79A7, colorEye: 0xFFEEEE},
-    Summer: {cell: {x:0,y:CELL_SIZE-2}, icon: IconSummer, nextCell:{x:1,y:CELL_SIZE-3}, angle:toRad(270+45), color:0x90EE90, color2:0x65AA65, colorBlind:0x009E73, colorEye: 0xD0FFD0},
-    Autumn: {cell:{x:CELL_SIZE-2, y:CELL_SIZE-2}, icon: IconAutumn, nextCell:{x:CELL_SIZE-3,y:CELL_SIZE-3}, angle:toRad(0+45), color:0xFFE5B4, color2:0xCCB38B, colorBlind:0xE69F00, colorEye: 0xFFE5B4},
-    Winter: {cell:{x:CELL_SIZE-2, y:0}, icon: IconWinter, nextCell:{x:CELL_SIZE-3,y:1}, angle:toRad(90+45), color:0xA5F2F3, color2:0x73BFBF, colorBlind:0x0072B2, colorEye: 0xE0E0FF}};
+    Spring:{cell:{x:0,y:0}, emoji: "🌸", icon: IconSpring, nextCell:{x:1,y:1}, angle:toRad(180+45), color:0xFFB6C1, color2:0xCC8A94, colorBlind:0xCC79A7, colorEye: 0xFFEEEE},
+    Summer: {cell: {x:0,y:CELL_SIZE-2}, emoji: "🌿", icon: IconSummer, nextCell:{x:1,y:CELL_SIZE-3}, angle:toRad(270+45), color:0x90EE90, color2:0x65AA65, colorBlind:0x009E73, colorEye: 0xD0FFD0},
+    Autumn: {cell:{x:CELL_SIZE-2, y:CELL_SIZE-2}, emoji: "🍁", icon: IconAutumn, nextCell:{x:CELL_SIZE-3,y:CELL_SIZE-3}, angle:toRad(0+45), color:0xFFE5B4, color2:0xCCB38B, colorBlind:0xE69F00, colorEye: 0xFFE5B4},
+    Winter: {cell:{x:CELL_SIZE-2, y:0}, emoji: "❄️", icon: IconWinter, nextCell:{x:CELL_SIZE-3,y:1}, angle:toRad(90+45), color:0xA5F2F3, color2:0x73BFBF, colorBlind:0x0072B2, colorEye: 0xE0E0FF}
+};
 
-// 2D Elements
-//------------------------------------------------------------------------------------------
-
-function createIcon(imagePath, baseSize = 32, isLarge = false) {
-    // Remove existing icon of the same type
-    const className = isLarge ? 'icon-large' : 'icon';
-    const existingIcon = document.querySelector(`.${className}`);
-    if (existingIcon) {
-        existingIcon.remove();
-    }
-
-    // Create container
-    const iconContainer = document.createElement('div');
-    iconContainer.className = className;
-
-    // Create image element
-    const icon = document.createElement('img');
-    icon.src = imagePath;
-
-    // Add CSS for both icon types
-    const style = document.createElement('style');
-    style.textContent = `
-        .icon, .icon-large {
-            position: fixed;
-            right: 20px;
-            bottom: 20px;
-            z-index: 1000;
-            pointer-events: none;
-            display: block;
-        }
-        .icon-large {
-            z-index: 999;  /* Below the small icon */
-        }
-        .icon img, .icon-large img {
-            display: block;
-            object-fit: contain;
-            filter:
-                drop-shadow(0 4px 3px rgba(0, 0, 0, 0.5))
-                drop-shadow(0 2px 2px rgba(0, 0, 0, 0.9))
-                drop-shadow(0 1px 1px rgba(0, 0, 0, 0.7));
-        }
-        .icon-large img {
-            width: ${baseSize * 2}px;
-            height: ${baseSize * 2}px;
-        }
-        .icon img {
-            width: ${baseSize}px;
-            height: ${baseSize}px;
-        }
-    `;
-    document.head.appendChild(style);
-
-    // Add image to container
-    iconContainer.appendChild(icon);
-    document.body.appendChild(iconContainer);
-
-    return iconContainer;
-}
 // display the rules window
 showRules();
 
@@ -410,10 +363,6 @@ new FullscreenButton();
 // Determine if we are mobile or desktop
 const device = new DeviceDetector();
 setTextDisplay(device.isMobile? "mobile device":"desktop",10);
-
-// Initialize the scoreboard
-const boxScore = new BoxScore();
-boxScore.setScores({"Spring": 4, "Summer": 4, "Autumn": 4, "Winter": 4});
 
 // Minimap canvas
 const minimapDiv = document.getElementById('minimap');
@@ -912,19 +861,10 @@ class MyModelRoot extends ModelRoot {
 
     init(options) {
         super.init(options);
-        this.minutes = 15;
         const xOffset = (MAZE_ROWS*CELL_SIZE)/2;
         const zOffset = (MAZE_COLUMNS*CELL_SIZE)/2;
         this.base = BaseActor.create({ translation:[xOffset,0,zOffset]});
-        this.maze = MazeActor.create({translation: [0,5,0], rows: MAZE_ROWS, columns: MAZE_COLUMNS, cellSize: CELL_SIZE});
-        /*
-        for (let y = 0; y < MAZE_ROWS; y++) {
-            for (let x = 0; x < MAZE_COLUMNS; x++) {
-                const t = [x*CELL_SIZE, 0, y*CELL_SIZE];
-                InstanceActor.create({name:"column", color:0xFFA07A,translation: t});
-            }
-        }
-        */
+        this.maze = MazeActor.create({translation: [0,5,0], rows: MAZE_ROWS, columns: MAZE_COLUMNS, cellSize: CELL_SIZE, minutes: GAME_MINUTES});
         this.horse = HorseActor.create({translation:[210.9,10,209.70], scale:[8.75,8.75,8.75]});
         const s = 9.0;
         this.spring = PlantActor.create({plant:"Spring",translation: [20, 0.5, 20], scale:[s,s,s]});
@@ -933,24 +873,13 @@ class MyModelRoot extends ModelRoot {
         this.winter = PlantActor.create({plant:"Winter",translation: [360, 0.5, 20], scale:[s,s,s]});
         this.skyAngle = 0;
         this.rotateSky();
-        this.future(1000).countDown();
-    }
-
-    get minutes() {return this._minutes || 8}
-    set minutes(value) {this._minutes = value; this.timer = value*60000}
-
-    countDown() {
-        this.timer -= 1000;
-        if (this.timer < 0) this.timer = 0;
-        else this.future(1000).countDown();
-        this.publish("root", "countDown", this.timer);
     }
 
     rotateSky() {
-        this.skyAngle += 0.001;
+        this.skyAngle += 0.0005;
         if (this.skyAngle > 2*Math.PI) this.skyAngle -= 2*Math.PI;
         this.publish("root","rotateSky", this.skyAngle);
-        this.future(100).rotateSky();
+        this.future(50).rotateSky();
     }
 }
 MyModelRoot.register("MyModelRoot");
@@ -967,19 +896,44 @@ export class MyViewRoot extends ViewRoot {
 
     onStart() {
         this.buildView();
-        this.countdownTimer = new Countdown(this.wellKnownModel("ModelRoot").timer);
-        //("MyViewRoot onStart", this);
+        this.countdownTimer = new Countdown(this.wellKnownModel("ModelRoot").maze.timer);
+        this.victoryDisplay = new VictoryDisplay();
+        // Initialize the scoreboard
+        this.boxScore = new BoxScore();
+        this.boxScore.setScores({"Spring": 4, "Summer": 4, "Autumn": 4, "Winter": 4});
         this.skyRotation = new THREE.Euler(0, 0, 0);
         this.subscribe("root", "rotateSky", this.rotateSky);
         this.subscribe("input", "resize", scaleMinimap);
-        this.subscribe("root", "countDown", this.countDown);
-        const actors = this.wellKnownModel('ActorManager').actors;
+        this.subscribe("maze", "countDown", this.countDown);
+        this.subscribe("maze", "victory", this.victory);
+        const scores = this.wellKnownModel("ModelRoot").maze.seasons;
+        this.boxScore.setScores(scores);
+        this.subscribe("maze", "score", this.scoreUpdate);
+        this.emojiDisplay = new EmojiDisplay();
+        //const actors = this.wellKnownModel('ActorManager').actors;
         //console.log("MyViewRoot onStart actors", actors);
     }
 
     countDown(timer) {
         // console.log("countDown", timer);
         this.countdownTimer.set(timer);
+    }
+
+
+    scoreUpdate( data ){
+        this.boxScore.setScores(data);
+   //     console.log("scoreUpdate", data);
+    }
+
+    victory(scores) {
+        console.log("Victory: ", scores);
+        let winner = "Spring";
+        for (const season in scores) {
+            if (scores[season] > scores[winner]) winner = season;
+        }
+
+        this.emojiDisplay.show(seasons[winner].emoji, device.isMobile?128:256, seasons[winner].color, winner, "Wins!");
+       // this.victoryDisplay.show(season);
     }
 
     buildView() {
@@ -1519,15 +1473,8 @@ class AvatarPawn extends mix(Pawn).with(PM_Smoothed, PM_ThreeVisible, PM_Avatar)
         this.yaw = q_yaw(this.rotation);
         this.createMinimap();
         minimapDiv.style.transform = `rotate(${this.yaw}rad)`;
-        this.icon = createIcon(seasons[this.season].icon, 64);
-        const scores = this.wellKnownModel("ModelRoot").maze.seasons;
-        boxScore.setScores(scores);
-        this.subscribe("maze", "score", this.scoreUpdate);
-    }
-
-    scoreUpdate( data ){
-        boxScore.setScores(data);
-   //     console.log("scoreUpdate", data);
+        this.emojiDisplay = new EmojiDisplay();
+        this.emojiDisplay.show(seasons[this.season].emoji, device.isMobile?64:128, seasons[this.season].color, this.season);
     }
 
     park() {
@@ -2216,24 +2163,21 @@ export class FireballPawn extends mix(Pawn).with(PM_Smoothed, PM_ThreeVisible) {
 }
 FireballPawn.register("FireballPawn");
 
-// SphereActor
-// Power up that a player can pick up to fuel their missile.
+// CoinActor
+// Capture the flag coin.
 //------------------------------------------------------------------------------------------
-class SphereActor extends mix(Actor).with(AM_Spatial) {
-    get pawn() { return "SpherePawn" }
+class CoinActor extends mix(Actor).with(AM_Spatial) {
+    get pawn() { return "CoinPawn" }
 
     init(options) {
         super.init(options);
         this.center = this.translation[1];
         this.timeScale = 0.00025 + Math.random()*0.00002;
         this.offset = Math.random()*Math.PI;
-        //console.log("SphereActor init", this, this.parent);
-        //InstanceActor.create({name:"minotaur", parent: this});
-       // GlowActor.create({parent: this});
        this.future(100).tick();
     }
 
-    get name() { return this._name || "power" }
+    get name() { return this._name || "coin" }
 
     tick() {
         const t = this.translation;
@@ -2246,12 +2190,11 @@ class SphereActor extends mix(Actor).with(AM_Spatial) {
         this.destroy();
     }
 }
-SphereActor.register('SphereActor');
+CoinActor.register('CoinActor');
 
-// SpherePawn
-// Flashy sphere object.
+// CoinPawn
 //------------------------------------------------------------------------------------------
-export class SpherePawn extends mix(Pawn).with(PM_Smoothed, PM_ThreeVisible, PM_ThreeInstanced) {
+export class CoinPawn extends mix(Pawn).with(PM_Smoothed, PM_ThreeVisible, PM_ThreeInstanced) {
 
     constructor(actor) {
         super(actor);
@@ -2274,7 +2217,7 @@ export class SpherePawn extends mix(Pawn).with(PM_Smoothed, PM_ThreeVisible, PM_
         }
     }
 }
-SpherePawn.register("SpherePawn");
+CoinPawn.register("CoinPawn");
 
 //--GlowActor ---------------------------------------------------------------------------
 // Make the power up and missiles glow.

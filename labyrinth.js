@@ -113,16 +113,18 @@
 // Added text display for recharged.
 // Reset the world to start a new game.
 // Emoji display text has stronger shadow.
+// Added a "Start Game" button to restart the game.
+// Resized textures so that it works on iPhone. So far so good.
+// Use left/right arrows to turn for people who don't have a mouse.
 //------------------------------------------------------------------------------------------
 // Bugs:
 // We don't go off the map anymore, but we can tunnel through walls or jump 2 cells.
 //------------------------------------------------------------------------------------------
 // Priority To do:
+// Place new users in free spots.
+// Block more than four users. Non-playing users can watch.
 // Winning:
 // - Add a count down sound.
-// - Add a "Start Game" button to restart the game.
-// iPhone:
-// - figure out how to get it to work full screen.
 // Lobby:
 // - New user goes to free avatar slot.
 // - More than 4 players?
@@ -181,19 +183,13 @@ import sky from "./assets/textures/aboveClouds.jpg";
 import eyeball_autumn from "./assets/textures/EyeAutumn.png";
 import eyeball_winter from "./assets/textures/EyeWinter.png";
 import eyeball_spring from "./assets/textures/EyeSpring.png";
-
+/*
 import missile_color from "./assets/textures/metal_gold_vein/metal_0080_color_1k.jpg";
 import missile_normal from "./assets/textures/metal_gold_vein/metal_0080_normal_opengl_1k.png";
 import missile_roughness from "./assets/textures/metal_gold_vein/metal_0080_roughness_1k.jpg";
 import missile_displacement from "./assets/textures/metal_gold_vein/metal_0080_height_1k.png";
 import missile_metalness from "./assets/textures/metal_gold_vein/metal_0080_metallic_1k.jpg";
-/*
-import power_color from "./assets/textures/metal_hex/metal_0076_color_1k.jpg";
-import power_normal from "./assets/textures/metal_hex/metal_0076_normal_opengl_1k.png";
-import power_roughness from "./assets/textures/metal_hex/metal_0076_roughness_1k.jpg";
-import power_displacement from "./assets/textures/metal_hex/metal_0076_height_1k.png";
-import power_metalness from "./assets/textures/metal_hex/metal_0076_metallic_1k.jpg";
-*/
+
 import marble_color from "./assets/textures/marble_checker/marble_0013_color_1k.jpg";
 import marble_normal from "./assets/textures/marble_checker/marble_0013_normal_opengl_1k.png";
 import marble_roughness from "./assets/textures/marble_checker/marble_0013_roughness_1k.jpg";
@@ -203,6 +199,22 @@ import corinthian_color from "./assets/textures/corinthian/concrete_0014_color_1
 import corinthian_normal from "./assets/textures/corinthian/concrete_0014_normal_opengl_1k.png";
 import corinthian_roughness from "./assets/textures/corinthian/concrete_0014_roughness_1k.jpg";
 import corinthian_displacement from "./assets/textures/corinthian/concrete_0014_height_1k.png";
+*/
+import missile_color from "./assets/textures/metal_gold_vein/metal_0080_color_05k.jpg";
+import missile_normal from "./assets/textures/metal_gold_vein/metal_0080_normal_opengl_05k.png";
+import missile_roughness from "./assets/textures/metal_gold_vein/metal_0080_roughness_05k.jpg";
+//import missile_displacement from "./assets/textures/metal_gold_vein/metal_0080_height_05k.png";
+//import missile_metalness from "./assets/textures/metal_gold_vein/metal_0080_metallic_05k.jpg";
+
+import marble_color from "./assets/textures/marble_checker/marble_0013_color_05k.jpg";
+// import marble_normal from "./assets/textures/marble_checker/marble_0013_normal_opengl_05k.png";
+import marble_roughness from "./assets/textures/marble_checker/marble_0013_roughness_05k.jpg";
+// import marble_displacement from "./assets/textures/marble_checker/marble_0013_height_05k.png";
+
+import corinthian_color from "./assets/textures/corinthian/concrete_0014_color_05k.jpg";
+import corinthian_normal from "./assets/textures/corinthian/concrete_0014_normal_opengl_05k.png";
+import corinthian_roughness from "./assets/textures/corinthian/concrete_0014_roughness_05k.jpg";
+import corinthian_displacement from "./assets/textures/corinthian/concrete_0014_height_05k.png";
 
 // 3D Models
 //------------------------------------------------------------------------------------------
@@ -643,7 +655,7 @@ new THREE.TextureLoader().load(fireballTexture, texture => {
         } );
     });
 
-let sky_t, missile_color_t, missile_normal_t, missile_roughness_t, missile_displacement_t, missile_metalness_t,
+let sky_t, missile_color_t, missile_normal_t, missile_roughness_t, //missile_displacement_t, missile_metalness_t,
 //    power_color_t, power_normal_t, power_roughness_t, power_displacement_t, power_metalness_t,
     marble_color_t, marble_roughness_t, // marble_normal_t, marble_displacement_t,
     corinthian_color_t, corinthian_normal_t, corinthian_roughness_t, corinthian_displacement_t, eyeball_spring_t, eyeball_autumn_t, eyeball_winter_t;
@@ -657,7 +669,7 @@ async function textureConstruct() {
     const textureLoader = new THREE.TextureLoader();
     textureLoader.crossOrigin = 'anonymous';
 
-    return [sky_t, missile_color_t, missile_normal_t, missile_roughness_t, missile_displacement_t, missile_metalness_t,
+    return [sky_t, missile_color_t, missile_normal_t, missile_roughness_t, // missile_displacement_t, missile_metalness_t,
     // power_color_t, power_normal_t, power_roughness_t, power_displacement_t, power_metalness_t,
      marble_color_t, marble_roughness_t, //marble_normal_t, marble_displacement_t,
      corinthian_color_t, corinthian_normal_t, corinthian_roughness_t, corinthian_displacement_t,
@@ -667,8 +679,8 @@ async function textureConstruct() {
         textureLoader.loadAsync(missile_color),
         textureLoader.loadAsync(missile_normal),
         textureLoader.loadAsync(missile_roughness),
-        textureLoader.loadAsync(missile_displacement),
-        textureLoader.loadAsync(missile_metalness),
+        //textureLoader.loadAsync(missile_displacement),
+        //textureLoader.loadAsync(missile_metalness),
         // textureLoader.loadAsync(power_color),
         // textureLoader.loadAsync(power_normal),
         // textureLoader.loadAsync(power_roughness),
@@ -695,8 +707,8 @@ textureConstruct().then( () => {
         colorMap: missile_color_t,
         normalMap: missile_normal_t,
         roughnessMap: missile_roughness_t,
-        metalnessMap: missile_metalness_t,
-        displacementMap: missile_displacement_t,
+        //metalnessMap: missile_metalness_t,
+        //displacementMap: missile_displacement_t,
         repeat: [1.5,1],
         displacementScale: 0.1,
         displacementBias: -0.05,
@@ -1548,10 +1560,14 @@ class AvatarPawn extends mix(Pawn).with(PM_Smoothed, PM_ThreeVisible, PM_Avatar)
                 this.gas = 1; break;
             case "ArrowDown": case "S": case "s":
                 this.gas = -1; break;
-            case "ArrowLeft": case "A": case "a":
+            case "A": case "a":
                 this.strafe = 1; break;
-            case "ArrowRight": case "D": case "d":
+            case "D": case "d":
                 this.strafe = -1; break;
+            case "ArrowLeft":
+                this.turn = -1; break;
+            case "ArrowRight":
+                this.turn = 1; break;
             case " ":
                 this.shootMissile();
                 break;
@@ -1600,10 +1616,12 @@ class AvatarPawn extends mix(Pawn).with(PM_Smoothed, PM_ThreeVisible, PM_Avatar)
                 this.gas = 0; break;
             case "ArrowDown": case "S": case "s":
                 this.gas = 0; break;
-            case "ArrowLeft": case "A": case "a":
+            case "A": case "a":
                 this.strafe = 0; break;
-            case "ArrowRight": case "D": case "d":
+            case "D": case "d":
                 this.strafe = 0; break;
+            case "ArrowRight": case "ArrowLeft": 
+                this.turn = 0; break;                
             case " ":
                 this.shootNow = false;
                 break;
@@ -1660,6 +1678,7 @@ class AvatarPawn extends mix(Pawn).with(PM_Smoothed, PM_ThreeVisible, PM_Avatar)
     update(time, delta) {
         super.update(time,delta);
         if (this.driving) {
+            if ( this.turn ) this.pointerLook(this.turn, 0, 0.05);
             if (this.gas || this.strafe) {
                 if(delta/1000 > 0.1) console.log("AvatarPawn update", delta);
                 const factor = Math.min(delta/1000,0.1);

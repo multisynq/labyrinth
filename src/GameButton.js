@@ -21,7 +21,7 @@ class GameButton {
             left: 50%;
             top: 50%;
             transform: translate(-50%, -50%);
-            z-index: 10000;  // Increased from 2000 to 10000 to be above rules window
+            z-index: 2000;  
             cursor: pointer;
             transition: all 0.2s ease-in-out;
         `;

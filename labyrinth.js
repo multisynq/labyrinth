@@ -294,6 +294,8 @@ export const seasons = {
 
 // display the rules window
 showRules();
+// the new game button
+const gameButton = new GameButton();
 
 // display the centered bottom text info display
 function createTextDisplay() {
@@ -920,12 +922,11 @@ export class MyViewRoot extends ViewRoot {
         this.subscribe("input", "resize", scaleMinimap);
         this.subscribe("maze", "countDown", this.countDown);
         this.subscribe("maze", "victory", this.victory);
-        this.subscribe("game", "reset", this.reset);
+        // this.subscribe("game", "reset", this.reset);
         const scores = this.wellKnownModel("ModelRoot").maze.seasons;
         this.boxScore.setScores(scores);
         this.subscribe("maze", "score", this.scoreUpdate);
         this.subscribe("maze", "reset", this.reset);
-        this.gameButton = new GameButton();
         // We joined at the end of the game...
         if(timer === 0) this.newGameButton();
         //const actors = this.wellKnownModel('ActorManager').actors;
@@ -934,7 +935,7 @@ export class MyViewRoot extends ViewRoot {
 
     reset(){
         victoryEmojiDisplay.hide();
-        this.gameButton.hide();
+        gameButton.hide();
         playSound(startGameSound);
     }
 
@@ -962,7 +963,7 @@ export class MyViewRoot extends ViewRoot {
 
     newGameButton() {
     // Show the button when game ends
-        this.gameButton.show(() => {
+        gameButton.show(() => {
             // Your reset game logic here
             this.publish("game", "reset");
         });

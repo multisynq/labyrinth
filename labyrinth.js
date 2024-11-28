@@ -180,9 +180,9 @@ import apiKey from "./src/apiKey.js";
 //------------------------------------------------------------------------------------------
 import sky from "./assets/textures/aboveClouds.jpg";
 // import eyeball_summer from "./assets/textures/EyeSummer.png";
-import eyeball_autumn from "./assets/textures/EyeAutumn.png";
-import eyeball_winter from "./assets/textures/EyeWinter.png";
-import eyeball_spring from "./assets/textures/EyeSpring.png";
+import eyeball_autumn from "./assets/textures/EyeAutumn_05k.png";
+import eyeball_winter from "./assets/textures/EyeWinter_05k.png";
+import eyeball_spring from "./assets/textures/EyeSpring_05k.png";
 /*
 import missile_color from "./assets/textures/metal_gold_vein/metal_0080_color_1k.jpg";
 import missile_normal from "./assets/textures/metal_gold_vein/metal_0080_normal_opengl_1k.png";
@@ -1891,6 +1891,7 @@ class MyUser extends User {
 
     destroy() {
         super.destroy();
+        console.log("MyUser destroy");
         if (this.avatar) this.avatar.destroy();
     }
 }

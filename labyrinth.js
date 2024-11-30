@@ -4,7 +4,7 @@
 // Think of it as "Go" with guns.
 //
 // It is loosely based upon the early Maze War game created at NASA Ames in 1973
-// https://en.wikipedia.org/wiki/Maze_War and has elements of Pacman, The Colony and Dodgeball.
+// https://en.wikipedia.org/wiki/Maze_War and has elements of Go, Pacman, The Colony and Dodgeball.
 //------------------------------------------------------------------------------------------
 // Changes:
 // Minimal world - showing we exist. We get an alert when a new user joins.
@@ -116,6 +116,7 @@
 // Added a "Start Game" button to restart the game.
 // Resized textures so that it works on iPhone. So far so good.
 // Use left/right arrows to turn for people who don't have a mouse.
+// Resized the ivy model. Seems to be working on iOS now.
 //------------------------------------------------------------------------------------------
 // Bugs:
 // We don't go off the map anymore, but we can tunnel through walls or jump 2 cells.
@@ -229,7 +230,7 @@ import horse2_glb from "./assets/Horse_Copper2.glb";
 // https://sketchfab.com/tochechka
 import fourSeasonsTree_glb from "./assets/fourSeasonsTree.glb";
 // https://sketchfab.com/dangry
-import ivy_glb from "./assets/ivy2.glb";
+import ivy_glb from "./assets/ivy3.glb";
 
 // Shaders
 //------------------------------------------------------------------------------------------

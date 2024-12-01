@@ -118,23 +118,23 @@
 // Use left/right arrows to turn for people who don't have a mouse.
 // Resized the ivy model. Seems to be working on iOS now.
 // Place new users in free spots. Note that this only occurs if the user gets around the lobby and joins the game directly.
-// Overflow players can watch until a spot opens. One of those players can then join the game.
+// Ignore users who do not join the game from the lobby and there is no room.
 //------------------------------------------------------------------------------------------
 // Bugs:
 // We don't go off the map anymore, but we can tunnel through walls or jump 2 cells.
 //------------------------------------------------------------------------------------------
 // Priority To do:
-// Hide the minimap until the game starts.
+// Place new users in free spots.
+// Block more than four users. Non-playing users can watch.
+// Winning:
+// - Add a count down sound.
 // Lobby:
 // - New user goes to free avatar slot.
 // - More than 4 players?
 // - Lobby generates a new game to join. Once a game is full, it starts.
 // - Ask the AI to take the source code for labyrinth and document the entire thing so that it could be nicely formatted as a book.
-// Add more weenies but still work on iOS.
-// Provide a nice view to non-playing users.
 //------------------------------------------------------------------------------------------
 // Nice to have:
-// Edit name of user and let the set their emoji.
 // Claiming another player's cell should take longer than claiming a free cell.
 // Last ten seconds of the game should have a countdown alert.
 // Sound effects are put on hold until the avatar's sound is ready, but should be ignored.
@@ -161,7 +161,7 @@
 
 import { App, StartWorldcore, ViewService, ModelRoot, ViewRoot,Actor, mix, toRad,
     InputManager, AM_Spatial, PM_Spatial, PM_Smoothed, Pawn, AM_Avatar, PM_Avatar, UserManager, User,
-    q_yaw, q_pitch, q_multiply, q_axisAngle, v3_add, v3_sub, v3_normalize, v3_rotate, v3_scale, v3_distanceSqr,
+    q_yaw, q_pitch, q_axisAngle, v3_add, v3_sub, v3_normalize, v3_rotate, v3_scale, v3_distanceSqr,
     THREE, ADDONS, PM_ThreeVisible, ThreeRenderManager, PM_ThreeCamera, PM_ThreeInstanced, ThreeInstanceManager
 } from '@croquet/worldcore';
 
@@ -383,7 +383,6 @@ setTextDisplay(device.isMobile? "mobile device":"desktop",10);
 const minimapDiv = document.getElementById('minimap');
 const minimapCanvas = document.createElement('canvas');
 const minimapCtx = minimapCanvas.getContext('2d');
-
 minimapCtx.globalAlpha = 0.1;
 minimapCanvas.width = 220;
 minimapCanvas.height = 220;
@@ -881,18 +880,17 @@ class MyModelRoot extends ModelRoot {
 
     init(options) {
         super.init(options);
+        this.seasons = {};
         const xOffset = (MAZE_ROWS*CELL_SIZE)/2;
         const zOffset = (MAZE_COLUMNS*CELL_SIZE)/2;
-        this.seasons = {};
-        this.waiting = [];
         this.base = BaseActor.create({ translation:[xOffset,0,zOffset]});
         this.maze = MazeActor.create({translation: [0,5,0], rows: MAZE_ROWS, columns: MAZE_COLUMNS, cellSize: CELL_SIZE, minutes: GAME_MINUTES});
         this.horse = HorseActor.create({translation:[210.9,10,209.70], scale:[8.75,8.75,8.75]});
         const s = 9.0;
-        PlantActor.create({plant:"Spring",translation: [20, 0.5, 20], scale:[s,s,s]});
-        PlantActor.create({plant:"Summer",translation: [20, 0.5, 360], scale:[s,s,s]});
-        PlantActor.create({plant:"Autumn",translation: [360, 0.5, 360], scale:[s,s,s]});
-        PlantActor.create({plant:"Winter",translation: [360, 0.5, 20], scale:[s,s,s]});
+        this.spring = PlantActor.create({plant:"Spring",translation: [20, 0.5, 20], scale:[s,s,s]});
+        this.summer = PlantActor.create({plant:"Summer",translation: [20, 0.5, 360], scale:[s,s,s]});
+        this.autumn = PlantActor.create({plant:"Autumn",translation: [360, 0.5, 360], scale:[s,s,s]});
+        this.winter = PlantActor.create({plant:"Winter",translation: [360, 0.5, 20], scale:[s,s,s]});
         this.skyAngle = 0;
         this.rotateSky();
     }
@@ -904,11 +902,12 @@ class MyModelRoot extends ModelRoot {
         else if (!this.seasons.Summer) { this.seasons.Summer = {driver}; rval = "Summer"; }
         else if (!this.seasons.Autumn) { this.seasons.Autumn = {driver}; rval = "Autumn"; }
         else if (!this.seasons.Winter) { this.seasons.Winter = {driver}; rval = "Winter"; }
+        console.log("getSeason", rval, this.seasons);
         return rval;
     }
 
-    releaseSeason(season){
-        if (season && this.seasons[season]) delete this.seasons[season];
+    releaseSeason(season) {
+        delete this.seasons[season];
     }
 
     rotateSky() {
@@ -924,7 +923,6 @@ MyModelRoot.register("MyModelRoot");
 // Construct the visual world
 //------------------------------------------------------------------------------------------
 const victoryEmojiDisplay = new EmojiDisplay();
-
 export class MyViewRoot extends ViewRoot {
 
     static viewServices() {
@@ -1059,50 +1057,40 @@ class AvatarActor extends mix(Actor).with(AM_Spatial, AM_Avatar) {
 
     init(options) {
         super.init(options);
-        this.start();
+        //this.season = this.wellKnownModel("ModelRoot").getSeason(this.driver);
+        this.throttleMin = 1.0;
+        this.throttleMax = 2.0;
+        this.canShoot = true;
+        this.inCorner = true;
+        this.isCollider = true;
+        this.isAvatar = true;
+        this.radius = AVATAR_RADIUS;
+        this.highGear = this.throttleMin;
+        this.listen("shootMissile", this.shootMissile);
+        this.listen("claimCell", this.claimCell);
+        this.fireball =  FireballActor.create({parent: this, radius:this.radius});
+        this.fireball.future(1000).hide();
+        const translation = [this.translation[0], this.translation[1]-5, this.translation[2]];
+        MissileActor.create({parent: this, color: 0x000000, translation}); // throw away missile for warming up
+        this.setHighSpeed(this.throttleMax);
+        this.subscribe("game", "reset", this.reset);
+        this.future(1000).startSeason();
     }
 
-    start() {
-        console.log("AvatarActor start", this.driver);
+    startSeason() {
         this.season = this.wellKnownModel("ModelRoot").getSeason(this.driver);
         if(this.season) {
-            this.throttleMin = 1.0;
-            this.throttleMax = 2.0;
+            console.log("AvatarActor init", this.season);
+            this.eyeball = EyeballActor.create({parent: this});
             const x = seasons[this.season].cell.x;
             const y = seasons[this.season].cell.y;
             const t = [CELL_SIZE*x+10,AVATAR_HEIGHT,CELL_SIZE*y+10];
             const angle = seasons[this.season].angle; //Math.PI*2*seasons[this.season].angle/360;
             const r = q_axisAngle([0,1,0],angle);
             this.set({translation: t, rotation: r});
-            this.canShoot = true;
-            this.inCorner = true;
-            this.isCollider = true;
-            this.isAvatar = true;
-            this.radius = AVATAR_RADIUS;
-            console.log("AvatarActor radius", this.radius);
-            this.eyeball = EyeballActor.create({parent: this});
-            this.highGear = this.throttleMin;
-            this.listen("shootMissile", this.shootMissile);
-            this.listen("claimCell", this.claimCell);
-            this.fireball =  FireballActor.create({parent: this, radius:this.radius});
-            this.fireball.future(1000).hide();
-            this.future(1000).buildGlow();
-            const translation = [this.translation[0], this.translation[1]-5, this.translation[2]];
-            MissileActor.create({parent: this, color: this.color2, translation});
-            this.setHighSpeed(this.throttleMax);
-            this.subscribe("game", "reset", this.reset);
-            this.say("start", {season: this.season});
-        } else {
-            const x = seasons["Spring"].cell.x;
-            const y = seasons["Spring"].cell.y;
-            const t = [CELL_SIZE*10+10,AVATAR_HEIGHT*50,CELL_SIZE*10+10];
-            //const angle = seasons["Spring"].angle; //Math.PI*2*seasons["Spring"].angle/360;
-            const pitch = -Math.PI/2;
-            const p = q_axisAngle([1,0,0],pitch);
-            //const r = q_multiply(p, q_axisAngle([0,1,0],angle));
-            this.set({translation: t, rotation: p});
-            this.future(1000).start();
-        }
+            this.buildGlow();
+            if(this.season)this.say("startMeUp",this.season);
+        }else this.future(1000).startSeason();
     }
 
     reset() {
@@ -1131,7 +1119,7 @@ class AvatarActor extends mix(Actor).with(AM_Spatial, AM_Avatar) {
         }
     }
 
-    // get season() {return this._season || "spring"}
+ //   get season() {return this._season || "spring"}
 
     get color() {return seasons[this.season].color}
     get color2() {return seasons[this.season].color2}
@@ -1198,85 +1186,12 @@ class AvatarActor extends mix(Actor).with(AM_Spatial, AM_Avatar) {
 
     destroy() {
         // console.log("AvatarActor destroy", this);
-        if(this.season)for(let i=0; i<4; i++) {this.glow[i].destroy();}
         this.wellKnownModel("ModelRoot").releaseSeason(this.season);
+        for(let i=0; i<4; i++) {this.glow[i].destroy();}
         super.destroy();
     }
 }
 AvatarActor.register('AvatarActor');
-
-// Eyeball Actor/Pawn
-// Tracks the orientation of the camera so others see where you are looking.
-//------------------------------------------------------------------------------------------
-class EyeballActor extends mix(Actor).with(AM_Spatial,) {
-    get pawn() { return "EyeballPawn" }
-}
-EyeballActor.register('EyeballActor');
-
-class EyeballPawn extends mix(Pawn).with(PM_Smoothed, PM_ThreeVisible) {
-
-    constructor(actor) {
-        super(actor);
-        this.radius = AVATAR_RADIUS;
-        //this.pitch = q_pitch(this.rotation);
-        //this.pitchQ = q_axisAngle([1,0,0], this.pitch);
-        if ( !this.parent.isMyAvatar ) {
-            this.load3D();
-        } else this.parent.eyeball = this;
-        playSound( enterSound, this.renderObject );
-        this.shootNow = true;
-    }
-
-    load3D() {
-        if (this.doomed) return;
-        if (readyToLoad3D && eyeball) {
-            let color = seasons[this.parent.season].colorEye;
-            // console.log("load3D", this.parent.season, color.toString(16));
-            if(this.parent.season === "Summer") this.eye = eyeball.scene;
-            else this.eye = deepClone(eyeball.scene);
-
-            //console.log("EyeballPawn load3D", this.parent.season);
-            //console.log("EYES:", this.eye, eyeball.scene);
-
-            const material = this.eye.children[0].children[0].material;
-            material.color = new THREE.Color(color);
-            // console.log("material color", color, color.toString(16),material.color);
-            if(this.parent.season === "Spring") material.map = eyeball_spring_t;
-            else if(this.parent.season === "Autumn") material.map = eyeball_autumn_t;
-            else if(this.parent.season === "Winter") material.map = eyeball_winter_t;
-            material.needsUpdate = true;
-            this.eye.traverse( m => {
-                if (m.geometry) {    
-                    m.castShadow=true; 
-                    m.receiveShadow=true; 
-                }
-            });
-            this.eye.scale.set(40,40,40);
-            this.eye.rotation.set(0,Math.PI,0);
-            this.group = new THREE.Group();
-            this.group.add(this.eye);
-            this.setRenderObject(this.group);
-        } else this.future(100).load3D();
-    }
-
-    destroy() {
-        super.destroy();
-        if (this.renderObject) {
-            playSound( exitSound );
-            this.destroy3D( this.renderObject );
-        }
-    }
-
-    destroy3D( obj3D ) {
-        obj3D.traverse( obj => {
-            if (obj.geometry) {
-                obj.geometry.dispose();
-                obj.material.dispose();
-            }
-        });
-    }
-}
-EyeballPawn.register("EyeballPawn");
 
 // AvatarPawn
 // The avatar is designed to instantly react to user input and the publish those changes
@@ -1285,24 +1200,17 @@ EyeballPawn.register("EyeballPawn");
 // impact on gameplay.
 //------------------------------------------------------------------------------------------
 const avatarEmojiDisplay = new EmojiDisplay();
-class AvatarPawn extends mix(Pawn).with(PM_Smoothed, PM_ThreeVisible, PM_Avatar, PM_ThreeCamera) {
+class AvatarPawn extends mix(Pawn).with(PM_Smoothed, PM_ThreeVisible, PM_Avatar) {
 
     constructor(actor) {
         super(actor);
-        this.radius = AVATAR_RADIUS;
-        this.listen("start", this.start);
-        // console.log("AvatarPawn constructor", this.translation, this.actor.translation);
-    }
-
-    // don't set this up until there is a free season
-    start(season) {
+        this.listen("startMeUp", this.onStart);
         this.isAvatar = true;
-        this.yaw = q_yaw(this.rotation);
-        this.yawQ = q_axisAngle([0,1,0], this.yaw);
-        this.lastX = seasons[this.season].cell.x+1;
-        this.lastY = seasons[this.season].cell.y+1;
+        this.radius = actor.radius;
+
         // console.log("AvatarPawn constructor", this.lastX, this.lastY);
         this.service("AvatarManager").avatars.add(this);
+
         this.listen("shootMissileSound", this.didShootSound);
         this.listen("recharged", this.rechargedSound);
         this.listen("claimCellUpdate", this.claimCellUpdate);
@@ -1311,204 +1219,33 @@ class AvatarPawn extends mix(Pawn).with(PM_Smoothed, PM_ThreeVisible, PM_Avatar,
         this.subscribe(this.viewId, "synced", this.handleSynced);
         this.subscribe("maze", "clearCells", this.clearCells);
         this.subscribe("maze", "reset", this.reset);
-
-        if (device.isMobile) {
-            // Separate touch tracking for each side
-            this.leftTouch = {
-                startX: 0,
-                startY: 0,
-                currentX: 0,
-                currentY: 0,
-                startTime: 0,
-                active: false,
-                identifier: null
-            };
-            
-            this.rightTouch = {
-                startX: 0,
-                startY: 0,
-                currentX: 0,
-                currentY: 0,
-                startTime: 0,
-                active: false,
-                identifier: null
-            };
-
-            this.gas = 0;
-            this.strafe = 0;
-            
-            // Add the control overlay with visible divider
-            const style = document.createElement('style');
-            style.textContent = `
-                #mobileControls {
-                    position: fixed;
-                    top: 0;
-                    left: 0;
-                    width: 100%;
-                    height: 100%;
-                    z-index: 100;
-                    display: flex;
-                }
-                #leftControl, #rightControl {
-                    flex: 1;
-                    height: 100%;
-                    touch-action: none;
-                }
-                #rightControl {
-                    border-left: 2px solid rgba(255, 255, 255, 0.2);
-                }
-            `;
-            document.head.appendChild(style);
-
-            // Create and add the control elements
-            const controls = document.createElement('div');
-            controls.id = 'mobileControls';
-            
-            const leftControl = document.createElement('div');
-            leftControl.id = 'leftControl';
-            
-            const rightControl = document.createElement('div');
-            rightControl.id = 'rightControl';
-            
-            controls.appendChild(leftControl);
-            controls.appendChild(rightControl);
-            document.body.appendChild(controls);
-
-            // Debug logging
-            console.log("Mobile controls initialized");
-
-            // Add event listeners
-            const addTouchListeners = (element, side) => {
-                element.addEventListener('touchstart', (e) => {
-                    console.log(`${side} touchstart`);
-                    this.handleTouchStart(e, side);
-                });
-                element.addEventListener('touchmove', (e) => {
-                    console.log(`${side} touchmove`);
-                    this.handleTouchMove(e, side);
-                });
-                element.addEventListener('touchend', (e) => {
-                    console.log(`${side} touchend`);
-                    this.handleTouchEnd(e, side);
-                });
-            };
-
-            addTouchListeners(leftControl, 'left');
-            addTouchListeners(rightControl, 'right');
-        }
-        if(this.isMyAvatar) this.drive();
+        this.setupMobile();
     }
-
-    handleTouchStart(e, side) {
-        e.preventDefault();
-        
-        // Get the touch that occurred in this control's area
-        const rect = document.getElementById(side === 'left' ? 'leftControl' : 'rightControl').getBoundingClientRect();
-        const touch = Array.from(e.touches).find(t => {
-            const x = t.clientX;
-            return side === 'left' ? 
-                (x < rect.right && x >= rect.left) : 
-                (x >= rect.left && x < rect.right);
-        });
-        
-        if (!touch) return;
-
-        if (side === 'left') {
-            this.leftTouch = {
-                startX: touch.clientX,
-                startY: touch.clientY,
-                currentX: touch.clientX,
-                currentY: touch.clientY,
-                startTime: Date.now(),
-                active: true,
-                identifier: touch.identifier
-            };
-        } else {
-            this.rightTouch = {
-                startX: touch.clientX,
-                startY: touch.clientY,
-                currentX: touch.clientX,
-                currentY: touch.clientY,
-                startTime: Date.now(),
-                active: true,
-                identifier: touch.identifier
-            };
-        }
-    }
-
-    handleTouchMove(e, side) {
-        e.preventDefault();
-        
-        // Find the touch that matches our stored identifier
-        const touchData = side === 'left' ? this.leftTouch : this.rightTouch;
-        if (!touchData.active) return;
-
-        const touch = Array.from(e.touches).find(t => t.identifier === touchData.identifier);
-        if (!touch) return;
-
-        const control = document.getElementById(side === 'left' ? 'leftControl' : 'rightControl');
-        const rect = control.getBoundingClientRect();
-        const width = rect.width;
-        const height = rect.height;
-
-        if (side === 'left') {
-            this.leftTouch.currentX = touch.clientX;
-            this.leftTouch.currentY = touch.clientY;
-            
-            const divider = Math.min(width, height) * 0.25;
-            const deltaX = (this.leftTouch.currentX - this.leftTouch.startX) / divider;
-            const deltaY = (this.leftTouch.currentY - this.leftTouch.startY) / divider;
-            
-            this.gas = -Math.max(-1, Math.min(1, deltaY));
-            this.strafe = -Math.max(-1, Math.min(1, deltaX));
-            
-        } else {
-            this.rightTouch.currentX = touch.clientX;
-            this.rightTouch.currentY = touch.clientY;
-            
-            const deltaX = this.rightTouch.currentX - this.rightTouch.startX;
-            const scaledDeltaX = (deltaX / width) * Math.PI;
-            
-            this.pointerLook(scaledDeltaX, 0, 1);
-            this.rightTouch.startX = this.rightTouch.currentX;
-            this.rightTouch.startY = this.rightTouch.currentY;
-        }
-    }
-
-    handleTouchEnd(e, side) {
-        e.preventDefault();
-        
-        // Check if our tracked touch has ended
-        const touchData = side === 'left' ? this.leftTouch : this.rightTouch;
-        const touchStillActive = Array.from(e.touches).some(t => t.identifier === touchData.identifier);
-        
-        if (!touchStillActive) {
-            const touchDuration = Date.now() - touchData.startTime;
-            
-            if (touchDuration < 100 && touchData.active && 
-                Math.abs(touchData.currentX - touchData.startX) < 10 &&
-                Math.abs(touchData.currentY - touchData.startY) < 10) {
-                console.log("shoot");
-                this.shootMissile();
-            }
-            
-            if (side === 'left') {
-                this.gas = 0;
-                this.strafe = 0;
-                this.leftTouch.active = false;
-                this.leftTouch.identifier = null;
-            } else {
-                this.rightTouch.active = false;
-                this.rightTouch.identifier = null;
-            }
-        }
-    }
-
+    
     // Reset the minimap for new game
     reset() {
         this.redrawMinimap();
     }
     
+    onStart(season) {
+        console.log("AvatarPawn onStart", season);
+        this._translation = this.actor.translation;
+        this._rotation = this.actor.rotation;
+        this.yaw = q_yaw(this.rotation);
+        this.yawQ = q_axisAngle([0,1,0], this.yaw);
+        this.lastX = seasons[this.season].cell.x+1;
+        this.lastY = seasons[this.season].cell.y+1;
+        this.localChanged();
+        this.refreshDrawTransform();
+        this.refreshChildDrawTransform();
+        if(this.isMyAvatar) {
+            //this.yaw = q_yaw(this.rotation);
+            this.createMinimap();
+            minimapDiv.style.transform = `rotate(${this.yaw}rad)`;
+            avatarEmojiDisplay.show(seasons[this.season].emoji, device.isMobile?64:128, seasons[this.season].color, this.season);
+        }
+    }
+
     get season() {return this.actor.season}
     get color() {return colorBlind? seasons[this.season].colorBlind:seasons[this.season].color}
     get color2() {return colorBlind? seasons[this.season].colorBlind:seasons[this.season].color2}
@@ -1547,31 +1284,18 @@ class AvatarPawn extends mix(Pawn).with(PM_Smoothed, PM_ThreeVisible, PM_Avatar,
     // The drive() function sets up the user interface for the avatar.
     // If this is not YOUR avatar, the park() function is called.
     drive() {
-        if(this.season && !this.playing){
-            this.playing = true;
-            console.log("DRIVE");
-            this.gas = 0;
-            this.turn = 0;
-            this.strafe = 0;
-            this.pointerId = 0;
-           // this._translation = this.actor.translation;
-           // this._rotation = this.actor.rotation;
-            this.positionTo(this.actor.translation, this.actor.rotation);
-            this.localChanged();
-            
-            //this.refreshCameraTransform();
-            this.subscribe("input", "keyDown", this.keyDown);
-            this.subscribe("input", "keyUp", this.keyUp);
-            this.subscribe("input", "pointerDown", this.doPointerDown);
-            this.subscribe("input", "pointerUp", this.doPointerUp);
-            this.subscribe("input", "pointerDelta", this.doPointerDelta);
-            //this.subscribe("input", "tap", this.doPointerTap);
-            //this.subscribe("input", 'wheel', this.onWheel);
-            this.yaw = q_yaw(this.rotation);
-            this.createMinimap();
-            minimapDiv.style.transform = `rotate(${this.yaw}rad)`;
-            avatarEmojiDisplay.show(seasons[this.season].emoji, device.isMobile?64:128, seasons[this.season].color, this.season);
-        }
+        console.log("DRIVE");
+        this.gas = 0;
+        this.turn = 0;
+        this.strafe = 0;
+        this.pointerId = 0;
+        this.subscribe("input", "keyDown", this.keyDown);
+        this.subscribe("input", "keyUp", this.keyUp);
+        this.subscribe("input", "pointerDown", this.doPointerDown);
+        this.subscribe("input", "pointerUp", this.doPointerUp);
+        this.subscribe("input", "pointerDelta", this.doPointerDelta);
+        //this.subscribe("input", "tap", this.doPointerTap);
+        //this.subscribe("input", 'wheel', this.onWheel);
     }
 
     park() {
@@ -1729,12 +1453,204 @@ class AvatarPawn extends mix(Pawn).with(PM_Smoothed, PM_ThreeVisible, PM_Avatar,
         */
     }
 
+    setupMobile() {
+        if (device.isMobile) {
+            // Separate touch tracking for each side
+            this.leftTouch = {
+                startX: 0,
+                startY: 0,
+                currentX: 0,
+                currentY: 0,
+                startTime: 0,
+                active: false,
+                identifier: null
+            };
+            
+            this.rightTouch = {
+                startX: 0,
+                startY: 0,
+                currentX: 0,
+                currentY: 0,
+                startTime: 0,
+                active: false,
+                identifier: null
+            };
+
+            this.gas = 0;
+            this.strafe = 0;
+            
+            // Add the control overlay with visible divider
+            const style = document.createElement('style');
+            style.textContent = `
+                #mobileControls {
+                    position: fixed;
+                    top: 0;
+                    left: 0;
+                    width: 100%;
+                    height: 100%;
+                    z-index: 100;
+                    display: flex;
+                }
+                #leftControl, #rightControl {
+                    flex: 1;
+                    height: 100%;
+                    touch-action: none;
+                }
+                #rightControl {
+                    border-left: 2px solid rgba(255, 255, 255, 0.2);
+                }
+            `;
+            document.head.appendChild(style);
+
+            // Create and add the control elements
+            const controls = document.createElement('div');
+            controls.id = 'mobileControls';
+            
+            const leftControl = document.createElement('div');
+            leftControl.id = 'leftControl';
+            
+            const rightControl = document.createElement('div');
+            rightControl.id = 'rightControl';
+            
+            controls.appendChild(leftControl);
+            controls.appendChild(rightControl);
+            document.body.appendChild(controls);
+
+            // Debug logging
+            console.log("Mobile controls initialized");
+
+            // Add event listeners
+            const addTouchListeners = (element, side) => {
+                element.addEventListener('touchstart', (e) => {
+                    console.log(`${side} touchstart`);
+                    this.handleTouchStart(e, side);
+                });
+                element.addEventListener('touchmove', (e) => {
+                    console.log(`${side} touchmove`);
+                    this.handleTouchMove(e, side);
+                });
+                element.addEventListener('touchend', (e) => {
+                    console.log(`${side} touchend`);
+                    this.handleTouchEnd(e, side);
+                });
+            };
+
+            addTouchListeners(leftControl, 'left');
+            addTouchListeners(rightControl, 'right');
+        }
+    }
+
+    handleTouchStart(e, side) {
+        e.preventDefault();
+        
+        // Get the touch that occurred in this control's area
+        const rect = document.getElementById(side === 'left' ? 'leftControl' : 'rightControl').getBoundingClientRect();
+        const touch = Array.from(e.touches).find(t => {
+            const x = t.clientX;
+            return side === 'left' ? 
+                (x < rect.right && x >= rect.left) : 
+                (x >= rect.left && x < rect.right);
+        });
+        
+        if (!touch) return;
+
+        if (side === 'left') {
+            this.leftTouch = {
+                startX: touch.clientX,
+                startY: touch.clientY,
+                currentX: touch.clientX,
+                currentY: touch.clientY,
+                startTime: Date.now(),
+                active: true,
+                identifier: touch.identifier
+            };
+        } else {
+            this.rightTouch = {
+                startX: touch.clientX,
+                startY: touch.clientY,
+                currentX: touch.clientX,
+                currentY: touch.clientY,
+                startTime: Date.now(),
+                active: true,
+                identifier: touch.identifier
+            };
+        }
+    }
+
+    handleTouchMove(e, side) {
+        e.preventDefault();
+        
+        // Find the touch that matches our stored identifier
+        const touchData = side === 'left' ? this.leftTouch : this.rightTouch;
+        if (!touchData.active) return;
+
+        const touch = Array.from(e.touches).find(t => t.identifier === touchData.identifier);
+        if (!touch) return;
+
+        const control = document.getElementById(side === 'left' ? 'leftControl' : 'rightControl');
+        const rect = control.getBoundingClientRect();
+        const width = rect.width;
+        const height = rect.height;
+
+        if (side === 'left') {
+            this.leftTouch.currentX = touch.clientX;
+            this.leftTouch.currentY = touch.clientY;
+            
+            const divider = Math.min(width, height) * 0.25;
+            const deltaX = (this.leftTouch.currentX - this.leftTouch.startX) / divider;
+            const deltaY = (this.leftTouch.currentY - this.leftTouch.startY) / divider;
+            
+            this.gas = -Math.max(-1, Math.min(1, deltaY));
+            this.strafe = -Math.max(-1, Math.min(1, deltaX));
+            
+        } else {
+            this.rightTouch.currentX = touch.clientX;
+            this.rightTouch.currentY = touch.clientY;
+            
+            const deltaX = this.rightTouch.currentX - this.rightTouch.startX;
+            const scaledDeltaX = (deltaX / width) * Math.PI;
+            
+            this.pointerLook(scaledDeltaX, 0, 1);
+            this.rightTouch.startX = this.rightTouch.currentX;
+            this.rightTouch.startY = this.rightTouch.currentY;
+        }
+    }
+
+    handleTouchEnd(e, side) {
+        e.preventDefault();
+        
+        // Check if our tracked touch has ended
+        const touchData = side === 'left' ? this.leftTouch : this.rightTouch;
+        const touchStillActive = Array.from(e.touches).some(t => t.identifier === touchData.identifier);
+        
+        if (!touchStillActive) {
+            const touchDuration = Date.now() - touchData.startTime;
+            
+            if (touchDuration < 100 && touchData.active && 
+                Math.abs(touchData.currentX - touchData.startX) < 10 &&
+                Math.abs(touchData.currentY - touchData.startY) < 10) {
+                console.log("shoot");
+                this.shootMissile();
+            }
+            
+            if (side === 'left') {
+                this.gas = 0;
+                this.strafe = 0;
+                this.leftTouch.active = false;
+                this.leftTouch.identifier = null;
+            } else {
+                this.rightTouch.active = false;
+                this.rightTouch.identifier = null;
+            }
+        }
+    }
+
     update(time, delta) {
         super.update(time,delta);
         if (this.driving) {
             if ( this.turn ) this.pointerLook(this.turn, 0, 0.05);
             if (this.gas || this.strafe) {
-                if(delta/1000 > 0.1) console.log("AvatarPawn slow update", delta);
+                if(delta/1000 > 0.1) console.log("AvatarPawn update", delta);
                 const factor = Math.min(delta/1000,0.1);
                 const speed = this.gas * 20 * factor * this.actor.highGear;
                 const strafeSpeed = this.strafe * 20 * factor * this.actor.highGear;
@@ -1749,7 +1665,6 @@ class AvatarPawn extends mix(Pawn).with(PM_Smoothed, PM_ThreeVisible, PM_Avatar,
                 this.collide(velocity);
             }
         }
-        if ( this.isMyAvatar ) this.refreshCameraTransform();
     }
 
     collide(velocity) {
@@ -1777,7 +1692,6 @@ class AvatarPawn extends mix(Pawn).with(PM_Smoothed, PM_ThreeVisible, PM_Avatar,
     verifyMaze(loc) {
         const mazeActor = this.wellKnownModel("ModelRoot").maze;
         const cellInset = CELL_SIZE/2 - this.radius;
-        // console.log("verifyMaze", cellInset, CELL_SIZE, this.radius);
         let x = loc[0];
         let y = loc[1];
         let z = loc[2];
@@ -1787,23 +1701,22 @@ class AvatarPawn extends mix(Pawn).with(PM_Smoothed, PM_ThreeVisible, PM_Avatar,
         if ( xCell>0 && xCell < MAZE_COLUMNS && yCell>0 && yCell < MAZE_ROWS ) { //on the map
             // what cell are we in?
             const cell = mazeActor.map[xCell][yCell];
-            // console.log("verifyMaze", mazeActor.map, cell);
             // where are we within the cell?
             const offsetX = x - (xCell-0.5)*CELL_SIZE;
             const offsetZ = z - (yCell-0.5)*CELL_SIZE;
-            // console.log("verifyMaze - offsets", offsetX, offsetZ, cellInset);
+
             const s = offsetZ > cellInset;
             const n = offsetZ < -cellInset;
             const e = offsetX > cellInset;
             const w = offsetX < -cellInset;
-            // console.log("verifyMaze", n,s,e,w);
+
             // check for corner collisions
             let collided = false;
             if (!cell.S && s) { z -= WALL_EPSILON + offsetZ - cellInset; collided = 'S'; }
             else if (!cell.N && n) { z -= offsetZ  + cellInset - WALL_EPSILON; collided = 'N'; }
             if (!cell.E && e) { x -= WALL_EPSILON + offsetX - cellInset; collided = 'E'; }
             else if (!cell.W && w) { x -= offsetX + cellInset - WALL_EPSILON; collided = 'W'; }
-            //  console.log("verifyMaze collided", collided);
+
             if (!collided) {
                 if (s && e) {
                     if ( offsetX < offsetZ ) x -= offsetX - cellInset;
@@ -1915,31 +1828,93 @@ class AvatarPawn extends mix(Pawn).with(PM_Smoothed, PM_ThreeVisible, PM_Avatar,
 
 AvatarPawn.register("AvatarPawn");
 
+// Eyeball Actor/Pawn
+// Tracks the orientation of the camera so others see where you are looking.
+//------------------------------------------------------------------------------------------
+class EyeballActor extends mix(Actor).with(AM_Spatial,) {
+    get pawn() { return "EyeballPawn" }
+}
+EyeballActor.register('EyeballActor');
+
+class EyeballPawn extends mix(Pawn).with(PM_Smoothed, PM_ThreeVisible, PM_ThreeCamera) {
+
+    constructor(actor) {
+        super(actor);
+        this.radius = AVATAR_RADIUS;
+        //this.pitch = q_pitch(this.rotation);
+        //this.pitchQ = q_axisAngle([1,0,0], this.pitch);
+        if ( !this.parent.isMyAvatar ) {
+            this.load3D();
+        } else this.parent.eyeball = this;
+        playSound( enterSound, this.renderObject );
+        this.shootNow = true;
+    }
+
+    load3D() {
+        if (this.doomed) return;
+        if (readyToLoad3D && eyeball) {
+            let color = seasons[this.parent.season].colorEye;
+            // console.log("load3D", this.parent.season, color.toString(16));
+            if(this.parent.season === "Summer") this.eye = eyeball.scene;
+            else this.eye = deepClone(eyeball.scene);
+
+            //console.log("EyeballPawn load3D", this.parent.season);
+            //console.log("EYES:", this.eye, eyeball.scene);
+
+            const material = this.eye.children[0].children[0].material;
+            material.color = new THREE.Color(color);
+            // console.log("material color", color, color.toString(16),material.color);
+            if(this.parent.season === "Spring") material.map = eyeball_spring_t;
+            else if(this.parent.season === "Autumn") material.map = eyeball_autumn_t;
+            else if(this.parent.season === "Winter") material.map = eyeball_winter_t;
+            material.needsUpdate = true;
+            this.eye.traverse( m => {
+                if (m.geometry) {    
+                    m.castShadow=true; 
+                    m.receiveShadow=true; 
+                }
+            });
+            this.eye.scale.set(40,40,40);
+            this.eye.rotation.set(0,Math.PI,0);
+            this.group = new THREE.Group();
+            this.group.add(this.eye);
+            this.setRenderObject(this.group);
+        } else this.future(100).load3D();
+    }
+
+    update(time, delta) {
+        super.update(time, delta);
+        if ( this.parent.isMyAvatar ) this.refreshCameraTransform();
+    }
+
+    destroy() {
+        super.destroy();
+        if (this.renderObject) {
+            playSound( exitSound );
+            this.destroy3D( this.renderObject );
+        }
+    }
+
+    destroy3D( obj3D ) {
+        obj3D.traverse( obj => {
+            if (obj.geometry) {
+                obj.geometry.dispose();
+                obj.material.dispose();
+            }
+        });
+    }
+}
+EyeballPawn.register("EyeballPawn");
+
+
 // MyUserManager
 // Create a new avatar when a new user joins.
 //------------------------------------------------------------------------------------------
 class MyUserManager extends UserManager {
     init() {
         super.init();
-        this.seasons = {};
     }
     get defaultUser() {return MyUser}
-    onJoin(viewId) {
-        if (this.users.has(viewId)) console.warn("UserManager received duplicate view-join for viewId " + viewId);
-        const user = this.createUser({userId: viewId, userNumber: this.userNumber});
-        this.userNumber++;
-        this.users.set(viewId, user);
-        this.publish("UserManager", "create", user);
-    }
-
-    onExit(viewId) {
-        const user = this.user(viewId);
-        if (!user) return;
-        this.destroyUser(user);
-        this.users.delete(viewId);
-        this.publish("UserManager", "destroy", viewId);
-    }
-
 }
 
 MyUserManager.register('MyUserManager');
@@ -1947,12 +1922,19 @@ MyUserManager.register('MyUserManager');
 class MyUser extends User {
     init(options) {
         super.init(options);
+       // console.log("MyUser init", this);
+        let cellX = Math.floor(18.9*Math.random());
+        let cellY = Math.floor(18.9*Math.random());
 
-        //const season = ["Spring","Summer","Autumn","Winter"][this.userNumber%4];
+        if ( cellX === 10 && cellY === 10 ) { // don't spawn in the center
+            cellX = 11;
+            cellY = 11;
+        }
+        const season = ["Spring","Summer","Autumn","Winter"][this.userNumber%4];
 
         this.avatar = AvatarActor.create({
             driver: this.userId,
-        //    season
+            season
         });
     }
 
@@ -2251,7 +2233,7 @@ class FireballActor extends mix(Actor).with(AM_Spatial) {
     show() { this.visible = true; }
     set visible(value) { this._visible = value; this.say("visible", value); }
     get visible() { return this._visible || false }
-    get radius() { return AVATAR_RADIUS}
+    get radius() { return this._radius || AVATAR_RADIUS}
 
     resetGame() {
         this.destroy();

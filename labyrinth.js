@@ -124,16 +124,17 @@
 // We don't go off the map anymore, but we can tunnel through walls or jump 2 cells.
 //------------------------------------------------------------------------------------------
 // Priority To do:
-// Provide a nice view to non-playing users.
-// Winning:
-// - Add a count down sound.
+// Hide the minimap until the game starts.
 // Lobby:
 // - New user goes to free avatar slot.
 // - More than 4 players?
 // - Lobby generates a new game to join. Once a game is full, it starts.
 // - Ask the AI to take the source code for labyrinth and document the entire thing so that it could be nicely formatted as a book.
+// Add more weenies but still work on iOS.
+// Provide a nice view to non-playing users.
 //------------------------------------------------------------------------------------------
 // Nice to have:
+// Edit name of user and let the set their emoji.
 // Claiming another player's cell should take longer than claiming a free cell.
 // Last ten seconds of the game should have a countdown alert.
 // Sound effects are put on hold until the avatar's sound is ready, but should be ignored.
@@ -382,6 +383,7 @@ setTextDisplay(device.isMobile? "mobile device":"desktop",10);
 const minimapDiv = document.getElementById('minimap');
 const minimapCanvas = document.createElement('canvas');
 const minimapCtx = minimapCanvas.getContext('2d');
+
 minimapCtx.globalAlpha = 0.1;
 minimapCanvas.width = 220;
 minimapCanvas.height = 220;
@@ -1077,6 +1079,7 @@ class AvatarActor extends mix(Actor).with(AM_Spatial, AM_Avatar) {
             this.isCollider = true;
             this.isAvatar = true;
             this.radius = AVATAR_RADIUS;
+            console.log("AvatarActor radius", this.radius);
             this.eyeball = EyeballActor.create({parent: this});
             this.highGear = this.throttleMin;
             this.listen("shootMissile", this.shootMissile);
@@ -1286,14 +1289,14 @@ class AvatarPawn extends mix(Pawn).with(PM_Smoothed, PM_ThreeVisible, PM_Avatar,
 
     constructor(actor) {
         super(actor);
+        this.radius = AVATAR_RADIUS;
         this.listen("start", this.start);
-        console.log("AvatarPawn constructor", this.translation, this.actor.translation);
+        // console.log("AvatarPawn constructor", this.translation, this.actor.translation);
     }
 
     // don't set this up until there is a free season
     start(season) {
         this.isAvatar = true;
-        this.radius = this.actor.radius;
         this.yaw = q_yaw(this.rotation);
         this.yawQ = q_axisAngle([0,1,0], this.yaw);
         this.lastX = seasons[this.season].cell.x+1;
@@ -1731,7 +1734,7 @@ class AvatarPawn extends mix(Pawn).with(PM_Smoothed, PM_ThreeVisible, PM_Avatar,
         if (this.driving) {
             if ( this.turn ) this.pointerLook(this.turn, 0, 0.05);
             if (this.gas || this.strafe) {
-                if(delta/1000 > 0.1) console.log("AvatarPawn update", delta);
+                if(delta/1000 > 0.1) console.log("AvatarPawn slow update", delta);
                 const factor = Math.min(delta/1000,0.1);
                 const speed = this.gas * 20 * factor * this.actor.highGear;
                 const strafeSpeed = this.strafe * 20 * factor * this.actor.highGear;
@@ -1774,6 +1777,7 @@ class AvatarPawn extends mix(Pawn).with(PM_Smoothed, PM_ThreeVisible, PM_Avatar,
     verifyMaze(loc) {
         const mazeActor = this.wellKnownModel("ModelRoot").maze;
         const cellInset = CELL_SIZE/2 - this.radius;
+        // console.log("verifyMaze", cellInset, CELL_SIZE, this.radius);
         let x = loc[0];
         let y = loc[1];
         let z = loc[2];
@@ -1783,22 +1787,23 @@ class AvatarPawn extends mix(Pawn).with(PM_Smoothed, PM_ThreeVisible, PM_Avatar,
         if ( xCell>0 && xCell < MAZE_COLUMNS && yCell>0 && yCell < MAZE_ROWS ) { //on the map
             // what cell are we in?
             const cell = mazeActor.map[xCell][yCell];
+            // console.log("verifyMaze", mazeActor.map, cell);
             // where are we within the cell?
             const offsetX = x - (xCell-0.5)*CELL_SIZE;
             const offsetZ = z - (yCell-0.5)*CELL_SIZE;
-
+            // console.log("verifyMaze - offsets", offsetX, offsetZ, cellInset);
             const s = offsetZ > cellInset;
             const n = offsetZ < -cellInset;
             const e = offsetX > cellInset;
             const w = offsetX < -cellInset;
-
+            // console.log("verifyMaze", n,s,e,w);
             // check for corner collisions
             let collided = false;
             if (!cell.S && s) { z -= WALL_EPSILON + offsetZ - cellInset; collided = 'S'; }
             else if (!cell.N && n) { z -= offsetZ  + cellInset - WALL_EPSILON; collided = 'N'; }
             if (!cell.E && e) { x -= WALL_EPSILON + offsetX - cellInset; collided = 'E'; }
             else if (!cell.W && w) { x -= offsetX + cellInset - WALL_EPSILON; collided = 'W'; }
-
+            //  console.log("verifyMaze collided", collided);
             if (!collided) {
                 if (s && e) {
                     if ( offsetX < offsetZ ) x -= offsetX - cellInset;
@@ -1850,6 +1855,7 @@ class AvatarPawn extends mix(Pawn).with(PM_Smoothed, PM_ThreeVisible, PM_Avatar,
         //console.log("createMinimap");
         // Add the canvas to the minimap div
         //const minimapDiv = document.getElementById('minimap');
+        minimapDiv.style.display = 'block'; // Show minimap when game starts
         minimapDiv.appendChild(minimapCanvas);
         this.redrawMinimap();
     }
@@ -2245,7 +2251,7 @@ class FireballActor extends mix(Actor).with(AM_Spatial) {
     show() { this.visible = true; }
     set visible(value) { this._visible = value; this.say("visible", value); }
     get visible() { return this._visible || false }
-    get radius() { return this._radius || AVATAR_RADIUS}
+    get radius() { return AVATAR_RADIUS}
 
     resetGame() {
         this.destroy();

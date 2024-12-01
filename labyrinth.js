@@ -117,13 +117,14 @@
 // Resized textures so that it works on iPhone. So far so good.
 // Use left/right arrows to turn for people who don't have a mouse.
 // Resized the ivy model. Seems to be working on iOS now.
+// Place new users in free spots. Note that this only occurs if the user gets around the lobby and joins the game directly.
+// Overflow players can watch until a spot opens. One of those players can then join the game.
 //------------------------------------------------------------------------------------------
 // Bugs:
 // We don't go off the map anymore, but we can tunnel through walls or jump 2 cells.
 //------------------------------------------------------------------------------------------
 // Priority To do:
-// Place new users in free spots.
-// Block more than four users. Non-playing users can watch.
+// Provide a nice view to non-playing users.
 // Winning:
 // - Add a count down sound.
 // Lobby:
@@ -159,7 +160,7 @@
 
 import { App, StartWorldcore, ViewService, ModelRoot, ViewRoot,Actor, mix, toRad,
     InputManager, AM_Spatial, PM_Spatial, PM_Smoothed, Pawn, AM_Avatar, PM_Avatar, UserManager, User,
-    q_yaw, q_pitch, q_axisAngle, v3_add, v3_sub, v3_normalize, v3_rotate, v3_scale, v3_distanceSqr,
+    q_yaw, q_pitch, q_multiply, q_axisAngle, v3_add, v3_sub, v3_normalize, v3_rotate, v3_scale, v3_distanceSqr,
     THREE, ADDONS, PM_ThreeVisible, ThreeRenderManager, PM_ThreeCamera, PM_ThreeInstanced, ThreeInstanceManager
 } from '@croquet/worldcore';
 
@@ -880,16 +881,32 @@ class MyModelRoot extends ModelRoot {
         super.init(options);
         const xOffset = (MAZE_ROWS*CELL_SIZE)/2;
         const zOffset = (MAZE_COLUMNS*CELL_SIZE)/2;
+        this.seasons = {};
+        this.waiting = [];
         this.base = BaseActor.create({ translation:[xOffset,0,zOffset]});
         this.maze = MazeActor.create({translation: [0,5,0], rows: MAZE_ROWS, columns: MAZE_COLUMNS, cellSize: CELL_SIZE, minutes: GAME_MINUTES});
         this.horse = HorseActor.create({translation:[210.9,10,209.70], scale:[8.75,8.75,8.75]});
         const s = 9.0;
-        this.spring = PlantActor.create({plant:"Spring",translation: [20, 0.5, 20], scale:[s,s,s]});
-        this.summer = PlantActor.create({plant:"Summer",translation: [20, 0.5, 360], scale:[s,s,s]});
-        this.autumn = PlantActor.create({plant:"Autumn",translation: [360, 0.5, 360], scale:[s,s,s]});
-        this.winter = PlantActor.create({plant:"Winter",translation: [360, 0.5, 20], scale:[s,s,s]});
+        PlantActor.create({plant:"Spring",translation: [20, 0.5, 20], scale:[s,s,s]});
+        PlantActor.create({plant:"Summer",translation: [20, 0.5, 360], scale:[s,s,s]});
+        PlantActor.create({plant:"Autumn",translation: [360, 0.5, 360], scale:[s,s,s]});
+        PlantActor.create({plant:"Winter",translation: [360, 0.5, 20], scale:[s,s,s]});
         this.skyAngle = 0;
         this.rotateSky();
+    }
+
+    getSeason(driver){
+        // this should manage first come/first serve, but that is tricky. Especially if someone waiting leaves.
+        let rval;
+        if (!this.seasons.Spring) { this.seasons.Spring = {driver}; rval = "Spring"; }
+        else if (!this.seasons.Summer) { this.seasons.Summer = {driver}; rval = "Summer"; }
+        else if (!this.seasons.Autumn) { this.seasons.Autumn = {driver}; rval = "Autumn"; }
+        else if (!this.seasons.Winter) { this.seasons.Winter = {driver}; rval = "Winter"; }
+        return rval;
+    }
+
+    releaseSeason(season){
+        if (season && this.seasons[season]) delete this.seasons[season];
     }
 
     rotateSky() {
@@ -905,6 +922,7 @@ MyModelRoot.register("MyModelRoot");
 // Construct the visual world
 //------------------------------------------------------------------------------------------
 const victoryEmojiDisplay = new EmojiDisplay();
+
 export class MyViewRoot extends ViewRoot {
 
     static viewServices() {
@@ -1039,30 +1057,49 @@ class AvatarActor extends mix(Actor).with(AM_Spatial, AM_Avatar) {
 
     init(options) {
         super.init(options);
-        this.throttleMin = 1.0;
-        this.throttleMax = 2.0;
-        const x = seasons[this.season].cell.x;
-        const y = seasons[this.season].cell.y;
-        const t = [CELL_SIZE*x+10,AVATAR_HEIGHT,CELL_SIZE*y+10];
-        const angle = seasons[this.season].angle; //Math.PI*2*seasons[this.season].angle/360;
-        const r = q_axisAngle([0,1,0],angle);
-        this.set({translation: t, rotation: r});
-        this.canShoot = true;
-        this.inCorner = true;
-        this.isCollider = true;
-        this.isAvatar = true;
-        this.radius = AVATAR_RADIUS;
-        this.eyeball = EyeballActor.create({parent: this});
-        this.highGear = this.throttleMin;
-        this.listen("shootMissile", this.shootMissile);
-        this.listen("claimCell", this.claimCell);
-        this.fireball =  FireballActor.create({parent: this, radius:this.radius});
-        this.fireball.future(1000).hide();
-        this.future(1000).buildGlow();
-        const translation = [this.translation[0], this.translation[1]-5, this.translation[2]];
-        MissileActor.create({parent: this, color: this.color2, translation});
-        this.setHighSpeed(this.throttleMax);
-        this.subscribe("game", "reset", this.reset);
+        this.start();
+    }
+
+    start() {
+        console.log("AvatarActor start", this.driver);
+        this.season = this.wellKnownModel("ModelRoot").getSeason(this.driver);
+        if(this.season) {
+            this.throttleMin = 1.0;
+            this.throttleMax = 2.0;
+            const x = seasons[this.season].cell.x;
+            const y = seasons[this.season].cell.y;
+            const t = [CELL_SIZE*x+10,AVATAR_HEIGHT,CELL_SIZE*y+10];
+            const angle = seasons[this.season].angle; //Math.PI*2*seasons[this.season].angle/360;
+            const r = q_axisAngle([0,1,0],angle);
+            this.set({translation: t, rotation: r});
+            this.canShoot = true;
+            this.inCorner = true;
+            this.isCollider = true;
+            this.isAvatar = true;
+            this.radius = AVATAR_RADIUS;
+            this.eyeball = EyeballActor.create({parent: this});
+            this.highGear = this.throttleMin;
+            this.listen("shootMissile", this.shootMissile);
+            this.listen("claimCell", this.claimCell);
+            this.fireball =  FireballActor.create({parent: this, radius:this.radius});
+            this.fireball.future(1000).hide();
+            this.future(1000).buildGlow();
+            const translation = [this.translation[0], this.translation[1]-5, this.translation[2]];
+            MissileActor.create({parent: this, color: this.color2, translation});
+            this.setHighSpeed(this.throttleMax);
+            this.subscribe("game", "reset", this.reset);
+            this.say("start", {season: this.season});
+        } else {
+            const x = seasons["Spring"].cell.x;
+            const y = seasons["Spring"].cell.y;
+            const t = [CELL_SIZE*10+10,AVATAR_HEIGHT*50,CELL_SIZE*10+10];
+            //const angle = seasons["Spring"].angle; //Math.PI*2*seasons["Spring"].angle/360;
+            const pitch = -Math.PI/2;
+            const p = q_axisAngle([1,0,0],pitch);
+            //const r = q_multiply(p, q_axisAngle([0,1,0],angle));
+            this.set({translation: t, rotation: p});
+            this.future(1000).start();
+        }
     }
 
     reset() {
@@ -1091,7 +1128,7 @@ class AvatarActor extends mix(Actor).with(AM_Spatial, AM_Avatar) {
         }
     }
 
-    get season() {return this._season || "spring"}
+    // get season() {return this._season || "spring"}
 
     get color() {return seasons[this.season].color}
     get color2() {return seasons[this.season].color2}
@@ -1158,8 +1195,9 @@ class AvatarActor extends mix(Actor).with(AM_Spatial, AM_Avatar) {
 
     destroy() {
         // console.log("AvatarActor destroy", this);
+        if(this.season)for(let i=0; i<4; i++) {this.glow[i].destroy();}
+        this.wellKnownModel("ModelRoot").releaseSeason(this.season);
         super.destroy();
-        for(let i=0; i<4; i++) {this.glow[i].destroy();}
     }
 }
 AvatarActor.register('AvatarActor');
@@ -1172,7 +1210,7 @@ class EyeballActor extends mix(Actor).with(AM_Spatial,) {
 }
 EyeballActor.register('EyeballActor');
 
-class EyeballPawn extends mix(Pawn).with(PM_Smoothed, PM_ThreeVisible, PM_ThreeCamera) {
+class EyeballPawn extends mix(Pawn).with(PM_Smoothed, PM_ThreeVisible) {
 
     constructor(actor) {
         super(actor);
@@ -1218,11 +1256,6 @@ class EyeballPawn extends mix(Pawn).with(PM_Smoothed, PM_ThreeVisible, PM_ThreeC
         } else this.future(100).load3D();
     }
 
-    update(time, delta) {
-        super.update(time, delta);
-        if ( this.parent.isMyAvatar ) this.refreshCameraTransform();
-    }
-
     destroy() {
         super.destroy();
         if (this.renderObject) {
@@ -1249,12 +1282,18 @@ EyeballPawn.register("EyeballPawn");
 // impact on gameplay.
 //------------------------------------------------------------------------------------------
 const avatarEmojiDisplay = new EmojiDisplay();
-class AvatarPawn extends mix(Pawn).with(PM_Smoothed, PM_ThreeVisible, PM_Avatar) {
+class AvatarPawn extends mix(Pawn).with(PM_Smoothed, PM_ThreeVisible, PM_Avatar, PM_ThreeCamera) {
 
     constructor(actor) {
         super(actor);
+        this.listen("start", this.start);
+        console.log("AvatarPawn constructor", this.translation, this.actor.translation);
+    }
+
+    // don't set this up until there is a free season
+    start(season) {
         this.isAvatar = true;
-        this.radius = actor.radius;
+        this.radius = this.actor.radius;
         this.yaw = q_yaw(this.rotation);
         this.yawQ = q_axisAngle([0,1,0], this.yaw);
         this.lastX = seasons[this.season].cell.x+1;
@@ -1269,7 +1308,7 @@ class AvatarPawn extends mix(Pawn).with(PM_Smoothed, PM_ThreeVisible, PM_Avatar)
         this.subscribe(this.viewId, "synced", this.handleSynced);
         this.subscribe("maze", "clearCells", this.clearCells);
         this.subscribe("maze", "reset", this.reset);
-    
+
         if (device.isMobile) {
             // Separate touch tracking for each side
             this.leftTouch = {
@@ -1354,6 +1393,7 @@ class AvatarPawn extends mix(Pawn).with(PM_Smoothed, PM_ThreeVisible, PM_Avatar)
             addTouchListeners(leftControl, 'left');
             addTouchListeners(rightControl, 'right');
         }
+        if(this.isMyAvatar) this.drive();
     }
 
     handleTouchStart(e, side) {
@@ -1504,22 +1544,31 @@ class AvatarPawn extends mix(Pawn).with(PM_Smoothed, PM_ThreeVisible, PM_Avatar)
     // The drive() function sets up the user interface for the avatar.
     // If this is not YOUR avatar, the park() function is called.
     drive() {
-        console.log("DRIVE");
-        this.gas = 0;
-        this.turn = 0;
-        this.strafe = 0;
-        this.pointerId = 0;
-        this.subscribe("input", "keyDown", this.keyDown);
-        this.subscribe("input", "keyUp", this.keyUp);
-        this.subscribe("input", "pointerDown", this.doPointerDown);
-        this.subscribe("input", "pointerUp", this.doPointerUp);
-        this.subscribe("input", "pointerDelta", this.doPointerDelta);
-        //this.subscribe("input", "tap", this.doPointerTap);
-        //this.subscribe("input", 'wheel', this.onWheel);
-        this.yaw = q_yaw(this.rotation);
-        this.createMinimap();
-        minimapDiv.style.transform = `rotate(${this.yaw}rad)`;
-        avatarEmojiDisplay.show(seasons[this.season].emoji, device.isMobile?64:128, seasons[this.season].color, this.season);
+        if(this.season && !this.playing){
+            this.playing = true;
+            console.log("DRIVE");
+            this.gas = 0;
+            this.turn = 0;
+            this.strafe = 0;
+            this.pointerId = 0;
+           // this._translation = this.actor.translation;
+           // this._rotation = this.actor.rotation;
+            this.positionTo(this.actor.translation, this.actor.rotation);
+            this.localChanged();
+            
+            //this.refreshCameraTransform();
+            this.subscribe("input", "keyDown", this.keyDown);
+            this.subscribe("input", "keyUp", this.keyUp);
+            this.subscribe("input", "pointerDown", this.doPointerDown);
+            this.subscribe("input", "pointerUp", this.doPointerUp);
+            this.subscribe("input", "pointerDelta", this.doPointerDelta);
+            //this.subscribe("input", "tap", this.doPointerTap);
+            //this.subscribe("input", 'wheel', this.onWheel);
+            this.yaw = q_yaw(this.rotation);
+            this.createMinimap();
+            minimapDiv.style.transform = `rotate(${this.yaw}rad)`;
+            avatarEmojiDisplay.show(seasons[this.season].emoji, device.isMobile?64:128, seasons[this.season].color, this.season);
+        }
     }
 
     park() {
@@ -1697,6 +1746,7 @@ class AvatarPawn extends mix(Pawn).with(PM_Smoothed, PM_ThreeVisible, PM_Avatar)
                 this.collide(velocity);
             }
         }
+        if ( this.isMyAvatar ) this.refreshCameraTransform();
     }
 
     collide(velocity) {
@@ -1865,8 +1915,25 @@ AvatarPawn.register("AvatarPawn");
 class MyUserManager extends UserManager {
     init() {
         super.init();
+        this.seasons = {};
     }
     get defaultUser() {return MyUser}
+    onJoin(viewId) {
+        if (this.users.has(viewId)) console.warn("UserManager received duplicate view-join for viewId " + viewId);
+        const user = this.createUser({userId: viewId, userNumber: this.userNumber});
+        this.userNumber++;
+        this.users.set(viewId, user);
+        this.publish("UserManager", "create", user);
+    }
+
+    onExit(viewId) {
+        const user = this.user(viewId);
+        if (!user) return;
+        this.destroyUser(user);
+        this.users.delete(viewId);
+        this.publish("UserManager", "destroy", viewId);
+    }
+
 }
 
 MyUserManager.register('MyUserManager');
@@ -1874,19 +1941,12 @@ MyUserManager.register('MyUserManager');
 class MyUser extends User {
     init(options) {
         super.init(options);
-       // console.log("MyUser init", this);
-        let cellX = Math.floor(18.9*Math.random());
-        let cellY = Math.floor(18.9*Math.random());
 
-        if ( cellX === 10 && cellY === 10 ) { // don't spawn in the center
-            cellX = 11;
-            cellY = 11;
-        }
-        const season = ["Spring","Summer","Autumn","Winter"][this.userNumber%4];
+        //const season = ["Spring","Summer","Autumn","Winter"][this.userNumber%4];
 
         this.avatar = AvatarActor.create({
             driver: this.userId,
-            season
+        //    season
         });
     }
 

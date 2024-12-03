@@ -3,6 +3,7 @@
 import HtmlWebPackPlugin from 'html-webpack-plugin';
 import CopyWebpackPlugin from 'copy-webpack-plugin';
 import latestVersion from 'latest-version';
+import apiKey from './src/apiKey.js';
 
 export default async (_env, { mode }) => {
     const prod = mode === 'production';
@@ -10,7 +11,10 @@ export default async (_env, { mode }) => {
     const croquet_script =`<script src="https://cdn.jsdelivr.net/npm/@croquet/croquet@${croquet_version}"></script>`;
     // const croquet_script =`<script src="https://cdn.jsdelivr.net/npm/@croquet/croquet@1.1.0"></script>`;
     return {
-        entry : './labyrinth.js',
+        entry : {
+            labyrinth: './labyrinth.js',
+            lobby: './lobby.js',
+        },
         devtool: 'source-map',
         output: {
             filename: '[name]-[contenthash:8].js',
@@ -19,6 +23,7 @@ export default async (_env, { mode }) => {
             clean: prod,
         },
         devServer: {
+            allowedHosts: 'all',
             port: 8080
         },
         module: {
@@ -40,13 +45,21 @@ export default async (_env, { mode }) => {
         },
         plugins: [
             new HtmlWebPackPlugin({
-                template: 'index.html',   // input
-                filename: 'index.html',   // output filename in dist/
+                template: 'labyrinth.html',   // input
+                filename: 'labyrinth.html',   // output filename in dist/
+                chunks: ['labyrinth'],
                 templateParameters: { croquet_script },
+            }),
+            new HtmlWebPackPlugin({
+                template: 'lobby.html',
+                filename: 'index.html',   // output filename in dist/
+                chunks: ['lobby'],
+                templateParameters: { croquet_script, apiKey },
             }),
             new CopyWebpackPlugin({
                 patterns: [
                     { from: 'draco', to: 'draco' },
+                    { from: 'assets', to: 'assets' } 
                 ]
             })
         ],

@@ -124,15 +124,13 @@
 // We don't go off the map anymore, but we can tunnel through walls or jump 2 cells.
 //------------------------------------------------------------------------------------------
 // Priority To do:
-// Place new users in free spots.
-// Block more than four users. Non-playing users can watch.
 // Winning:
 // - Add a count down sound.
 // Lobby:
 // - New user goes to free avatar slot.
 // - More than 4 players?
 // - Lobby generates a new game to join. Once a game is full, it starts.
-// - Ask the AI to take the source code for labyrinth and document the entire thing so that it could be nicely formatted as a book.
+// Ask the AI to take the source code for labyrinth and document the entire thing so that it could be nicely formatted as a book.
 //------------------------------------------------------------------------------------------
 // Nice to have:
 // Claiming another player's cell should take longer than claiming a free cell.
@@ -159,11 +157,12 @@
 //   true for simulations.
 //------------------------------------------------------------------------------------------
 
-import { App, StartWorldcore, ViewService, ModelRoot, ViewRoot,Actor, mix, toRad,
+import { App, StartWorldcore, Constants, ViewService, ModelRoot, ViewRoot,Actor, mix, toRad,
     InputManager, AM_Spatial, PM_Spatial, PM_Smoothed, Pawn, AM_Avatar, PM_Avatar, UserManager, User,
     q_yaw, q_pitch, q_axisAngle, v3_add, v3_sub, v3_normalize, v3_rotate, v3_scale, v3_distanceSqr,
     THREE, ADDONS, PM_ThreeVisible, ThreeRenderManager, PM_ThreeCamera, PM_ThreeInstanced, ThreeInstanceManager
 } from '@croquet/worldcore';
+
 
 import FullscreenButton from './src/Fullscreen.js';
 import FakeGlowMaterial from './src/FakeGlowMaterial.js';
@@ -467,6 +466,7 @@ function playSoundOnce(sound, parent3D, force, loop = false) {
     let mySound;
     if (parent3D) {
         mySound = new THREE.PositionalAudio( listener );  // listener is a global
+        console.log("panner", mySound.getOutput())
         //mySound = new MyAudio( listener );  // listener is a global
         mySound.setRefDistance( 8 );
         mySound.setVolume( volume );
@@ -2497,28 +2497,28 @@ PlantPawn.register("PlantPawn");
 //------------------------------------------------------------------------------------------
 
 // redirect to lobby if not in iframe or session
-/*const inIframe = window.parent !== window;
+const inIframe = window.parent !== window;
 const url = new URL(window.location.href);
 const sessionName = url.searchParams.get("session");
 url.pathname = url.pathname.replace(/[^/]*$/, "index.html");
 if (!inIframe || !sessionName) window.location.href = url.href;
-*/
+
 // ensure unique session per lobby URL
-//const BaseUrl = url.href.replace(/[^/?#]*([?#].*)?$/, "");
-//Constants.LobbyUrl = BaseUrl + "index.html";    // hashed into sessionId without params
+const BaseUrl = url.href.replace(/[^/?#]*([?#].*)?$/, "");
+Constants.LobbyUrl = BaseUrl + "index.html";    // hashed into sessionId without params
 
 // QR code points to lobby, with session name in hash
-//url.searchParams.delete("session");
-//url.hash = encodeURIComponent(sessionName);
-//App.sessionURL = url.href;
+url.searchParams.delete("session");
+url.hash = encodeURIComponent(sessionName);
+App.sessionURL = url.href;
 
 App.makeWidgetDock({ iframe: true });
 App.messages = true;
 
 StartWorldcore({
     ...apiKey,
-    appId: 'io.croquet.mazewars', // <-- feel free to change
-    //name: sessionName,
+    appId: 'io.multisynq.labyrinth', // <-- feel free to change
+    name: sessionName,
     password: "none",
     location: true,
     model: MyModelRoot,

@@ -225,6 +225,7 @@ class MazeActor extends mix(Actor).with(AM_Spatial) {
     }
 
     getSeason(x,y) {
+      console.log("getSeason", x,y);
         return this.map[x-1][y-1].season;
     }
 

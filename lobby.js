@@ -42,6 +42,15 @@ try { appSessionName = decodeURIComponent(appSessionName) } catch (e) { /* ignor
 const SESSION_TIMEOUT = 5; // seconds
 export const MAX_USERS = 8; // max users in a session
 
+function usersCount(session) {
+    return typeof session.users.count === "number" ? session.users.count : parseInt(session.users, 10);
+}
+
+// register global function code used in Model code
+Croquet.Constants.funcs = [
+    usersCount,
+];
+
 class Lobby extends Croquet.Model {
 
     init(_, persisted = {}) {
@@ -55,7 +64,7 @@ class Lobby extends Croquet.Model {
 
     ensureSession(name, since) {
         let session = this.sessions.get(name);
-        console.log("lobby ensureSession", session,this.sessions, this);
+        // console.log("lobby ensureSession", session,this.sessions, this);
         if (!session) {
             session = {
                 name,
@@ -88,8 +97,7 @@ class Lobby extends Croquet.Model {
         const session = view.session;
         if (session) {
             session.views.delete(view);
-            const count = typeof session.users.count === "number" ? session.users.count : parseInt(session.users, 10);
-            if (count === 1) {
+            if (usersCount(session) === 1) {
                 // last user in session, expire it right away
                 this.sessionExpired(session);
             } else if (session.relay === view) {
@@ -232,7 +240,7 @@ class Lobby extends Croquet.Model {
         let sumInSessions = 0;
         let maxInSession = 0;
         for (const session of this.sessions.values()) {
-            const count = typeof session.users.count === "number" ? session.users.count : parseInt(session.users, 10);
+            const count = usersCount(session);
             sumInSessions += count;
             if (count > maxInSession) maxInSession = count;
         }
@@ -414,7 +422,7 @@ class LobbyView extends Croquet.View {
 
     sessionClicked(name) {
         const session = this.model.sessions.get(name);
-        if ((session && this.maxUsers > session.users.count) || !session) {
+        if (!session || this.maxUsers > usersCount(session)) {
             new Audio(engineStart).play();
             enterApp(name);
             clearInterval(this.interval);
@@ -504,7 +512,8 @@ async function joinLobby() {
         appId: "io.multisynq.labyrinth.lobby",
         name: "lobby",
         password: "lobby",
-        options: { BaseUrl }, // to get a different persistentId per deployment
+        options: { BaseUrl },
+        persistentIdOptions: ["BaseUrl"], // to get a different persistentId per deployment
         location: true,
         model: Lobby,
         view: LobbyView,

@@ -880,6 +880,7 @@ class MyModelRoot extends ModelRoot {
 
     init(options) {
         super.init(options);
+        LobbyRelay.create();
         this.seasons = {};
         const xOffset = (MAZE_ROWS*CELL_SIZE)/2;
         const zOffset = (MAZE_COLUMNS*CELL_SIZE)/2;
@@ -950,8 +951,14 @@ export class MyViewRoot extends ViewRoot {
         if(timer === 0) this.newGameButton();
         //const actors = this.wellKnownModel('ActorManager').actors;
         //console.log("MyViewRoot onStart actors", actors);
+        this.lobbyRelay = new LobbyRelayView(this.wellKnownModel("lobbyRelay"));
     }
 
+    detach() {
+        this.lobbyRelay.detach();
+        this.lobbyRelay = null;
+        super.detach();
+    }
     reset(){
         victoryEmojiDisplay.hide();
         gameButton.hide();
@@ -1090,6 +1097,7 @@ class AvatarActor extends mix(Actor).with(AM_Spatial, AM_Avatar) {
             this.set({translation: t, rotation: r});
             this.buildGlow();
             if(this.season)this.say("startMeUp",this.season);
+            this.seasonStarted = true;
         }else this.future(1000).startSeason();
     }
 
@@ -1220,6 +1228,7 @@ class AvatarPawn extends mix(Pawn).with(PM_Smoothed, PM_ThreeVisible, PM_Avatar)
         this.subscribe("maze", "clearCells", this.clearCells);
         this.subscribe("maze", "reset", this.reset);
         this.setupMobile();
+        if(this.actor.seasonStarted) this.onStart(this.actor.season);
     }
     
     // Reset the minimap for new game
@@ -2490,6 +2499,141 @@ class PlantPawn extends mix(Pawn).with(PM_Smoothed, PM_ThreeVisible) {
 }
 PlantPawn.register("PlantPawn");
 
+// Elected
+// This model elects a view to relay messages to the lobby.
+//------------------------------------------------------------------------------------------
+class Elected extends Croquet.Model {
+    init() {
+        super.init();
+        this.viewIds = new Set();
+        this.electedViewId = "";
+        this.subscribe(this.sessionId, "view-join", this.viewJoined);
+        this.subscribe(this.sessionId, "view-exit", this.viewExited);
+    }
+
+    viewJoined(viewId) {
+        this.viewIds.add(viewId);
+        this.viewsChanged();
+    }
+
+    viewExited(viewId) {
+        this.viewIds.delete(viewId);
+        this.viewsChanged();
+    }
+
+    viewsChanged() {
+        if (!this.viewIds.has(this.electedViewId)) {
+            this.electedViewId = this.viewIds.values().next().value;
+            this.viewElected(this.electedViewId);
+            console.log(this.now(), "elected", this.electedViewId);
+        }
+    }
+
+    viewElected(viewId) {
+        this.publish(this.sessionId, "elected-view", viewId);
+    }
+}
+Elected.register("Elected");
+// LobbyRelay
+// This relay model relays messages from the game to the lobby.
+//------------------------------------------------------------------------------------------
+class LobbyRelay extends Elected {
+    init() {
+        super.init();
+        this.beWellKnownAs("lobbyRelay");
+        this.changeId = 0;
+        this.toRelay = null;
+        this.subscribe(this.id, "relay-done", this.relayDone);
+    }
+
+    viewsChanged() {
+        super.viewsChanged();
+        if (this.viewIds.size === 0) {
+            this.toRelay = null;
+        } else {
+            this.toRelay = { changeId: ++this.changeId, views: [...this.viewIds] };
+            this.publish(this.id, "relay-views");
+        }
+        console.log(this.now(), "to relay", this.toRelay);
+    }
+
+    viewElected(viewId) {
+        this.publish(this.id, "relay-changed", viewId);
+    }
+
+    relayDone(changeId) {
+        console.log(this.now(), "relay done", changeId);
+        if (this.toRelay && this.toRelay.changeId === changeId) {
+            this.toRelay = null;
+            console.log(this.now(), "to relay", this.toRelay);
+        }
+    }
+}
+LobbyRelay.register("LobbyRelay");
+
+// LobbyRelayView
+// This view relays messages from the game to the lobby.
+//------------------------------------------------------------------------------------------
+class LobbyRelayView extends Croquet.View {
+    constructor(model) {
+        super(model);
+        this.model = model;
+        window.addEventListener("message", this);
+        this.subscribe(model.id, "relay-changed", this.relayChanged);
+        console.log("relay", this.viewId, "created");
+        this.relayChanged(this.model.electedViewId);
+    }
+
+    relayChanged(viewId) {
+        console.log("relay", this.viewId, "relay changed to", viewId, this.viewId === viewId ? "(me)" : "(not me)");
+        clearInterval(this.lobbyInterval);
+        if (viewId === this.viewId) {
+            this.reportToLobby();
+            this.lobbyInterval = setInterval(() => this.reportToLobby(), 1000);
+        }
+    }
+
+    detach() {
+        clearInterval(this.lobbyInterval);
+        window.removeEventListener("message", this);
+        super.detach();
+        console.log("relay", this.viewId, "detached");
+    }
+
+    reportToLobby() {
+        let users = `${this.model.viewIds.size} player${this.model.viewIds.size === 1 ? "" : "s"}`;
+        const locations = new Map();
+        let unknown = false;
+        for (const viewId of this.model.viewIds) {
+            const loc = CROQUETVM.views[viewId]?.loc;
+            if (loc?.country) {
+                let location = loc.country;
+                if (loc.region) location = loc.region + ", " + location;
+                if (loc.city) location = loc.city.name + " (" + location + ")";
+                locations.set(location, (locations.get(location) || 0) + 1);
+            } else {
+                unknown = true;
+            }
+        }
+        if (locations.size > 0) {
+            let sorted = [...locations].sort((a, b) => b[1] - a[1]);
+            if (sorted.length > 3) {
+                sorted = sorted.slice(0, 3);
+                unknown = true;
+            }
+            users += ` from ${sorted.map(([location]) => location).join(", ")}`;
+            if (unknown) users += " and elsewhere";
+        }
+
+        window.parent.postMessage({type: "croquet-lobby", name: this.session.name, users}, "*");
+        // console.log("relay", this.viewId, "sending croquet-lobby", this.session.name, users);
+    }
+
+    handleEvent(event) {
+        if (event.type !== "message") return;
+        console.log("relay", this.viewId, "got", event.data);
+    }
+}
 // StartWorldcore
 // We either start or join a Croquet session here.
 // If we are using the lobby, we use the session name in the URL to join an existing session.

@@ -415,9 +415,12 @@ class LobbyView extends Croquet.View {
         }
         document.getElementById("users").innerHTML = users;
         // stats
+        const stats = document.getElementById("stats");
         const maxStats = [...this.model.maxStats()].map(([k,v]) => `${k}: ${v[k]} (${new Date(v.date).toISOString().slice(0,10)})`).join("\n");
-        const totalNumSessions = this.model.stats.history.reduce((sum, v) => sum + v.numSessions, this.model.stats.prehistoricSessions);
-        document.getElementById("intro").setAttribute("title", `${maxStats}\ntotalNumSessions: ${totalNumSessions}`);
+        if (stats && maxStats) {
+            const totalNumSessions = this.model.stats.history.reduce((sum, v) => sum + v.numSessions, this.model.stats.prehistoricSessions);
+            stats.setAttribute("title", `${maxStats}\ntotalNumSessions: ${totalNumSessions}`);
+        }
     }
 
     sessionClicked(name) {

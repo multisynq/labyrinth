@@ -510,7 +510,7 @@ async function joinLobby() {
     lobbySession = Croquet.Session.join({
         ...apiKey,
         appId: "io.multisynq.labyrinth.lobby",
-        name: "lobby",
+        name: "labyrinth-lobby",
         password: "lobby",
         options: { BaseUrl },
         persistentIdOptions: ["BaseUrl"], // to get a different persistentId per deployment

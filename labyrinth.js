@@ -119,17 +119,20 @@
 // Resized the ivy model. Seems to be working on iOS now.
 // Place new users in free spots. Note that this only occurs if the user gets around the lobby and joins the game directly.
 // Ignore users who do not join the game from the lobby and there is no room.
+// Fixed the goes to sleep and restart problem.
+// Added the lobby.
+// Fixed lobby layout. Added stats to the banner.
 //------------------------------------------------------------------------------------------
 // Bugs:
 // We don't go off the map anymore, but we can tunnel through walls or jump 2 cells.
 //------------------------------------------------------------------------------------------
 // Priority To do:
+// Add the coins.
 // Winning:
 // - Add a count down sound.
 // Lobby:
-// - New user goes to free avatar slot.
-// - More than 4 players?
-// - Lobby generates a new game to join. Once a game is full, it starts.
+// - Send current game state to lobby.
+// - Don't update the lobby very often.
 // Ask the AI to take the source code for labyrinth and document the entire thing so that it could be nicely formatted as a book.
 //------------------------------------------------------------------------------------------
 // Nice to have:

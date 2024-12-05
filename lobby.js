@@ -289,13 +289,13 @@ class LobbyView extends Croquet.View {
         this.interval = setInterval(() => this.showSessions(), 1000);
         this.showSessions();
 
-        // Bind the "Host New Game" button
-        const newGameButton = document.getElementById('host-new');
+        // Bind the "Start New Game" button
+        const newGameButton = document.getElementById('start-new');
         newGameButton.addEventListener("click", () => {
-            const dialog = document.getElementById('host-dialog');
-            const nameInput = document.getElementById('host-dialog-name');
-            const okButton = document.getElementById('host-dialog-submit');
-            const cancelButtons = document.querySelectorAll('.host-dialog-cancel');
+            const dialog = document.getElementById('start-dialog');
+            const nameInput = document.getElementById('start-dialog-name');
+            const okButton = document.getElementById('start-dialog-submit');
+            const cancelButtons = document.querySelectorAll('.start-dialog-cancel');
             okButton.onclick = e => {
                 e.preventDefault();
                 const name = nameInput.value.trim();

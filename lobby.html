@@ -1,3 +1,4 @@
+<!DOCTYPE html>
 <html>
     <head>
         <meta charset="utf-8">
@@ -32,7 +33,7 @@
             #sessions > li {
                 cursor: pointer;
                 padding: 1em;
-                font-family: 'Courier New', monospace;
+                font-family: Arial, sans-serif;
                 font-weight: 700;
                 font-size: 1.1rem;
                 margin-top: 10px;
@@ -97,28 +98,32 @@
             .in-lobby > #croquet_dock {
                 display: block;
             }
-
-            #games{
+            #games {
                 width: 75%;
-                margin-left: auto;
-                margin-right: auto;
+                margin: 0 auto;  /* Center horizontally */
                 display: block;
-                background-color: rgba(255,255,255,75%);
+                background-color: rgba(0, 0, 0, 0.7);
                 border-radius: 10px;
                 padding: 30px;
+                color: white;
+                font-family: Arial, sans-serif;
+                position: fixed;
+                left: 50%;
+                transform: translateX(-50%);
+                top: calc(80px + 20px + 70px + 20px); /* banner + spacing + button height + spacing */
+                bottom: 40px; /* Fixed distance from bottom */
+                overflow-y: auto; /* Enable scrolling if content overflows */
             }
 
-            #games-container{
+            /* Update games container to not interfere with fixed positioning */
+            #games-container {
                 background: url('./assets/textures/Labyrinth.png') no-repeat center center fixed;
                 background-size: cover;
                 width: 100vw;
                 height: 100vh;
-                display: flex;
-                justify-content: center;
-                align-items: center;
             }
 
-            #host-new {
+            #start-new {
                 font-family: Arial, sans-serif;
                 font-size: 28px;
                 font-weight: bold;
@@ -138,12 +143,12 @@
                 transition: all 0.2s ease-in-out;
                 position: fixed;
                 left: 50%;
-                top: 20%;
-                transform: translate(-50%, -50%);
+                top: calc(70px + 20px); /* banner height (65px) + desired spacing (20px) */
+                transform: translate(-50%, 0);
             }
 
-            #host-new:hover {
-                transform: translate(-50%, -53%) scale(1.02);
+            #start-new:hover {
+                transform: translate(-50%, 3px) scale(1.02);
                 box-shadow:
                     0 0 0 2px rgba(0, 0, 0, 0.3),
                     0 6px 8px rgba(0, 0, 0, 0.4),
@@ -153,8 +158,8 @@
                 border-color: rgba(255, 255, 255, 0.9);
             }
 
-            #host-new:active {
-                transform: translate(-50%, -48%) scale(0.98);
+            #start-new:active {
+                transform: translate(-50%, 2px) scale(0.98);
                 box-shadow:
                     0 0 0 2px rgba(0, 0, 0, 0.3),
                     0 2px 4px rgba(0, 0, 0, 0.4),
@@ -164,11 +169,11 @@
                 border-color: rgba(255, 255, 255, 0.7);
             }
 
-            p#users{
+            p#users {
                 text-align: center;
                 margin-top: 0px;
                 font-weight: 600;
-                color: rgb(78, 78, 78);
+                color: white;
             }
 
             #built-with{
@@ -185,12 +190,11 @@
                 width: 140px;
                 transition: all .2s ease-in-out;
             }
-
-            #no-games{
-                font-family: 'Courier New', monospace;
+            #no-games {
+                font-family: Arial, sans-serif;
                 font-weight: 700;
                 font-size: 1.1rem;
-                color: #EF493E;
+                color: rgba(255, 255, 255, 0.7);
                 display: flex;
                 min-height: 300px;
                 margin: auto;
@@ -203,10 +207,11 @@
             }
 
             /*dialog*/
-            #host-dialog{
+            #start-dialog{
                 border-radius: 15px;
                 pointer-events: auto;
-                background-color: #fff;
+                background-color: rgba(0, 0, 0, 0.7) !important;
+                color: white;
                 background-clip: padding-box;
                 border: 1px solid rgba(0,0,0,.2);
                 border-radius: 0.3rem;
@@ -217,7 +222,7 @@
                 flex-direction: column;
             }
 
-            #host-contents{
+            #start-contents{
                 padding: 40px;
             }
 
@@ -232,7 +237,7 @@
                 -ms-flex-pack: justify;
                 justify-content: space-between;
                 padding: 1rem;
-                border-bottom: 1px solid #e9ecef;
+                border-bottom: 1px solid rgba(255, 255, 255, 0.2);
                 border-top-left-radius: 0.3rem;
                 border-top-right-radius: 0.3rem
             }
@@ -241,7 +246,7 @@
                 background-color:rgba(0,0,0,0.4);
             }
 
-            .host-new-title{
+            .start-new-title{
                 text-align: center;
                 font-size: 2rem;
             }
@@ -257,7 +262,7 @@
                 -ms-flex-pack: end;
                 justify-content: flex-end;
                 padding: 1rem;
-                border-top: 1px solid #e9ecef;
+                border-top: 1px solid rgba(255, 255, 255, 0.2);
             }
 
             .close:not(:disabled):not(.disabled) {
@@ -279,8 +284,8 @@
                 font-size: 1.5rem;
                 font-weight: 700;
                 line-height: 1;
-                color: #000;
-                text-shadow: 0 1px 0 #fff;
+                color: #fff;
+                text-shadow: none;
                 opacity: .5;
             }
 
@@ -332,10 +337,14 @@
                 width: 150px;
                 margin-left: 10px;
                 font-size: 20px;
+                background: rgba(255, 255, 255, 0.1);
+                border: 1px solid rgba(255, 255, 255, 0.3);
+                color: white;            
             }
 
             #game-name{
                 font-size:20px;
+                color: white;            
             }
             .banner {
                 position: fixed;
@@ -366,23 +375,24 @@
             <h1>🌿 Labyrinth of Seasons 🌿</h1>
         </div>
         <div id="lobby">
+            <div id="intro"></div>
             <div id="games-container">
-                <button id="host-new">Start New Game</button>
-                <dialog id="host-dialog">
+                <button id="start-new">Start New Game</button>
+                <dialog id="start-dialog">
                     <form>
                         <div class="modal-header">
-                            <h5 class="modal-title">Host New Game</h5>
+                            <h5 class="modal-title">Start New Game</h5>
                             <button type="button" class="close" aria-label="Close">
-                                <span aria-hidden="true" class="host-dialog-cancel">×</span>
+                                <span aria-hidden="true" class="start-dialog-cancel">×</span>
                             </button>
                         </div>
-                        <div id="host-contents">
-                            <label for="host-dialog-name" id="game-name">Game name:</label>
-                            <input type="text" id="host-dialog-name" name="game-name" placeholder="My Game" required>
+                        <div id="start-contents">
+                            <label for="start-dialog-name" id="game-name">Game name:</label>
+                            <input type="text" id="start-dialog-name" name="game-name" placeholder="My Game" required>
                         </div>
                         <div class="modal-footer">
-                            <button type="button" value="cancel" class="btn btn-secondary host-dialog-cancel">Cancel</button>
-                            <button type="submit" value="default" id="host-dialog-submit" class="btn btn-primary">Enter Game</button>
+                            <button type="button" value="cancel" class="btn btn-secondary start-dialog-cancel">Cancel</button>
+                            <button type="submit" value="default" id="start-dialog-submit" class="btn btn-primary">Enter Game</button>
                         </div>
                     </form>
                 </dialog>
@@ -395,6 +405,6 @@
             </div>
         </div>
         <iframe id="app" src="about:blank"></iframe>
-        <button id="back-to-lobby" title="Back to Lobby">↩</div>
+        <button id="back-to-lobby" title="Back to Lobby">↩</button>
     </body>
 </html>

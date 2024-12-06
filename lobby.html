@@ -72,26 +72,6 @@
             .in-lobby > #app {
                 display: none;
             }
-            #back-to-lobby {
-                position: fixed;
-                bottom: 10px;
-                right: 10px;
-                font-size: 20px;
-                cursor: pointer;
-                border: none;
-                border-radius: 412px;
-                opacity: 0.5;
-                height: 30px;
-                line-height: 10px;
-                font-weight: bold;
-            }
-            #back-to-lobby:hover {
-                scale: 1.2;
-                opacity: 1;
-            }
-            .in-lobby > #back-to-lobby {
-                display: none;
-            }
             #croquet_dock {
                 display: none;
             }
@@ -366,6 +346,17 @@
                 text-align: center;
                 font-family: Arial, sans-serif;
             }
+            .version-display {
+                position: fixed;
+                bottom: 10px;
+                left: 50%;
+                transform: translateX(-50%);
+                font-size: 12px;
+                color: rgba(255, 255, 255, 0.5);
+                z-index: 10000;
+                pointer-events: none;
+                font-family: monospace;
+            }
         </style>
         <script>window.API_KEY = {};</script>
         <%= croquet_script %>
@@ -404,7 +395,7 @@
                 <a href="https://multisynq.io" target="_blank"><div id="powered-by"></div></a>
             </div>
         </div>
+        <div id="version-number" class="version-display">v0.1.1-alpha.85</div>
         <iframe id="app" src="about:blank"></iframe>
-        <button id="back-to-lobby" title="Back to Lobby">↩</button>
     </body>
 </html>

@@ -20,11 +20,18 @@ export default async (_env, { mode }) => {
             filename: '[name]-[contenthash:8].js',
             chunkFilename: 'chunk-[contenthash:8].js',
             assetModuleFilename: 'assets/[contenthash:8][ext]',
-            clean: prod,
+            clean: true,
         },
         devServer: {
             allowedHosts: 'all',
-            port: 8080
+            port: 8080,
+            hot: true,
+            liveReload: true,
+            watchFiles: ['src/**/*', 'public/**/*'],
+            client: {
+                overlay: true,
+                progress: true
+            }
         },
         module: {
             rules: [

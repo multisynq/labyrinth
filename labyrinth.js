@@ -122,7 +122,10 @@
 // Fixed the goes to sleep and restart problem.
 // Added the lobby.
 // Fixed lobby layout. Added stats to the banner.
+// Added "photo mode" to remove all of the overlay elements for screenshots and videos.
+// Added background image (from photo mode) to the lobby. 
 // Fixed the maze generation so that it doesn't have dead ends around corners.
+// Removed the back arrow to return to the lobby. 
 //------------------------------------------------------------------------------------------
 // Bugs:
 // We don't go off the map anymore, but we can tunnel through walls or jump 2 cells.
@@ -135,7 +138,6 @@
 // Lobby:
 // - Send current game state to lobby.
 // - Don't update the lobby very often.
-// - Generate an image without any of the overlays for screenshots.
 // Ask the AI to take the source code for labyrinth and document the entire thing so that it could be nicely formatted as a book.
 //------------------------------------------------------------------------------------------
 // Nice to have:

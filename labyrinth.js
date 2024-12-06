@@ -418,6 +418,78 @@ function scaleMinimap() {
 }
 scaleMinimap();
 
+let overlaysHidden = false;
+let hiddenElements = new Map(); // Store original display values
+
+function toggleOverlays() {
+    overlaysHidden = !overlaysHidden;
+    
+    // List of element IDs and classes to toggle
+    const elements = [
+        '#minimap',
+        '.box-score',
+        '#countdown',
+        '#version-number',
+        '.text-display',
+        '.help-button',
+        '#codelink',
+        '.victory-display',
+        '.victory-icon',
+        '.victory-text',
+        '#built-with'
+    ];
+    
+    // Handle standard elements
+    elements.forEach(selector => {
+        const element = document.querySelector(selector);
+        if (element) {
+            if (overlaysHidden) {
+                if (window.getComputedStyle(element).display !== 'none') {
+                    hiddenElements.set(selector, element.style.display || 'block');
+                    element.style.display = 'none';
+                }
+            } else {
+                if (hiddenElements.has(selector)) {
+                    element.style.display = hiddenElements.get(selector);
+                    hiddenElements.delete(selector);
+                }
+            }
+        }
+    });
+
+    // Handle fullscreen button separately to preserve flex display
+    const fullscreenButton = document.querySelector('.fullscreen-button');
+    if (fullscreenButton) {
+        if (overlaysHidden) {
+            if (window.getComputedStyle(fullscreenButton).display !== 'none') {
+                hiddenElements.set('fullscreen', 'flex'); // Always store as flex
+                fullscreenButton.style.display = 'none';
+            }
+        } else {
+            if (hiddenElements.has('fullscreen')) {
+                fullscreenButton.style.display = 'flex'; // Always restore as flex
+                hiddenElements.delete('fullscreen');
+            }
+        }
+    }
+
+    // Handle emoji element from EmojiDisplay
+    const emojiElement = document.querySelector('div[style*="position: fixed"][style*="z-index: 1000"]');
+    if (emojiElement) {
+        if (overlaysHidden) {
+            if (window.getComputedStyle(emojiElement).display !== 'none') {
+                hiddenElements.set('emoji', emojiElement.style.display || 'flex');
+                emojiElement.style.display = 'none';
+            }
+        } else {
+            if (hiddenElements.has('emoji')) {
+                emojiElement.style.display = hiddenElements.get('emoji');
+                hiddenElements.delete('emoji');
+            }
+        }
+    }
+}
+
 // Sound Manager
 //------------------------------------------------------------------------------------------
 let soundSwitch = false; // turn sound on and off
@@ -1398,6 +1470,9 @@ class AvatarPawn extends mix(Pawn).with(PM_Smoothed, PM_ThreeVisible, PM_Avatar)
                 break;
             case 'r': case 'R':
                 this.publish("game", "reset");
+                break;
+            case 'p': case 'P':
+                toggleOverlays();
                 break;
             default:
         }

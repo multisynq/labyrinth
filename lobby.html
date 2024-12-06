@@ -111,7 +111,7 @@
                 left: 50%;
                 transform: translateX(-50%);
                 top: calc(80px + 20px + 70px + 20px); /* banner + spacing + button height + spacing */
-                bottom: 40px; /* Fixed distance from bottom */
+                bottom: 80px; /* Fixed distance from bottom */
                 overflow-y: auto; /* Enable scrolling if content overflows */
             }
 
@@ -176,18 +176,18 @@
                 color: white;
             }
 
-            #built-with{
-                background: url('./assets/textures/built-with-logo.png') no-repeat;
-                height: 40px;
-                width: 117px;
+            #powered-by{
+                background: url('./assets/textures/Powered By Multisynq.png') no-repeat;
+                height: 60px;
+                width:196px;
                 background-size: contain;
                 position: fixed;
-                top: 5;
-                right: 0;
+                bottom: 5px;
+                right: 5px;
             }
-            #built-with:hover{
-                height: 45px;
-                width: 140px;
+            #powered-by:hover{
+                height: 65px;
+                width: 213px;
                 transition: all .2s ease-in-out;
             }
             #no-games {
@@ -401,7 +401,7 @@
                     <ul id="sessions"></ul>
                     <p id="no-games">No games found</p>
                 </div>
-                <a href="https://github.com/croquet/croquet-for-web-guardians" target="_blank"><div id="built-with"></div></a>
+                <a href="https://multisynq.io" target="_blank"><div id="powered-by"></div></a>
             </div>
         </div>
         <iframe id="app" src="about:blank"></iframe>

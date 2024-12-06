@@ -110,10 +110,10 @@ class MazeActor extends mix(Actor).with(AM_Spatial) {
 
     // remove cull-de-sacs. This is incomplete, a few may remain along the edges
     braid() {
-      for (let y = 2; y < this.HEIGHT-1; y++) {
-        for (let x = 2; x < this.WIDTH-1; x++) {
+      for (let y = 1; y < this.HEIGHT-1; y++) {
+        for (let x = 1; x < this.WIDTH-1; x++) {
 
-          if (x>1 && !(this.map[x][y].S || this.map[x][y].E || this.map[x][y].N)) {
+          if (x>1 && x<this.HEIGHT-1 && !(this.map[x][y].S || this.map[x][y].E || this.map[x][y].N)) {
             this.map[x][y].E = true;
             this.map[x+1][y].W = true;
           }
@@ -125,7 +125,7 @@ class MazeActor extends mix(Actor).with(AM_Spatial) {
             this.map[x][y].W = true;
             this.map[x-1][y].E = true;
           }
-          if (!(this.map[x][y].W || this.map[x][y].S || this.map[x][y].W)) {
+          if (y<this.HEIGHT-1 && !(this.map[x][y].W || this.map[x][y].S || this.map[x][y].W)) {
             this.map[x][y].S = true;
             this.map[x][y+1].N = true;
           }

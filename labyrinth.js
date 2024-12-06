@@ -268,7 +268,7 @@ export { clockSound };
 
 // Global Variables
 //------------------------------------------------------------------------------------------
-const GAME_MINUTES = 1;
+const GAME_MINUTES = 15;
 const PI_2 = Math.PI/2;
 const PI_4 = Math.PI/4;
 const MISSILE_LIFE = 4000;

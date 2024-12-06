@@ -126,19 +126,17 @@
 // Added background image (from photo mode) to the lobby. 
 // Fixed the maze generation so that it doesn't have dead ends around corners.
 // Removed the back arrow to return to the lobby. 
+// Added the 30 second countdown sound.
 //------------------------------------------------------------------------------------------
 // Bugs:
 // We don't go off the map anymore, but we can tunnel through walls or jump 2 cells.
 //------------------------------------------------------------------------------------------
 // Priority To do:
-// Add the coins.
-// Use the color blind colors for the cells.
-// Winning:
-// - Add a count down sound.
 // Lobby:
 // - Send current game state to lobby.
 // - Don't update the lobby very often.
-// Ask the AI to take the source code for labyrinth and document the entire thing so that it could be nicely formatted as a book.
+// Add the coins.
+// Use the color blind colors for the cells.
 //------------------------------------------------------------------------------------------
 // Nice to have:
 // Claiming another player's cell should take longer than claiming a free cell.
@@ -152,13 +150,14 @@
 // Add a "ready" button to start the game.
 // Music is streamed to the game from the web. Players can turn it on and off - or play along
 // and vote for the songs they like.
+// Ask the AI to take the source code for labyrinth and document the entire thing so that it could be nicely formatted as a book.
 //------------------------------------------------------------------------------------------
 // Need artist:
 // The ivy needs to be cleaned up at the top.
 //------------------------------------------------------------------------------------------
 // Education:
 // - Anything that can stay in the view, keep in the view. If no one else needs to
-//   see it or know it, don't show it.
+//   see it or know it, don't share it.
 // - Sending messages from the view to the model is expensive. Try to avoid it.
 // - Sending messages from the model to view is very cheap. Send as much as you want.
 // - The purpose of the model is to provide shared computations. This is particularly
@@ -264,10 +263,12 @@ import shockSound from "./assets/sounds/Shock.wav";
 import aweSound from "./assets/sounds/Awe.wav";
 import winSound from "./assets/sounds/Win.wav";
 import startGameSound from "./assets/sounds/StartGame.wav";
+import clockSound from "./assets/sounds/Clock.wav";
+export { clockSound };
 
 // Global Variables
 //------------------------------------------------------------------------------------------
-const GAME_MINUTES = 15;
+const GAME_MINUTES = 1;
 const PI_2 = Math.PI/2;
 const PI_4 = Math.PI/4;
 const MISSILE_LIFE = 4000;
@@ -313,16 +314,15 @@ function createTextDisplay() {
     const textDisplay = document.createElement('div');
     textDisplay.className = 'text-display';
 
-    // Add to DOM just before version number
-    const versionNumber = document.getElementById('version-number');
-    versionNumber.parentNode.insertBefore(textDisplay, versionNumber);
+    // Add to DOM
+    document.body.appendChild(textDisplay);
 
     // Add CSS for fade effect with longer transition
     const style = document.createElement('style');
     style.textContent = `
         .text-display {
             position: fixed;
-            bottom: 40px;
+            bottom: 100px;  /* Fixed distance from bottom */
             left: 50%;
             transform: translateX(-50%);
             font-family: Arial, sans-serif;
@@ -530,10 +530,10 @@ export const playSound = function() {
         const audioContext = THREE.AudioContext.getContext();
         if (device.isMobile && audioContext.state === 'suspended') {
             audioContext.resume().then(() => {
-                playSoundOnce(soundList[soundURL], parent3D, force, loop);
+                return playSoundOnce(soundList[soundURL], parent3D, force, loop);
             });
         } else if (soundList[soundURL]) {
-            playSoundOnce(soundList[soundURL], parent3D, force, loop);
+            return playSoundOnce(soundList[soundURL], parent3D, force, loop);
         }
     }
     return play;
@@ -541,12 +541,11 @@ export const playSound = function() {
 
 function playSoundOnce(sound, parent3D, force, loop = false) {
     // console.log("playSoundOnce", sound.count, maxSound, parent3D);
-    if (!force && sound.count>maxSound) return;
+    if (!force && sound.count>maxSound) return null;
     sound.count++;
     let mySound;
     if (parent3D) {
         mySound = new THREE.PositionalAudio( listener );  // listener is a global
-        console.log("panner", mySound.getOutput())
         //mySound = new MyAudio( listener );  // listener is a global
         mySound.setRefDistance( 8 );
         mySound.setVolume( volume );
@@ -566,6 +565,7 @@ function playSoundOnce(sound, parent3D, force, loop = false) {
     } else mySound.onEnded = ()=> { sound.count--; };
 
     mySound.play();
+    return mySound;
 }
 
 async function loadSounds() {
@@ -610,6 +610,7 @@ async function loadSounds() {
         audioLoader.loadAsync(aweSound),
         audioLoader.loadAsync(winSound),
         audioLoader.loadAsync(startGameSound),
+        audioLoader.loadAsync(clockSound),
     ]);
 }
 loadSounds().then( sounds => {
@@ -628,6 +629,7 @@ loadSounds().then( sounds => {
     soundList[aweSound] = {buffer:sounds[10], count:0};
     soundList[winSound] = {buffer:sounds[11], count:0};
     soundList[startGameSound] = {buffer:sounds[12], count:0};
+    soundList[clockSound] = {buffer:sounds[13], count:0};
 });
 
 // Load 3D Models

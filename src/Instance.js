@@ -18,7 +18,7 @@ export class InstanceActor extends mix(Actor).with(AM_Spatial) {
     get corner() { return !!this._corner }
 //    setColor(color) { this._color = color; this.say("color", color); }
     setSeason(season, corner) { 
-        console.log("InstanceActorsetSeason", season, corner);
+        // console.log("InstanceActorsetSeason", season, corner);
         this._season = season; this._corner = corner; this.say("season"); }
 }
 InstanceActor.register('InstanceActor');
@@ -45,7 +45,7 @@ export class InstancePawn extends mix(Pawn).with(PM_Smoothed, PM_ThreeVisible, P
     setSeason() {
         let season = this.actor.season;
         let corner = this.actor.corner;
-        console.log("setSeason", season, corner);
+        // console.log("setSeason", season, corner);
         this.doColor(colorBlind ? seasons[season].colorBlind : (corner ? seasons[season].color2 : seasons[season].color));
     }
 

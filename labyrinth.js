@@ -987,7 +987,7 @@ class MyModelRoot extends ModelRoot {
         else if (!this.seasons.Summer) { this.seasons.Summer = {driver}; rval = "Summer"; }
         else if (!this.seasons.Autumn) { this.seasons.Autumn = {driver}; rval = "Autumn"; }
         else if (!this.seasons.Winter) { this.seasons.Winter = {driver}; rval = "Winter"; }
-        console.log("getSeason", rval, this.seasons);
+        // console.log("getSeason", rval, this.seasons);
         return rval;
     }
 

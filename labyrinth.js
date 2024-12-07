@@ -127,27 +127,25 @@
 // Fixed the maze generation so that it doesn't have dead ends around corners.
 // Removed the back arrow to return to the lobby. 
 // Added the 30 second countdown sound.
+// Use the color blind colors for the cells.
 //------------------------------------------------------------------------------------------
 // Bugs:
 // We don't go off the map anymore, but we can tunnel through walls or jump 2 cells.
 //------------------------------------------------------------------------------------------
 // Priority To do:
+// Deal with a tie.
 // Lobby:
 // - Send current game state to lobby.
 // - Don't update the lobby very often.
 // Add the coins.
-// Use the color blind colors for the cells.
 //------------------------------------------------------------------------------------------
-// Nice to have:
+// Consider:
 // Claiming another player's cell should take longer than claiming a free cell.
-// Last ten seconds of the game should have a countdown alert.
-// Sound effects are put on hold until the avatar's sound is ready, but should be ignored.
 // The center of the maze is at 10,10.
-// Three big weenies.
+// Three (or more) big weenies.
 // Rooms (Brian Upton suggestion)?
 // Chat -broadcast messages to all players, colors are their team color. This is difficult, as we
 // are in mouse look mode. Perhaps press "c" to type a message, hit enter and then you are back.
-// Add a "ready" button to start the game.
 // Music is streamed to the game from the web. Players can turn it on and off - or play along
 // and vote for the songs they like.
 // Ask the AI to take the source code for labyrinth and document the entire thing so that it could be nicely formatted as a book.

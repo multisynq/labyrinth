@@ -11,7 +11,7 @@ class CountdownTimer {
         if(this.timeRemaining <= 30 && this.timeRemaining > 0) {
             if(!this.countdownSound){ 
                 this.countdownSound = playSound(clockSound, null, false, true);
-                this.countdownSound.setPlaybackRate(1.25);
+                if(this.countdownSound) this.countdownSound.setPlaybackRate(1.25);
             }
             else if(soundSwitch &&!this.countdownSound.isPlaying) this.countdownSound.play();
         }

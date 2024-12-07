@@ -1,4 +1,4 @@
-import {playSound, clockSound} from "../labyrinth.js";
+import {playSound, clockSound, soundSwitch} from "../labyrinth.js";
 class CountdownTimer {
     constructor(time) {
         this.element = document.getElementById('countdown');
@@ -8,12 +8,14 @@ class CountdownTimer {
     set(time) {
         if (time<0) time = 0;
         this.timeRemaining = Math.floor(time/1000); // Convert to seconds
-        if(this.timeRemaining === 30) {
-            this.countdownSound = playSound(clockSound, null, false, true);
-            this.countdownSound.setPlaybackRate(1.25);
-            console.log("countdownSound", this.countdownSound);
+        if(this.timeRemaining <= 30 && this.timeRemaining > 0) {
+            if(!this.countdownSound){ 
+                this.countdownSound = playSound(clockSound, null, false, true);
+                this.countdownSound.setPlaybackRate(1.25);
+            }
+            else if(soundSwitch &&!this.countdownSound.isPlaying) this.countdownSound.play();
         }
-        if(this.timeRemaining === 0) this.countdownSound.stop();
+        else if(this.timeRemaining === 0 && this.countdownSound) this.countdownSound.stop();
         this.updateDisplay();
     }
 

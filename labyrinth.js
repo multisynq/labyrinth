@@ -268,7 +268,7 @@ export { clockSound };
 
 // Global Variables
 //------------------------------------------------------------------------------------------
-const GAME_MINUTES = 15;
+const GAME_MINUTES = 1;
 const PI_2 = Math.PI/2;
 const PI_4 = Math.PI/4;
 const MISSILE_LIFE = 4000;
@@ -300,7 +300,8 @@ export const seasons = {
     Spring:{cell:{x:0,y:0}, emoji: "🌸", nextCell:{x:1,y:1}, angle:toRad(180+45), color:0xFFB6C1, color2:0xCC8A94, colorBlind:0xCC79A7, colorEye: 0xFFEEEE},
     Summer: {cell: {x:0,y:CELL_SIZE-2}, emoji: "🌿", nextCell:{x:1,y:CELL_SIZE-3}, angle:toRad(270+45), color:0x90EE90, color2:0x65AA65, colorBlind:0x009E73, colorEye: 0xD0FFD0},
     Autumn: {cell:{x:CELL_SIZE-2, y:CELL_SIZE-2}, emoji: "🍁", nextCell:{x:CELL_SIZE-3,y:CELL_SIZE-3}, angle:toRad(0+45), color:0xFFE5B4, color2:0xCCB38B, colorBlind:0xE69F00, colorEye: 0xFFE5B4},
-    Winter: {cell:{x:CELL_SIZE-2, y:0}, emoji: "❄️", nextCell:{x:CELL_SIZE-3,y:1}, angle:toRad(90+45), color:0xA5F2F3, color2:0x73BFBF, colorBlind:0x0072B2, colorEye: 0xE0E0FF}
+    Winter: {cell:{x:CELL_SIZE-2, y:0}, emoji: "❄️", nextCell:{x:CELL_SIZE-3,y:1}, angle:toRad(90+45), color:0xA5F2F3, color2:0x73BFBF, colorBlind:0x0072B2, colorEye: 0xE0E0FF},
+    none: {cell:{x:0,y:0}, emoji: "🌐", nextCell:{x:1,y:1}, angle:0, color:0xFFFFFF, color2:0xFFFFFF, colorBlind:0xFFFFFF, colorEye: 0xFFFFFF}
 };
 
 // display the rules window
@@ -494,7 +495,7 @@ function toggleOverlays() {
 
 // Sound Manager
 //------------------------------------------------------------------------------------------
-let soundSwitch = false; // turn sound on and off
+export let soundSwitch = false; // turn sound on and off
 let volume = 1;
 
 const maxSound = 16;
@@ -564,7 +565,8 @@ function playSoundOnce(sound, parent3D, force, loop = false) {
         mySound.onEnded = ()=> { sound.count--; mySound.removeFromParent(); };
     } else mySound.onEnded = ()=> { sound.count--; };
 
-    mySound.play();
+    // don't play if sound is muted
+    if (soundSwitch )mySound.play();
     return mySound;
 }
 
@@ -1140,7 +1142,7 @@ export class MyViewRoot extends ViewRoot {
 // This is you. Most of the control code for the avatar is in the pawn.
 // The AvatarActor has minimal need for replicated state except for user events.
 //------------------------------------------------------------------------------------------
-let colorBlind = false;
+export let colorBlind = false;
 class AvatarActor extends mix(Actor).with(AM_Spatial, AM_Avatar) {
     get pawn() { return "AvatarPawn" }
 
@@ -1211,8 +1213,8 @@ class AvatarActor extends mix(Actor).with(AM_Spatial, AM_Avatar) {
 
  //   get season() {return this._season || "spring"}
 
-    get color() {return seasons[this.season].color}
-    get color2() {return seasons[this.season].color2}
+    get color() {return colorBlind? seasons[this.season].colorBlind:seasons[this.season].color}
+    get color2() {return colorBlind? seasons[this.season].colorBlind:seasons[this.season].color2}
     get colorBlind() {return seasons[this.season].colorBlind}
 
     claimCell(data) {
@@ -1344,6 +1346,7 @@ class AvatarPawn extends mix(Pawn).with(PM_Smoothed, PM_ThreeVisible, PM_Avatar)
 
     setColorBlind() {
         this.redrawMinimap();
+        this.redrawMaze();
     }
 
     handleSynced() {
@@ -1917,6 +1920,10 @@ class AvatarPawn extends mix(Pawn).with(PM_Smoothed, PM_ThreeVisible, PM_Avatar)
         minimapCtx.globalAlpha = 0.9;
         minimapCtx.fillStyle = "#FFFFFF";
         minimapCtx.fillRect(x*11-4, y*11-4, 8, 8);
+    }
+
+    redrawMaze() {
+        this.publish("maze", "redraw");
     }
 }
 
@@ -2719,6 +2726,7 @@ class LobbyRelayView extends Croquet.View {
         console.log("relay", this.viewId, "got", event.data);
     }
 }
+
 // StartWorldcore
 // We either start or join a Croquet session here.
 // If we are using the lobby, we use the session name in the URL to join an existing session.

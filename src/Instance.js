@@ -1,5 +1,5 @@
 import { Actor, mix, AM_Spatial, Pawn, PM_Smoothed, PM_ThreeVisible, PM_ThreeInstanced, toRad, THREE } from '@croquet/worldcore';
-import { csm } from '../labyrinth.js';
+import { csm, colorBlind, seasons } from '../labyrinth.js';
 export const instances = {};
 export const materials = {};
 export const geometries = {};
@@ -14,7 +14,12 @@ export class InstanceActor extends mix(Actor).with(AM_Spatial) {
     get name() { return this._name || "column"}
     get color() { return this._color || 0xffffff }
     get max() { return this._max || 400 }
-    setColor(color) { this._color = color; this.say("color", color); }
+    get season() { return this._season || "none" }
+    get corner() { return !!this._corner }
+//    setColor(color) { this._color = color; this.say("color", color); }
+    setSeason(season, corner) { 
+        console.log("InstanceActorsetSeason", season, corner);
+        this._season = season; this._corner = corner; this.say("season"); }
 }
 InstanceActor.register('InstanceActor');
 
@@ -27,11 +32,25 @@ export class InstancePawn extends mix(Pawn).with(PM_Smoothed, PM_ThreeVisible, P
     constructor(...args) {
         super(...args);
         this.loadInstance();
-        this.listen("color", this.doColor);
+//        this.listen("color", this.doColor);
+        this.setSeason();
+        this.listen("season", this.setSeason);
+        this.subscribe("maze", "redraw", this.refreshColor);
     }
 
     doColor(color) {
         this.setColor(new THREE.Color(color));
+    }
+
+    setSeason() {
+        let season = this.actor.season;
+        let corner = this.actor.corner;
+        console.log("setSeason", season, corner);
+        this.doColor(colorBlind ? seasons[season].colorBlind : (corner ? seasons[season].color2 : seasons[season].color));
+    }
+
+    refreshColor() {
+        this.setSeason();
     }
 
     loadInstance() {

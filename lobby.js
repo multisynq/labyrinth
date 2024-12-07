@@ -40,7 +40,7 @@ let appSessionName = window.location.hash.slice(1);
 try { appSessionName = decodeURIComponent(appSessionName) } catch (e) { /* ignore */ }
 
 const SESSION_TIMEOUT = 5; // seconds
-export const MAX_USERS = 8; // max users in a session
+export const MAX_USERS = 4; // max users in a session
 
 function usersCount(session) {
     return typeof session.users.count === "number" ? session.users.count : parseInt(session.users, 10);
@@ -132,7 +132,7 @@ class Lobby extends Croquet.Model {
         this.sessionActive(session);
         this.publish(this.sessionId, "session-changed", name);
         this.recordStats(now);
-        // console.log("lobby", this.now(), "in app session", session.name, users, [...session.views].map(v => v.viewId));
+        //console.log("lobby", this.now(), "in app session", session.name, users, [...session.views].map(v => v.viewId));
     }
 
 
@@ -289,7 +289,7 @@ class LobbyView extends Croquet.View {
         this.interval = setInterval(() => this.showSessions(), 1000);
         this.showSessions();
 
-        // Bind the "Start New Game" button
+        // Bind the "New Game" button
         const newGameButton = document.getElementById('start-new');
         newGameButton.addEventListener("click", () => {
             const dialog = document.getElementById('start-dialog');

@@ -128,15 +128,19 @@
 // Removed the back arrow to return to the lobby. 
 // Added the 30 second countdown sound.
 // Use the color blind colors for the cells.
+// Display the winner's season or "It is a tie!"
 //------------------------------------------------------------------------------------------
 // Bugs:
 // We don't go off the map anymore, but we can tunnel through walls or jump 2 cells.
 //------------------------------------------------------------------------------------------
 // Priority To do:
-// Deal with a tie.
 // Lobby:
 // - Send current game state to lobby.
 // - Don't update the lobby very often.
+// Need a menu for mobile:
+// - switch controls left/right
+// - color blindness mode
+// - sound on/off
 // Add the coins.
 //------------------------------------------------------------------------------------------
 // Consider:
@@ -299,7 +303,7 @@ export const seasons = {
     Summer: {cell: {x:0,y:CELL_SIZE-2}, emoji: "🌿", nextCell:{x:1,y:CELL_SIZE-3}, angle:toRad(270+45), color:0x90EE90, color2:0x65AA65, colorBlind:0x009E73, colorEye: 0xD0FFD0},
     Autumn: {cell:{x:CELL_SIZE-2, y:CELL_SIZE-2}, emoji: "🍁", nextCell:{x:CELL_SIZE-3,y:CELL_SIZE-3}, angle:toRad(0+45), color:0xFFE5B4, color2:0xCCB38B, colorBlind:0xE69F00, colorEye: 0xFFE5B4},
     Winter: {cell:{x:CELL_SIZE-2, y:0}, emoji: "❄️", nextCell:{x:CELL_SIZE-3,y:1}, angle:toRad(90+45), color:0xA5F2F3, color2:0x73BFBF, colorBlind:0x0072B2, colorEye: 0xE0E0FF},
-    none: {cell:{x:0,y:0}, emoji: "🌐", nextCell:{x:1,y:1}, angle:0, color:0xFFFFFF, color2:0xFFFFFF, colorBlind:0xFFFFFF, colorEye: 0xFFFFFF}
+    none: {cell:{x:0,y:0}, emoji: "🤝", nextCell:{x:1,y:1}, angle:0, color:0xFFFFFF, color2:0xFFFFFF, colorBlind:0xFFFFFF, colorEye: 0xFFFFFF}
 };
 
 // display the rules window
@@ -1063,8 +1067,12 @@ export class MyViewRoot extends ViewRoot {
         for (const season in scores) {
             if (scores[season] > scores[winner]) winner = season;
         }
-
-        victoryEmojiDisplay.show(seasons[winner].emoji, device.isMobile?128:256, seasons[winner].color, winner, "Wins!");
+        for (const season in scores) {
+            if (season!= winner && scores[season] === scores[winner]) winner = "none";
+        }
+    
+        victoryEmojiDisplay.show(seasons[winner].emoji, device.isMobile?128:256, seasons[winner].color, 
+            winner==="none"?"It is a":winner, winner==="none"?"Tie!":"Wins!");
         this.future(4000).newGameButton();
         playSound( winSound );
     }

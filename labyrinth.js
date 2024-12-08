@@ -129,6 +129,7 @@
 // Added the 30 second countdown sound.
 // Use the color blind colors for the cells.
 // Display the winner's season or "It is a tie!"
+// Removed the missile glow and upped the point light intensity.
 //------------------------------------------------------------------------------------------
 // Bugs:
 // We don't go off the map anymore, but we can tunnel through walls or jump 2 cells.
@@ -270,7 +271,7 @@ export { clockSound };
 
 // Global Variables
 //------------------------------------------------------------------------------------------
-const GAME_MINUTES = 1;
+const GAME_MINUTES = 15;
 const PI_2 = Math.PI/2;
 const PI_4 = Math.PI/4;
 const MISSILE_LIFE = 4000;
@@ -1022,7 +1023,7 @@ export class MyViewRoot extends ViewRoot {
         this.countdownTimer = new Countdown(timer);
         // Initialize the scoreboard
         this.boxScore = new BoxScore();
-        this.boxScore.setScores({"Spring": 4, "Summer": 4, "Autumn": 4, "Winter": 4});
+        this.boxScore.setScores({"Spring": 0, "Summer": 0, "Autumn": 0, "Winter": 0});
         this.skyRotation = new THREE.Euler(0, 0, 0);
         this.subscribe("root", "rotateSky", this.rotateSky);
         this.subscribe("input", "resize", scaleMinimap);
@@ -1315,7 +1316,7 @@ class AvatarPawn extends mix(Pawn).with(PM_Smoothed, PM_ThreeVisible, PM_Avatar)
         this.listen("respawn", this.respawn);
         //this.listen("colorBlindReady", this.setColorBlind);
         this.subscribe(this.viewId, "synced", this.handleSynced);
-        this.subscribe("maze", "clearCells", this.clearCells);
+        this.subscribe("maze", "clearCells", this.reset);
         this.subscribe("maze", "reset", this.reset);
         this.setupMobile();
         if(this.actor.seasonStarted) this.onStart(this.actor.season);
@@ -2112,7 +2113,7 @@ class MissileActor extends mix(Actor).with(AM_Spatial) {
     init(options) {
         super.init(options);
         this.hexasphere = InstanceActor.create({name: "hexasphere", parent: this, max:8});
-        this.glow = GlowActor.create({parent: this, color: options.color||0xff8844, depthTest: true, radius: 1.25, glowRadius: 0.5, falloff: 0.1, opacity: 0.75, sharpness: 0.5});
+        // this.glow = GlowActor.create({parent: this, color: options.color||0xff8844, depthTest: true, radius: 1.25, glowRadius: 0.5, falloff: 0.1, opacity: 0.75, sharpness: 0.5});
         this.flicker = PointFlickerActor.create({parent: this, playSound: true,color: options.color||0xff8844});
         this.future(this._avatar ? 4000 : 1000).destroy(); // destroy after some time
         if (this._avatar) {
@@ -2304,7 +2305,7 @@ export class PointFlickerPawn extends mix(Pawn).with(PM_Smoothed, PM_ThreeVisibl
     constructor(actor) {
         super(actor);
         // console.log("PointFlickerPawn constructor", this);
-        this.pointLight = new THREE.PointLight(this.actor.color, 20, 20, 2);
+        this.pointLight = new THREE.PointLight(this.actor.color, 100, 30, 2);
         this.setRenderObject(this.pointLight);
         if (this.actor.playSound) {
             this.listen("bounce", this.playBounce);
@@ -2687,7 +2688,7 @@ class LobbyRelayView extends Croquet.View {
         clearInterval(this.lobbyInterval);
         if (viewId === this.viewId) {
             this.reportToLobby();
-            this.lobbyInterval = setInterval(() => this.reportToLobby(), 1000);
+            this.lobbyInterval = setInterval(() => this.reportToLobby(), 2000);
         }
     }
 

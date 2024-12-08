@@ -14,7 +14,7 @@ class MazeActor extends mix(Actor).with(AM_Spatial) {
         this.rows = options._rows || 20;
         this.columns = options._columns || 20;
         this.cellSize = options._cellSize || 20;
-        this.seasons = {"Spring": 4, "Summer": 4, "Autumn": 4, "Winter": 4};
+        this.seasons = {"Spring": 0, "Summer": 0, "Autumn": 0, "Winter": 0};
         this.createMaze(this.rows,this.columns);
         this.constructMaze();
         this.startMinutes = this.minutes;
@@ -26,7 +26,7 @@ class MazeActor extends mix(Actor).with(AM_Spatial) {
     // Reset the maze to start a new game.
     reset() {
         this._minutes = this.startMinutes;
-        this.seasons = {"Spring": 4, "Summer": 4, "Autumn": 4, "Winter": 4};
+        this.seasons = {"Spring": 0, "Summer": 0, "Autumn": 0, "Winter": 0};
         if (this.timer===0) this.future(1000).countDown();
         this.timer = this.minutes*60000;
         this.instances.forEach(instance => instance.destroy());
@@ -143,15 +143,16 @@ class MazeActor extends mix(Actor).with(AM_Spatial) {
 
         // the horse is in the center of the maze so add walls around it and remove walls nearby
         // a value of false means there is a wall
-        const cell = this.map[11][11];
+        const center = 10;
+        const cell = this.map[center][center];
         cell.N = cell.S = cell.E = cell.W = false;
-        this.map[11][10].S = this.map[11][12].N = false;
-        this.map[10][11].E = this.map[12][11].W = false;
+        this.map[center][center-1].S = this.map[center][center+1].N = false;
+        this.map[center-1][center].E = this.map[center+1][center].W = false;
 
-        this.map[10][10].S = this.map[10][11].N = this.map[10][11].S = this.map[10][12].N = true;
-        this.map[12][10].S = this.map[12][11].N = this.map[12][11].S = this.map[12][12].N = true;
-        this.map[10][10].E = this.map[11][10].W = this.map[11][10].E = this.map[12][10].W = true;
-        this.map[10][12].E = this.map[11][12].W = this.map[11][12].E = this.map[12][12].W = true;
+        this.map[center-1][center-1].S = this.map[center-1][center].N = this.map[center-1][center].S = this.map[center-1][center+1].N = true;
+        this.map[center+1][center-1].S = this.map[center+1][center].N = this.map[center+1][center].S = this.map[center+1][center+1].N = true;
+        this.map[center-1][center-1].E = this.map[center][center-1].W = this.map[center][center-1].E = this.map[center+1][center-1].W = true;
+        this.map[center-1][center+1].E = this.map[center][center+1].W = this.map[center][center+1].E = this.map[center+1][center+1].W = true;
 
         const clearCorner = (x,y, season) => {
             this.map[x+1][y+2].N = this.map[x+1][y+1].S =
@@ -213,13 +214,14 @@ class MazeActor extends mix(Actor).with(AM_Spatial) {
         const cell = this.map[x-1][y-1];
         const oldSeason = cell.season;
         if ( season !== oldSeason ) {
-            this.seasons[season]++;
-            cell.season = season;
-            cell.floor.setSeason(season);
-            // This is literally the attack line. Where you can win or lose in an instant.
-            if (oldSeason) this.seasons[oldSeason] = this.checkLife(oldSeason, avatarId);
-            this.publish("maze", "score", this.seasons);
-            return true;
+          if(this.seasons[season] === 0) this.seasons[season]=4;
+          this.seasons[season]++;
+          cell.season = season;
+          cell.floor.setSeason(season);
+          // This is literally the attack line. Where you can win or lose in an instant.
+          if (oldSeason) this.seasons[oldSeason] = this.checkLife(oldSeason, avatarId);
+          this.publish("maze", "score", this.seasons);
+          return true;
         }
         return false;
     }

@@ -130,6 +130,8 @@
 // Use the color blind colors for the cells.
 // Display the winner's season or "It is a tie!"
 // Removed the missile glow and upped the point light intensity.
+// Moved the horse to the center of the maze.
+// Changed the horse and trees to static models. Removed plants and horse actors/pawns.
 //------------------------------------------------------------------------------------------
 // Bugs:
 // We don't go off the map anymore, but we can tunnel through walls or jump 2 cells.
@@ -142,6 +144,7 @@
 // - switch controls left/right
 // - color blindness mode
 // - sound on/off
+// Add bear, bull, lion sculptures.
 // Add the coins.
 //------------------------------------------------------------------------------------------
 // Consider:
@@ -271,7 +274,7 @@ export { clockSound };
 
 // Global Variables
 //------------------------------------------------------------------------------------------
-const GAME_MINUTES = 15;
+const GAME_MINUTES = 1;
 const PI_2 = Math.PI/2;
 const PI_4 = Math.PI/4;
 const MISSILE_LIFE = 4000;
@@ -1017,6 +1020,7 @@ MyModelRoot.register("MyModelRoot");
 // Construct the visual world
 //------------------------------------------------------------------------------------------
 const victoryEmojiDisplay = new EmojiDisplay();
+let winner = null;
 export class MyViewRoot extends ViewRoot {
 
     static viewServices() {
@@ -1048,11 +1052,13 @@ export class MyViewRoot extends ViewRoot {
     }
 
     detach() {
+        console.log("MyViewRoot detach!!!!!!!!!!!");
         this.lobbyRelay.detach();
         this.lobbyRelay = null;
         super.detach();
     }
     reset(){
+        winner = null;
         victoryEmojiDisplay.hide();
         gameButton.hide();
         playSound(startGameSound);
@@ -1070,7 +1076,7 @@ export class MyViewRoot extends ViewRoot {
 
     victory(scores) {
         console.log("Victory: ", scores);
-        let winner = "Spring";
+        winner = "Spring";
         for (const season in scores) {
             if (scores[season] > scores[winner]) winner = season;
         }
@@ -1760,7 +1766,7 @@ class AvatarPawn extends mix(Pawn).with(PM_Smoothed, PM_ThreeVisible, PM_Avatar)
         if (this.driving) {
             if ( this.turn ) this.pointerLook(this.turn, 0, 0.05);
             if (this.gas || this.strafe) {
-                if(delta/1000 > 0.1) console.log("AvatarPawn update", delta);
+                if(delta/1000 > 0.1) console.log("AvatarPawn update delay", delta);
                 const factor = Math.min(delta/1000,0.1);
                 const speed = this.gas * 20 * factor * this.actor.highGear;
                 const strafeSpeed = this.strafe * 20 * factor * this.actor.highGear;
@@ -2668,6 +2674,14 @@ class LobbyRelayView extends Croquet.View {
 
     reportToLobby() {
         let users = `${this.model.viewIds.size} player${this.model.viewIds.size === 1 ? "" : "s"}`;
+        users += '   ';
+        if(winner) users += seasons[winner].emoji + (winner==='none'? ' TIE!': ' WINS!');
+        else {
+            for (const season in this.wellKnownModel("ModelRoot").seasons) {
+                users += seasons[season].emoji + ':' + this.wellKnownModel("ModelRoot").maze.seasons[season] + ' ';
+            }
+        }
+
         const locations = new Map();
         let unknown = false;
         for (const viewId of this.model.viewIds) {

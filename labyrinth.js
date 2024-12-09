@@ -298,6 +298,7 @@ let horse;
 let trees;
 let plants;
 let ivy;
+const staticModels ={};
 
 export const seasons = {
     Spring:{cell:{x:0,y:0}, emoji: "🌸", nextCell:{x:1,y:1}, angle:toRad(180+45), color:0xFFB6C1, color2:0xCC8A94, colorBlind:0xCC79A7, colorEye: 0xFFEEEE},
@@ -691,22 +692,27 @@ modelConstruct().then( () => {
     const backWall = new THREE.PlaneGeometry(width, height);
     backWall.rotateY(Math.PI);
     geometries.wall = ADDONS.BufferGeometryUtils.mergeGeometries([frontWall, backWall], false);
-    plants = {Spring: new THREE.Group(), Summer: new THREE.Group(), Autumn: new THREE.Group(), Winter: new THREE.Group()};
+
     horse = horse.scene.clone();
     horse.traverse( m => {if (m.geometry) { m.castShadow=true; m.receiveShadow=true; m.position.set(0,0,0);} });
+    staticModels.horse = horse;
 
+    staticModels.Spring = new THREE.Group();
+    staticModels.Summer = new THREE.Group();
+    staticModels.Autumn = new THREE.Group();
+    staticModels.Winter = new THREE.Group();
     trees.scene.children.forEach(node => {
         if (node.name) {
-            if (node.name.includes("spring")) plants.Spring.add(node.clone());
-            else if (node.name.includes("summer")) plants.Summer.add(node.clone());
-            else if (node.name.includes("fall")) plants.Autumn.add(node.clone());
-            else if (node.name.includes("winter")) plants.Winter.add(node.clone());
+            if (node.name.includes("spring")) staticModels.Spring.add(node.clone());
+            else if (node.name.includes("summer")) staticModels.Summer.add(node.clone());
+            else if (node.name.includes("fall")) staticModels.Autumn.add(node.clone());
+            else if (node.name.includes("winter")) staticModels.Winter.add(node.clone());
         }
     });
-    plants.Spring.traverse( m => {if (m.geometry) { m.castShadow=true; m.receiveShadow=true; m.position.set(0,0,0); } });
-    plants.Summer.traverse( m => {if (m.geometry) { m.castShadow=true; m.receiveShadow=true; m.position.set(0,0,0);} });
-    plants.Autumn.traverse( m => {if (m.geometry) { m.castShadow=true; m.receiveShadow=true; m.position.set(0,0,0);} });
-    plants.Winter.traverse( m => {if (m.geometry) { m.castShadow=true; m.receiveShadow=true; m.position.set(0,0,0);} });
+    staticModels.Spring.traverse( m => {if (m.geometry) { m.castShadow=true; m.receiveShadow=true; m.position.set(0,0,0); } });
+    staticModels.Summer.traverse( m => {if (m.geometry) { m.castShadow=true; m.receiveShadow=true; m.position.set(0,0,0);} });
+    staticModels.Autumn.traverse( m => {if (m.geometry) { m.castShadow=true; m.receiveShadow=true; m.position.set(0,0,0);} });
+    staticModels.Winter.traverse( m => {if (m.geometry) { m.castShadow=true; m.receiveShadow=true; m.position.set(0,0,0);} });
 });
 function fixUV(geometry) {
     // Angle around the Y axis, counter-clockwise when looking from above.
@@ -973,12 +979,12 @@ class MyModelRoot extends ModelRoot {
         const zOffset = (MAZE_COLUMNS*CELL_SIZE)/2;
         this.base = BaseActor.create({ translation:[xOffset,0,zOffset]});
         this.maze = MazeActor.create({translation: [0,5,0], rows: MAZE_ROWS, columns: MAZE_COLUMNS, cellSize: CELL_SIZE, minutes: GAME_MINUTES});
-        this.horse = HorseActor.create({translation:[210.9,10,209.70], scale:[8.75,8.75,8.75]});
+        this.horse = StaticActor.create({model3d:"horse", translation:[190.9,10,189.70], scale:[8.75,8.75,8.75]});
         const s = 9.0;
-        this.spring = PlantActor.create({plant:"Spring",translation: [20, 0.5, 20], scale:[s,s,s]});
-        this.summer = PlantActor.create({plant:"Summer",translation: [20, 0.5, 360], scale:[s,s,s]});
-        this.autumn = PlantActor.create({plant:"Autumn",translation: [360, 0.5, 360], scale:[s,s,s]});
-        this.winter = PlantActor.create({plant:"Winter",translation: [360, 0.5, 20], scale:[s,s,s]});
+        this.spring = StaticActor.create({model3d:"Spring",translation: [20, 0.5, 20], scale:[s,s,s]});
+        this.summer = StaticActor.create({model3d:"Summer",translation: [20, 0.5, 360], scale:[s,s,s]});
+        this.autumn = StaticActor.create({model3d:"Autumn",translation: [360, 0.5, 360], scale:[s,s,s]});
+        this.winter = StaticActor.create({model3d:"Winter",translation: [360, 0.5, 20], scale:[s,s,s]});
         this.skyAngle = 0;
         this.rotateSky();
     }
@@ -1167,8 +1173,8 @@ class AvatarActor extends mix(Actor).with(AM_Spatial, AM_Avatar) {
         this.listen("shootMissile", this.shootMissile);
         this.listen("claimCell", this.claimCell);
         this.fireball =  FireballActor.create({parent: this, radius:this.radius});
+        const translation = [this.translation[0], this.translation[1]-40, this.translation[2]];
         this.fireball.future(1000).hide();
-        const translation = [this.translation[0], this.translation[1]-5, this.translation[2]];
         MissileActor.create({parent: this, color: 0x000000, translation}); // throw away missile for warming up
         this.setHighSpeed(this.throttleMax);
         this.subscribe("game", "reset", this.reset);
@@ -1712,7 +1718,7 @@ class AvatarPawn extends mix(Pawn).with(PM_Smoothed, PM_ThreeVisible, PM_Avatar)
             this.rightTouch.currentY = touch.clientY;
             
             const deltaX = this.rightTouch.currentX - this.rightTouch.startX;
-            const scaledDeltaX = (deltaX / width) * Math.PI;
+            const scaledDeltaX = (deltaX / width) * Math.PI*1.25;
             
             this.pointerLook(scaledDeltaX, 0, 1);
             this.rightTouch.startX = this.rightTouch.currentX;
@@ -2042,7 +2048,6 @@ class MyUser extends User {
 
         this.avatar = AvatarActor.create({
             driver: this.userId,
-            season
         });
     }
 
@@ -2524,15 +2529,15 @@ export class GlowPawn extends mix(Pawn).with(PM_Smoothed, PM_ThreeVisible) {
 }
 GlowPawn.register("GlowPawn");
 
-// HorseActor
-// Hero statue at the center of the maze.
+// StaticActor
+// Manage static 3D models.
 //------------------------------------------------------------------------------------------
-class HorseActor extends mix(Actor).with(AM_Spatial,) {
-    get pawn() { return "HorsePawn" }
+class StaticActor extends mix(Actor).with(AM_Spatial,) {
+    get pawn() { return "StaticPawn" }
 }
-HorseActor.register('HorseActor');
+StaticActor.register('StaticActor');
 
-class HorsePawn extends mix(Pawn).with(PM_Smoothed, PM_ThreeVisible) {
+class StaticPawn extends mix(Pawn).with(PM_Smoothed, PM_ThreeVisible) {
 
     constructor(actor) {
         super(actor);
@@ -2542,46 +2547,8 @@ class HorsePawn extends mix(Pawn).with(PM_Smoothed, PM_ThreeVisible) {
     load3D() {
         if (this.doomed) return;
         if (readyToLoad3D && horse) {
-            this.horse = horse.clone();
-            this.horse.traverse( m => {if (m.geometry) { m.castShadow=true; m.receiveShadow=true; } });
-            this.setRenderObject(this.horse);
-        } else this.future(100).load3D();
-    }
-
-    destroy() {
-        super.destroy();
-        this.horse.traverse( obj => {
-            if (obj.geometry) {
-                obj.geometry.dispose();
-                obj.material.dispose();
-            }
-        });
-    }
-}
-HorsePawn.register("HorsePawn");
-
-// TreeActor
-// Seasonal trees in each corner of the maze.
-//------------------------------------------------------------------------------------------
-class PlantActor extends mix(Actor).with(AM_Spatial,) {
-    get pawn() { return "PlantPawn" }
-    get plant() { return this._plant || "spring"}
-}
-PlantActor.register('PlantActor');
-
-class PlantPawn extends mix(Pawn).with(PM_Smoothed, PM_ThreeVisible) {
-
-    constructor(actor) {
-        super(actor);
-        this.load3D();
-    }
-
-    load3D() {
-        if (this.doomed) return;
-        if (readyToLoad3D && plants && plants[this.actor.plant]) {
-            const model3d = plants[this.actor.plant];
-            this.model3d = model3d.clone(); // clone because we will modify it
-//            this.tree.traverse( m => {if (m.geometry) { m.castShadow=true; m.receiveShadow=true; } });
+            this.model3d = staticModels[this.actor._model3d].clone();
+            this.model3d.traverse( m => {if (m.geometry) { m.castShadow=true; m.receiveShadow=true; } });
             this.setRenderObject(this.model3d);
         } else this.future(100).load3D();
     }
@@ -2596,7 +2563,7 @@ class PlantPawn extends mix(Pawn).with(PM_Smoothed, PM_ThreeVisible) {
         });
     }
 }
-PlantPawn.register("PlantPawn");
+StaticPawn.register("StaticPawn");
 
 // Elected
 // This model elects a view to relay messages to the lobby.

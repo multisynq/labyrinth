@@ -133,6 +133,8 @@
 // Moved the horse to the center of the maze.
 // Changed the horse and trees to static models. Removed plants and horse actors/pawns.
 // Added sculptures for location awareness.
+// Sound off stays off.
+// We don't render until the user is assigned a season.
 //------------------------------------------------------------------------------------------
 // Bugs:
 // We don't go off the map anymore, but we can tunnel through walls or jump 2 cells.
@@ -140,13 +142,12 @@
 // Priority To do:
 // Lobby:
 // - Add location to the lobby
-// When user joins a game, they are placed underneat the maze. Looks bad. 
+// Hide the rules window when the player joins.
 // Need a menu for mobile:
 // - switch controls left/right
 // - color blindness mode
 // - sound on/off
 // Add the coins.
-// Sound restarts with new game.
 //------------------------------------------------------------------------------------------
 // Consider:
 // Claiming another player's cell should take longer than claiming a free cell.
@@ -185,7 +186,7 @@ import BoxScore from './src/BoxScore.js';
 import Countdown from './src/Countdown.js';
 import MazeActor from './src/MazeActor.js';
 import {InstanceActor, instances, materials, geometries} from './src/Instance.js';  
-import showRules from './src/rules.js';
+import { showRules, isRulesVisible } from './src/rules.js';
 import EmojiDisplay from './src/EmojiDisplay.js';
 import GameButton from './src/GameButton.js';
 // import getLocation from './src/geolocation.js';
@@ -217,7 +218,7 @@ import corinthian_displacement from "./assets/textures/corinthian/concrete_0014_
 */
 import missile_color from "./assets/textures/metal_gold_vein/metal_0080_color_05k.jpg";
 import missile_normal from "./assets/textures/metal_gold_vein/metal_0080_normal_opengl_05k.png";
-import missile_roughness from "./assets/textures/metal_gold_vein/metal_0080_roughness_05k.jpg";
+//import missile_roughness from "./assets/textures/metal_gold_vein/metal_0080_roughness_05k.jpg";
 //import missile_displacement from "./assets/textures/metal_gold_vein/metal_0080_height_05k.png";
 //import missile_metalness from "./assets/textures/metal_gold_vein/metal_0080_metallic_05k.jpg";
 
@@ -297,6 +298,7 @@ export let csm; // CSM is Cascaded Shadow Maps
 let readyToLoad3D = false;
 let readyToLoadTextures = false;
 let readyToLoadSounds = false;
+let readyToPlay = false;
 
 export const seasons = {
     Spring:{cell:{x:0,y:0}, emoji: "🌸", nextCell:{x:1,y:1}, angle:toRad(180+45), color:0xFFB6C1, color2:0xCC8A94, colorBlind:0xCC79A7, colorEye: 0xFFEEEE},
@@ -785,7 +787,7 @@ async function textureConstruct() {
     const textureLoader = new THREE.TextureLoader();
     textureLoader.crossOrigin = 'anonymous';
 
-    return [sky_t, missile_color_t, missile_normal_t, missile_roughness_t, // missile_displacement_t, missile_metalness_t,
+    return [sky_t, missile_color_t, missile_normal_t, //missile_roughness_t, // missile_displacement_t, missile_metalness_t,
     // power_color_t, power_normal_t, power_roughness_t, power_displacement_t, power_metalness_t,
      marble_color_t, marble_roughness_t, //marble_normal_t, marble_displacement_t,
      corinthian_color_t, corinthian_normal_t, corinthian_roughness_t, corinthian_displacement_t,
@@ -794,7 +796,7 @@ async function textureConstruct() {
         textureLoader.loadAsync(sky),
         textureLoader.loadAsync(missile_color),
         textureLoader.loadAsync(missile_normal),
-        textureLoader.loadAsync(missile_roughness),
+        //textureLoader.loadAsync(missile_roughness),
         //textureLoader.loadAsync(missile_displacement),
         //textureLoader.loadAsync(missile_metalness),
         // textureLoader.loadAsync(power_color),
@@ -822,7 +824,7 @@ textureConstruct().then( () => {
     complexMaterial({
         colorMap: missile_color_t,
         normalMap: missile_normal_t,
-        roughnessMap: missile_roughness_t,
+        //roughnessMap: missile_roughness_t,
         //metalnessMap: missile_metalness_t,
         //displacementMap: missile_displacement_t,
         repeat: [1.5,1],
@@ -1025,7 +1027,7 @@ class MyModelRoot extends ModelRoot {
     }
 
     releaseSeason(season) {
-        delete this.seasons[season];
+        if(season) delete this.seasons[season];
     }
 
     rotateSky() {
@@ -1170,7 +1172,7 @@ export class MyViewRoot extends ViewRoot {
 
     update(time, delta) {
         super.update(time, delta);
-        if (readyToLoad3D && readyToLoadTextures && readyToLoadSounds) {
+        if (readyToLoad3D && readyToLoadTextures && readyToLoadSounds && readyToPlay) {
             const rm = this.service("ThreeRenderManager");
             rm.doRender = true;
         }
@@ -1372,6 +1374,7 @@ class AvatarPawn extends mix(Pawn).with(PM_Smoothed, PM_ThreeVisible, PM_Avatar)
         this.refreshDrawTransform();
         this.refreshChildDrawTransform();
         if(this.isMyAvatar) {
+            readyToPlay = true;
             //this.yaw = q_yaw(this.rotation);
             this.createMinimap();
             minimapDiv.style.transform = `rotate(${this.yaw}rad)`;
@@ -1551,7 +1554,7 @@ class AvatarPawn extends mix(Pawn).with(PM_Smoothed, PM_ThreeVisible, PM_Avatar)
             if (im.inPointerLock) this.shootMissile();
             else {
                 im.enterPointerLock();
-
+                if (isRulesVisible()) showRules();
             }
         } 
         if (soundOn) soundSwitch = true;
@@ -2131,6 +2134,7 @@ class MyInputManager extends InputManager {
                 });
             } else {
                 this.enterPointerLock();
+                if (isRulesVisible()) showRules();
                 if(soundOn)soundSwitch = true;
             }
         } else {

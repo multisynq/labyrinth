@@ -481,4 +481,8 @@ function showRules() {
     }
 }
 
-export default showRules;
+function isRulesVisible() {
+    return rulesOverlay && rulesOverlay.style.display === 'block';
+}
+
+export { showRules, isRulesVisible };

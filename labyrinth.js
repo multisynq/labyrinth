@@ -138,18 +138,19 @@
 //------------------------------------------------------------------------------------------
 // Priority To do:
 // Lobby:
-// - Send current game state to lobby.
-// - Don't update the lobby very often.
+// - Add location to the lobby
+// When user joins a game, they are placed underneat the maze. Looks bad. 
 // Need a menu for mobile:
 // - switch controls left/right
 // - color blindness mode
 // - sound on/off
 // Add bear, bull, lion sculptures.
+// Or add the Greek statues.
 // Add the coins.
+// Sound restarts with new game.
 //------------------------------------------------------------------------------------------
 // Consider:
 // Claiming another player's cell should take longer than claiming a free cell.
-// The center of the maze is at 10,10.
 // Three (or more) big weenies.
 // Rooms (Brian Upton suggestion)?
 // Chat -broadcast messages to all players, colors are their team color. This is difficult, as we
@@ -172,7 +173,7 @@
 
 import { App, StartWorldcore, Constants, ViewService, ModelRoot, ViewRoot,Actor, mix, toRad,
     InputManager, AM_Spatial, PM_Spatial, PM_Smoothed, Pawn, AM_Avatar, PM_Avatar, UserManager, User,
-    q_yaw, q_pitch, q_axisAngle, v3_add, v3_sub, v3_normalize, v3_rotate, v3_scale, v3_distanceSqr,
+    q_yaw, q_euler, q_axisAngle, v3_add, v3_sub, v3_normalize, v3_rotate, v3_scale, v3_distanceSqr,
     THREE, ADDONS, PM_ThreeVisible, ThreeRenderManager, PM_ThreeCamera, PM_ThreeInstanced, ThreeInstanceManager
 } from '@croquet/worldcore';
 
@@ -188,7 +189,7 @@ import {InstanceActor, instances, materials, geometries} from './src/Instance.js
 import showRules from './src/rules.js';
 import EmojiDisplay from './src/EmojiDisplay.js';
 import GameButton from './src/GameButton.js';
-
+// import getLocation from './src/geolocation.js';
 import apiKey from "./src/apiKey.js";
 
 // Textures
@@ -246,6 +247,11 @@ import fourSeasonsTree_glb from "./assets/fourSeasonsTree.glb";
 // https://sketchfab.com/dangry
 import ivy_glb from "./assets/ivy3.glb";
 
+import aspasia_glb from "./assets/aspasia.glb";
+import apollo_glb from "./assets/apollo.glb";
+import engel_glb from "./assets/engel.glb";
+import johannes_glb from "./assets/johannes_benk.glb";
+
 // Shaders
 //------------------------------------------------------------------------------------------
 // https://www.clicktorelease.com/code/perlin/explosion.html
@@ -274,7 +280,7 @@ export { clockSound };
 
 // Global Variables
 //------------------------------------------------------------------------------------------
-const GAME_MINUTES = 1;
+const GAME_MINUTES = 15;
 const PI_2 = Math.PI/2;
 const PI_4 = Math.PI/4;
 const MISSILE_LIFE = 4000;
@@ -293,16 +299,6 @@ let readyToLoad3D = false;
 let readyToLoadTextures = false;
 let readyToLoadSounds = false;
 
-// 3D Models
-let eyeball;
-let column;
-let hexasphere;
-let horse;
-let trees;
-let plants;
-let ivy;
-const staticModels ={};
-
 export const seasons = {
     Spring:{cell:{x:0,y:0}, emoji: "🌸", nextCell:{x:1,y:1}, angle:toRad(180+45), color:0xFFB6C1, color2:0xCC8A94, colorBlind:0xCC79A7, colorEye: 0xFFEEEE},
     Summer: {cell: {x:0,y:CELL_SIZE-2}, emoji: "🌿", nextCell:{x:1,y:CELL_SIZE-3}, angle:toRad(270+45), color:0x90EE90, color2:0x65AA65, colorBlind:0x009E73, colorEye: 0xD0FFD0},
@@ -310,7 +306,10 @@ export const seasons = {
     Winter: {cell:{x:CELL_SIZE-2, y:0}, emoji: "❄️", nextCell:{x:CELL_SIZE-3,y:1}, angle:toRad(90+45), color:0xA5F2F3, color2:0x73BFBF, colorBlind:0x0072B2, colorEye: 0xE0E0FF},
     none: {cell:{x:0,y:0}, emoji: "🤝", nextCell:{x:1,y:1}, angle:0, color:0xFFFFFF, color2:0xFFFFFF, colorBlind:0xFFFFFF, colorEye: 0xFFFFFF}
 };
-
+/*
+getLocation().then(city => {
+    console.log("Nearest city:", city);
+})*/
 // display the rules window
 showRules();
 // the new game button
@@ -643,6 +642,10 @@ loadSounds().then( sounds => {
 
 // Load 3D Models
 //------------------------------------------------------------------------------------------
+// 3D Models
+let eyeball, column, hexasphere, horse, aspasia, apollo, engel, johannes, trees, ivy;
+const staticModels ={};
+
 function  deepClone(original) {
 
     let clone;
@@ -664,14 +667,19 @@ async function modelConstruct() {
     const dracoLoader = new ADDONS.DRACOLoader();
     dracoLoader.setDecoderPath('draco/');
     gltfLoader.setDRACOLoader(dracoLoader);
-    return [eyeball, column, ivy, hexasphere, horse, trees] = await Promise.all( [
+    return [eyeball, column, ivy, hexasphere, trees, horse, aspasia, apollo, engel, johannes] = await Promise.all( [
         // add additional GLB files to load here
         gltfLoader.loadAsync( eyeball_glb ),
         gltfLoader.loadAsync( column_glb ),
         gltfLoader.loadAsync( ivy_glb ),
         gltfLoader.loadAsync( hexasphere_glb ),
-        gltfLoader.loadAsync( horse2_glb ),
+
         gltfLoader.loadAsync( fourSeasonsTree_glb ),
+        gltfLoader.loadAsync( horse2_glb ),
+        gltfLoader.loadAsync( aspasia_glb ),
+        gltfLoader.loadAsync( apollo_glb ),
+        gltfLoader.loadAsync( engel_glb ),
+        gltfLoader.loadAsync( johannes_glb ),
     ]);
 }
 
@@ -696,9 +704,16 @@ modelConstruct().then( () => {
     backWall.rotateY(Math.PI);
     geometries.wall = ADDONS.BufferGeometryUtils.mergeGeometries([frontWall, backWall], false);
 
-    horse = horse.scene.clone();
-    horse.traverse( m => {if (m.geometry) { m.castShadow=true; m.receiveShadow=true; m.position.set(0,0,0);} });
-    staticModels.horse = horse;
+    function clone(mesh) {
+        mesh = mesh.scene.clone();
+        mesh.traverse( m => {if (m.geometry) { m.castShadow=true; m.receiveShadow=true; m.position.set(0,0,0);} });
+        return mesh;
+    }
+    staticModels.horse = clone(horse);
+    staticModels.aspasia = clone(aspasia);
+    staticModels.apollo = clone(apollo);
+    staticModels.engel = clone(engel);
+    staticModels.johannes = clone(johannes);
 
     staticModels.Spring = new THREE.Group();
     staticModels.Summer = new THREE.Group();
@@ -982,7 +997,13 @@ class MyModelRoot extends ModelRoot {
         const zOffset = (MAZE_COLUMNS*CELL_SIZE)/2;
         this.base = BaseActor.create({ translation:[xOffset,0,zOffset]});
         this.maze = MazeActor.create({translation: [0,5,0], rows: MAZE_ROWS, columns: MAZE_COLUMNS, cellSize: CELL_SIZE, minutes: GAME_MINUTES});
+
         this.horse = StaticActor.create({model3d:"horse", translation:[190.9,10,189.70], scale:[8.75,8.75,8.75]});
+        this.aspasia = StaticActor.create({model3d:"aspasia", translation:[190,9,290], scale:[15,15,15]});
+        this.apollo = StaticActor.create({model3d:"apollo", translation:[188,10,70], scale:[15,15,15]});
+        this.engel = StaticActor.create({model3d:"engel", translation:[70,10,190], scale:[15,15,15], rotation: q_euler(0,-Math.PI/2,0)});
+        this.johannes = StaticActor.create({model3d:"johannes", translation:[290,-8,190], scale:[15,15,15],rotation: q_euler(0,Math.PI/2,0)});
+    
         const s = 9.0;
         this.spring = StaticActor.create({model3d:"Spring",translation: [20, 0.5, 20], scale:[s,s,s]});
         this.summer = StaticActor.create({model3d:"Summer",translation: [20, 0.5, 360], scale:[s,s,s]});
@@ -1109,7 +1130,7 @@ export class MyViewRoot extends ViewRoot {
         rm.renderer.shadowMap.enabled = true;
         rm.renderer.shadowMap.type = THREE.PCFShadowMap;
         rm.renderer.toneMapping = THREE.ReinhardToneMapping;
-        const ambientLight = new THREE.AmbientLight( 0xffffff, 1.5 );
+        const ambientLight = new THREE.AmbientLight( 0xffffff, 2.5 );
         rm.scene.add( ambientLight );
         const blueLight = new THREE.DirectionalLight( 0x446699, 2.5 );
         blueLight.position.set( -1, -1, 1 ).normalize().multiplyScalar( -200 );
@@ -2673,8 +2694,8 @@ class LobbyRelayView extends Croquet.View {
     }
 
     reportToLobby() {
-        let users = `${this.model.viewIds.size} player${this.model.viewIds.size === 1 ? "" : "s"}`;
-        users += '   ';
+        let users = `${this.model.viewIds.size}/4 Players`;
+        users += '...Scores: ';
         if(winner) users += seasons[winner].emoji + (winner==='none'? ' TIE!': ' WINS!');
         else {
             for (const season in this.wellKnownModel("ModelRoot").seasons) {

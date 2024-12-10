@@ -31,7 +31,7 @@ export default async (_env, { mode }) => {
             client: {
                 overlay: true,
                 progress: true
-            }
+            },
         },
         module: {
             rules: [

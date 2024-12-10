@@ -144,28 +144,36 @@ class MazeActor extends mix(Actor).with(AM_Spatial) {
         // the horse is in the center of the maze so add walls around it and remove walls nearby
         // a value of false means there is a wall
         const center = 10;
-        const cell = this.map[center][center];
-        cell.N = cell.S = cell.E = cell.W = false;
-        this.map[center][center-1].S = this.map[center][center+1].N = false;
-        this.map[center-1][center].E = this.map[center+1][center].W = false;
+        this.placeStatue(center,center);
+        this.placeStatue(center, 4);
+        this.placeStatue(center, 15);
+        this.placeStatue(4, center);
+        this.placeStatue(15, center);
+        this.clearCorner(0,0, "Spring");
+        this.clearCorner(this.WIDTH-3,0,"Winter");
+        this.clearCorner(0,this.HEIGHT-3,"Summer");
+        this.clearCorner(this.WIDTH-3,this.HEIGHT-3,"Autumn");
+    }
+  
+    placeStatue(x,y){
+      const cell = this.map[x][y];
+      cell.N = cell.S = cell.E = cell.W = false;
+      this.map[x][y-1].S = this.map[x][y+1].N = false;
+      this.map[x-1][y].E = this.map[x+1][y].W = false;
 
-        this.map[center-1][center-1].S = this.map[center-1][center].N = this.map[center-1][center].S = this.map[center-1][center+1].N = true;
-        this.map[center+1][center-1].S = this.map[center+1][center].N = this.map[center+1][center].S = this.map[center+1][center+1].N = true;
-        this.map[center-1][center-1].E = this.map[center][center-1].W = this.map[center][center-1].E = this.map[center+1][center-1].W = true;
-        this.map[center-1][center+1].E = this.map[center][center+1].W = this.map[center][center+1].E = this.map[center+1][center+1].W = true;
+      this.map[x-1][y-1].S = this.map[x-1][y].N = this.map[x-1][y].S = this.map[x-1][y+1].N = true;
+      this.map[x+1][y-1].S = this.map[x+1][y].N = this.map[x+1][y].S = this.map[x+1][y+1].N = true;
+      this.map[x-1][y-1].E = this.map[x][y-1].W = this.map[x][y-1].E = this.map[x+1][y-1].W = true;
+      this.map[x-1][y+1].E = this.map[x][y+1].W = this.map[x][y+1].E = this.map[x+1][y+1].W = true;
+    }
 
-        const clearCorner = (x,y, season) => {
-            this.map[x+1][y+2].N = this.map[x+1][y+1].S =
-            this.map[x+2][y+2].N = this.map[x+2][y+1].S = true;
-            this.map[x+1][y+1].E = this.map[x+2][y+1].W =
-            this.map[x+1][y+2].E = this.map[x+2][y+2].W = true;
-            this.setCornerSeason(x,y,season);
-        };
-
-        clearCorner(0,0, "Spring");
-        clearCorner(this.WIDTH-3,0,"Winter");
-        clearCorner(0,this.HEIGHT-3,"Summer");
-        clearCorner(this.WIDTH-3,this.HEIGHT-3,"Autumn");
+  
+    clearCorner(x,y, season){
+      this.map[x+1][y+2].N = this.map[x+1][y+1].S =
+      this.map[x+2][y+2].N = this.map[x+2][y+1].S = true;
+      this.map[x+1][y+1].E = this.map[x+2][y+1].W =
+      this.map[x+1][y+2].E = this.map[x+2][y+2].W = true;
+      this.setCornerSeason(x,y,season);
     }
 
     setCornerSeason(x,y, season) {
@@ -275,7 +283,7 @@ class MazeActor extends mix(Actor).with(AM_Spatial) {
         const r = q_axisAngle([0,1,0],PI_2);
         const ivyRotation = q_axisAngle([0,1,0],Math.PI);
         let ivy0Count = 0, ivy1Count = 0, floorCount = 0, wallCount2 = 0, columnCount = 0;
-        const wallCount = this.countWalls();
+        //const wallCount = this.countWalls();
         this.instances = [];
         for (let y = 0; y < this.rows; y++) {
             for (let x = 0; x < this.columns; x++) {

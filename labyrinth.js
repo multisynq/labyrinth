@@ -286,7 +286,7 @@ const PI_4 = Math.PI/4;
 const MISSILE_LIFE = 4000;
 export const CELL_SIZE = 20;
 const AVATAR_RADIUS = 3.7;
-const AVATAR_HEIGHT = 6.0;
+const AVATAR_HEIGHT = 7.5;
 const MISSILE_RADIUS = 2;
 const WALL_EPSILON = 0.01;
 const MAZE_ROWS = 20;
@@ -1349,7 +1349,7 @@ class AvatarPawn extends mix(Pawn).with(PM_Smoothed, PM_ThreeVisible, PM_Avatar)
         this.listen("respawn", this.respawn);
         //this.listen("colorBlindReady", this.setColorBlind);
         this.subscribe(this.viewId, "synced", this.handleSynced);
-        this.subscribe("maze", "clearCells", this.reset);
+        this.subscribe("maze", "clearCells", this.clearCells);
         this.subscribe("maze", "reset", this.reset);
         this.setupMobile();
         if(this.actor.seasonStarted) this.onStart(this.actor.season);
@@ -1891,8 +1891,9 @@ class AvatarPawn extends mix(Pawn).with(PM_Smoothed, PM_ThreeVisible, PM_Avatar)
     }
 
     clearCells(data) {
-//        console.log("AvatarPawn clearCells", data.avatarId, this.actor.id);
+        console.log("AvatarPawn clearCells", data.avatarId, this.actor.id);
         if(this.isMyAvatar) {
+            console.log("clearCells", data.avatarId, this.actor.id);
             if(data.avatarId === this.actor.id) playSound(aweSound, this.renderObject, false);
             else playSound(shockSound, null, false);
         }

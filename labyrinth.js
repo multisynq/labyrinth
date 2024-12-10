@@ -135,14 +135,17 @@
 // Added sculptures for location awareness.
 // Sound off stays off.
 // We don't render until the user is assigned a season.
+// Hide the rules window when the player joins.
+// Mobile shooting works better.
 //------------------------------------------------------------------------------------------
 // Bugs:
 // We don't go off the map anymore, but we can tunnel through walls or jump 2 cells.
 //------------------------------------------------------------------------------------------
 // Priority To do:
+// Doesn't work on iOS anymore.
+// The missiles do not show up for the first few shots.
 // Lobby:
 // - Add location to the lobby
-// Hide the rules window when the player joins.
 // Need a menu for mobile:
 // - switch controls left/right
 // - color blindness mode
@@ -151,7 +154,6 @@
 //------------------------------------------------------------------------------------------
 // Consider:
 // Claiming another player's cell should take longer than claiming a free cell.
-// Three (or more) big weenies.
 // Rooms (Brian Upton suggestion)?
 // Chat -broadcast messages to all players, colors are their team color. This is difficult, as we
 // are in mouse look mode. Perhaps press "c" to type a message, hit enter and then you are back.
@@ -1750,7 +1752,7 @@ class AvatarPawn extends mix(Pawn).with(PM_Smoothed, PM_ThreeVisible, PM_Avatar)
             this.rightTouch.currentY = touch.clientY;
             
             const deltaX = this.rightTouch.currentX - this.rightTouch.startX;
-            const scaledDeltaX = (deltaX / width) * Math.PI*1.25;
+            const scaledDeltaX = (deltaX / width) * Math.PI*1.5;
             
             this.pointerLook(scaledDeltaX, 0, 1);
             this.rightTouch.startX = this.rightTouch.currentX;
@@ -1768,9 +1770,9 @@ class AvatarPawn extends mix(Pawn).with(PM_Smoothed, PM_ThreeVisible, PM_Avatar)
         if (!touchStillActive) {
             const touchDuration = Date.now() - touchData.startTime;
             
-            if (touchDuration < 100 && touchData.active && 
-                Math.abs(touchData.currentX - touchData.startX) < 10 &&
-                Math.abs(touchData.currentY - touchData.startY) < 10) {
+            if (touchDuration < 200 && touchData.active && 
+                Math.abs(touchData.currentX - touchData.startX) < 20 &&
+                Math.abs(touchData.currentY - touchData.startY) < 20) {
                 console.log("shoot");
                 this.shootMissile();
             }

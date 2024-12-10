@@ -132,6 +132,7 @@
 // Removed the missile glow and upped the point light intensity.
 // Moved the horse to the center of the maze.
 // Changed the horse and trees to static models. Removed plants and horse actors/pawns.
+// Added sculptures for location awareness.
 //------------------------------------------------------------------------------------------
 // Bugs:
 // We don't go off the map anymore, but we can tunnel through walls or jump 2 cells.
@@ -144,8 +145,6 @@
 // - switch controls left/right
 // - color blindness mode
 // - sound on/off
-// Add bear, bull, lion sculptures.
-// Or add the Greek statues.
 // Add the coins.
 // Sound restarts with new game.
 //------------------------------------------------------------------------------------------
@@ -502,6 +501,8 @@ function toggleOverlays() {
 // Sound Manager
 //------------------------------------------------------------------------------------------
 export let soundSwitch = false; // turn sound on and off
+let soundOn = true; // toggle sound on and off
+
 let volume = 1;
 
 const maxSound = 16;
@@ -532,7 +533,6 @@ document.addEventListener('click', () => {
 export const playSound = function() {
     function play(soundURL, parent3D, force, loop = false) {
         if (!soundSwitch) return;
-
         // Check if we're on mobile and the audio context is suspended
         const audioContext = THREE.AudioContext.getContext();
         if (device.isMobile && audioContext.state === 'suspended') {
@@ -572,7 +572,7 @@ function playSoundOnce(sound, parent3D, force, loop = false) {
     } else mySound.onEnded = ()=> { sound.count--; };
 
     // don't play if sound is muted
-    if (soundSwitch )mySound.play();
+    if ( soundSwitch )mySound.play();
     return mySound;
 }
 
@@ -1500,7 +1500,8 @@ class AvatarPawn extends mix(Pawn).with(PM_Smoothed, PM_ThreeVisible, PM_Avatar)
                 soundLoops.forEach( sound => sound.setVolume(volume * loopSoundVolume) );
                 break;
             case '/':
-                soundSwitch = !soundSwitch; // toggle sound on and off
+                soundOn = !soundOn;
+                soundSwitch = soundOn; // toggle sound on and off
                 setTextDisplay("Sound: " + (soundSwitch? "on":"off"),2);
                 soundLoops.forEach( sound => {if (soundSwitch) sound.play(); else sound.pause();} );
                 console.log( "sound is " + soundSwitch);
@@ -1550,9 +1551,10 @@ class AvatarPawn extends mix(Pawn).with(PM_Smoothed, PM_ThreeVisible, PM_Avatar)
             if (im.inPointerLock) this.shootMissile();
             else {
                 im.enterPointerLock();
-                soundSwitch = true;
+
             }
-        } else soundSwitch = true; // turn sound on for mobile
+        } 
+        if (soundOn) soundSwitch = true;
     }
 
     doPointerUp(e) {
@@ -2125,11 +2127,11 @@ class MyInputManager extends InputManager {
                 // For Safari in fullscreen, exit fullscreen before requesting pointer lock
                 document.exitFullscreen().then(() => {
                     this.enterPointerLock();
-                    soundSwitch = true;
+                    if(soundOn)soundSwitch = true;
                 });
             } else {
                 this.enterPointerLock();
-                soundSwitch = true;
+                if(soundOn)soundSwitch = true;
             }
         } else {
             super.onPointerDown(event);

@@ -1,9 +1,8 @@
-import * as Croquet from '@croquet/worldcore';
+import * as Croquet from '@croquet/croquet';
 import apiKey from "./src/apiKey.js";
 import buttonFail from "./assets/sounds/ShootFail.wav";
 import engineStart from "./assets/sounds/avatarEnter.wav";
 
-window.API_KEY = apiKey;
 // Lobby is a simple session manager for Croquet apps.
 // When a user joins the lobby, they see a list of sessions.
 // They can join a session by clicking on it, which loads the app in an iframe.
@@ -82,16 +81,17 @@ class Lobby extends Croquet.Model {
         return session;
     }
 
-    viewJoined(viewId) {
+    viewJoined({ viewId, location }) {
         this.views.set(viewId, {
             viewId,
+            location,
             session: null,
         });
         this.recordStats();
         console.log("lobby", this.now(), "view joined", viewId, [...this.views.keys()]);
     }
 
-    viewExited(viewId) {
+    viewExited({viewId}) {
         const view = this.views.get(viewId);
         this.views.delete(viewId);
         const session = view.session;
@@ -386,16 +386,16 @@ class LobbyView extends Croquet.View {
         let count = 0;
         let unknown = false;
         for (const view of this.model.views.values()) {
-            const viewId = view.viewId;
+            const { viewId, location} = view.viewId;
             if (viewId === this.viewId) continue; // don't count self
             if (view.session) continue; // don't count in-app users
             count++;
-            const loc = window.CROQUETVM.views[viewId]?.loc;  // FIXME: CROQUETVM is for debugging only
-            if (loc?.country) {
-                let location = loc.country;
-                if (loc.region) location = loc.region + ", " + location;
-                if (loc.city) location = loc.city.name + " (" + location + ")";
-                locations.set(location, (locations.get(location) || 0) + 1);
+            if (location?.country) {
+                const { country, region, city } = location;
+                let loc = country;
+                if (region && country !== region) loc = region + ", " + loc;
+                if (city) loc = city.name + " (" + loc + ")";
+                locations.set(loc, (locations.get(loc) || 0) + 1);
             } else {
                 unknown = true;
             }
@@ -506,10 +506,7 @@ function toggleLobbyOnHashChange() {
 let lobbySession = null;
 
 async function joinLobby() {
-    if (lobbySession) {
-        console.warn("lobby", "already in lobby session");
-        return;
-    }
+    if (lobbySession) return;
     lobbySession = Croquet.Session.join({
         ...apiKey,
         appId: "io.multisynq.labyrinth.lobby",
@@ -517,6 +514,7 @@ async function joinLobby() {
         password: "lobby",
         options: { BaseUrl },
         persistentIdOptions: ["BaseUrl"], // to get a different persistentId per deployment
+        viewData: {}, // enable extended args for view-join/view-exit
         location: true,
         model: Lobby,
         view: LobbyView,

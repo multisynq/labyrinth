@@ -137,6 +137,10 @@
 // We don't render until the user is assigned a season.
 // Hide the rules window when the player joins.
 // Mobile shooting works better.
+// Flipped the map so the maze is the same for everyone.
+// Made the maze visible in the minimap.
+// Prevent objects from being selected.
+// Added a big compass to the minimap - probably too big and will switch to mini on avatar location.
 //------------------------------------------------------------------------------------------
 // Bugs:
 // We don't go off the map anymore, but we can tunnel through walls or jump 2 cells.
@@ -144,6 +148,9 @@
 // Priority To do:
 // Doesn't work on iOS anymore.
 // The missiles do not show up for the first few shots.
+// Add a smaller compass to the minimap.
+// collide with the statues.
+// Try the animal statues.
 // Lobby:
 // - Add location to the lobby
 // Need a menu for mobile:
@@ -284,7 +291,7 @@ export { clockSound };
 //------------------------------------------------------------------------------------------
 const GAME_MINUTES = 15;
 const PI_2 = Math.PI/2;
-const PI_4 = Math.PI/4;
+const PI_3 = Math.PI+PI_2;
 const MISSILE_LIFE = 4000;
 export const CELL_SIZE = 20;
 const AVATAR_RADIUS = 3.7;
@@ -419,14 +426,11 @@ function scaleMinimap() {
     minimapDiv.style.height = `${sideLength}px`;
     minimapCanvas.style.width = `${sideLength}px`;
     minimapCanvas.style.height = `${sideLength}px`;
-/*
-        // Adjust top position based on orientation
-        if (window.innerHeight > window.innerWidth) { // portrait mode
-            minimapDiv.style.top = '80px';
-        } else { // landscape mode
-            minimapDiv.style.top = '50px';
-        }
-            */
+    // Scale compass length to match minimap size
+    const compass = document.getElementById('compass');
+    if (compass) {
+        compass.style.width = `${diagonal/3}px`;  // Quarter of the minimap width (half of half)
+    }
 }
 scaleMinimap();
 
@@ -708,16 +712,16 @@ modelConstruct().then( () => {
     backWall.rotateY(Math.PI);
     geometries.wall = ADDONS.BufferGeometryUtils.mergeGeometries([frontWall, backWall], false);
 
-    function clone(mesh) {
-        mesh = mesh.scene.clone();
+    function prepare(mesh) {
+        mesh = mesh.scene;
         mesh.traverse( m => {if (m.geometry) { m.castShadow=true; m.receiveShadow=true; m.position.set(0,0,0);} });
         return mesh;
     }
-    staticModels.horse = clone(horse);
-    staticModels.aspasia = clone(aspasia);
-    staticModels.apollo = clone(apollo);
-    staticModels.engel = clone(engel);
-    staticModels.johannes = clone(johannes);
+    staticModels.horse = prepare(horse);
+    staticModels.aspasia = prepare(aspasia);
+    staticModels.apollo = prepare(apollo);
+    staticModels.engel = prepare(engel);
+    staticModels.johannes = prepare(johannes);
 
     staticModels.Spring = new THREE.Group();
     staticModels.Summer = new THREE.Group();
@@ -1003,12 +1007,14 @@ class MyModelRoot extends ModelRoot {
         this.maze = MazeActor.create({translation: [0,5,0], rows: MAZE_ROWS, columns: MAZE_COLUMNS, cellSize: CELL_SIZE, minutes: GAME_MINUTES});
 
         this.horse = StaticActor.create({model3d:"horse", translation:[190.9,10,189.70], scale:[8.75,8.75,8.75]});
-        this.aspasia = StaticActor.create({model3d:"aspasia", translation:[190,9,290], scale:[15,15,15]});
-        this.apollo = StaticActor.create({model3d:"apollo", translation:[188,10,70], scale:[15,15,15]});
-        this.engel = StaticActor.create({model3d:"engel", translation:[70,10,190], scale:[15,15,15], rotation: q_euler(0,-Math.PI/2,0)});
-        this.johannes = StaticActor.create({model3d:"johannes", translation:[290,-8,190], scale:[15,15,15],rotation: q_euler(0,Math.PI/2,0)});
+        
+        let s = 9.0;
+        this.aspasia = StaticActor.create({model3d:"aspasia", translation:[190,-1,290], scale:[s,s,s]});
+        this.apollo = StaticActor.create({model3d:"apollo", translation:[188,0,90], scale:[s,s,s]});
+        this.engel = StaticActor.create({model3d:"engel", translation:[90,0,190], scale:[s,s,s], rotation: q_euler(0,-Math.PI/2,0)});
+        this.johannes = StaticActor.create({model3d:"johannes", translation:[290,-9.6,190], scale:[s,s,s],rotation: q_euler(0,Math.PI/2,0)});
     
-        const s = 9.0;
+        s = 10.0;
         this.spring = StaticActor.create({model3d:"Spring",translation: [20, 0.5, 20], scale:[s,s,s]});
         this.summer = StaticActor.create({model3d:"Summer",translation: [20, 0.5, 360], scale:[s,s,s]});
         this.autumn = StaticActor.create({model3d:"Autumn",translation: [360, 0.5, 360], scale:[s,s,s]});
@@ -1379,7 +1385,8 @@ class AvatarPawn extends mix(Pawn).with(PM_Smoothed, PM_ThreeVisible, PM_Avatar)
             readyToPlay = true;
             //this.yaw = q_yaw(this.rotation);
             this.createMinimap();
-            minimapDiv.style.transform = `rotate(${this.yaw}rad)`;
+            const compass = document.getElementById('compass');
+            if (compass) compass.style.transform = `translate(-0%, -50%) rotate(${-this.yaw-PI_2}rad)`;
             avatarEmojiDisplay.show(seasons[this.season].emoji, device.isMobile?64:128, seasons[this.season].color, this.season);
         }
     }
@@ -1413,7 +1420,8 @@ class AvatarPawn extends mix(Pawn).with(PM_Smoothed, PM_ThreeVisible, PM_Avatar)
         const y = seasons[this.season].cell.y+1;
         if (this.isMyAvatar) {
             this.avatarMinimap(this.lastX, this.lastY, x, y);
-            minimapDiv.style.transform = `rotate(${this.yaw}rad)`;
+            const compass = document.getElementById('compass');
+            if (compass) compass.style.transform = `translate(-0%, -50%) rotate(${-this.yaw-PI_2}rad)`;
         }
         this.lastX = x;
         this.lastY = y;
@@ -1582,7 +1590,8 @@ class AvatarPawn extends mix(Pawn).with(PM_Smoothed, PM_ThreeVisible, PM_Avatar)
        // console.log("AvatarPawn lookAround", x,y,scale);
         this.yaw -= x * scale;
         this.yaw = this.normalizeRotation(this.yaw);
-        minimapDiv.style.transform = `rotate(${this.yaw}rad)`;
+        const compass = document.getElementById('compass');
+        if (compass)  compass.style.transform = `translate(-0%, -50%) rotate(${-this.yaw-PI_2}rad)`;
         this.yawQ = q_axisAngle([0,1,0], this.yaw);
         this.positionTo(this.translation, this.yawQ);
 
@@ -1905,7 +1914,7 @@ class AvatarPawn extends mix(Pawn).with(PM_Smoothed, PM_ThreeVisible, PM_Avatar)
             else playSound(shockSound, null, false);
         }
         for (const cell of data.clearCells) {
-            this.drawMinimapCell(cell[0]+1,cell[1]+1, null);
+            this.drawMinimapCell(cell[0]+1,cell[1]+1);
         }
     }
 
@@ -1926,19 +1935,23 @@ class AvatarPawn extends mix(Pawn).with(PM_Smoothed, PM_ThreeVisible, PM_Avatar)
 
         for (let y = 1; y < mazeActor.rows; y++) {
             for (let x = 1; x < mazeActor.columns; x++) {
-                this.drawMinimapCell(x,y,  mazeActor.getCellSeason(x,y));
+                this.drawMinimapCell(x,y);
             }
         }
         const xCell = 1+Math.floor(this.translation[0]/CELL_SIZE);
         const yCell = 1+Math.floor(this.translation[2]/CELL_SIZE);
         if (this.isMyAvatar) {
             this.avatarMinimap(null, null, xCell, yCell);
-            minimapDiv.style.transform = `rotate(${this.yaw}rad)`;
+            const compass = document.getElementById('compass');
+            if (compass) compass.style.transform = `translate(-0%, -50%) rotate(${-this.yaw-PI_2}rad)`;
         }
     }
 
-    drawMinimapCell(x,y, season) {
+    drawMinimapCell(x,y) {
         // console.log("drawMinimapCell", x,y, season);
+        const mazeActor = this.wellKnownModel("ModelRoot").maze;
+        let season = mazeActor.getCellSeason(x,y);
+        let cell = mazeActor.getCell(x+1, y+1);
         let color;
         if (!season) color = 0xFFFFFF;
         else color = colorBlind ? seasons[season].colorBlind:seasons[season].color;
@@ -1950,27 +1963,50 @@ class AvatarPawn extends mix(Pawn).with(PM_Smoothed, PM_ThreeVisible, PM_Avatar)
             return '#' + hexString.toUpperCase();
         }
         if (color !== 0xFFFFFF) {
-            minimapCtx.clearRect(x*11-5, y*11-5, 10, 10);
+            minimapCtx.clearRect(x*11-5, y*11-5, 11, 11);
             minimapCtx.globalAlpha = 0.5;
             minimapCtx.fillStyle = hexNumberToColorString(color);
-            minimapCtx.fillRect(x*11-5, y*11-5, 10, 10);
+            minimapCtx.fillRect(x*11-5, y*11-5, 11, 11);
         } else {
             minimapCtx.clearRect(x*11-5, y*11-5, 10, 10);
+        }
+        function drawLine(ctx, x1, y1, x2, y2, color = 'black', width = 1) {
+            ctx.beginPath();
+            ctx.strokeStyle = color;
+            ctx.lineWidth = width;
+            ctx.moveTo(x1, y1);
+            ctx.lineTo(x2, y2);
+            ctx.stroke();
+        }
+        if(cell) {
+            minimapCtx.globalAlpha = 1;
+            if(!cell.E) drawLine(minimapCtx, x*11+5, y*11+5, x*11+5, y*11-5, 'white');
+            if(!cell.W) drawLine(minimapCtx, x*11-5, y*11+5, x*11-5, y*11-5, 'white');
+            if(!cell.S) drawLine(minimapCtx, x*11+5, y*11+5, x*11-5, y*11+5, 'white');
+            if(!cell.N) drawLine(minimapCtx, x*11+5, y*11-5, x*11-5, y*11-5, 'white');
+
+
+            //drawLine(minimapCtx, x*11-5, y*11+5, x*11+5, y*11+5, 'white');
+            //drawLine(minimapCtx, x*11+5, y*11-5, x*11+5, y*11+5, 'white');
         }
     }
 
     avatarMinimap(lastX, lastY, x, y) {
         if (lastX) {
             const mazeActor = this.wellKnownModel("ModelRoot").maze;
-            this.drawMinimapCell(lastX, lastY, mazeActor.getCellSeason(lastX,lastY));
+            this.drawMinimapCell(lastX, lastY);
+            //console.log(mazeActor.getCell(lastX,lastY), mazeActor.getCell(lastX+1, lastY+1))
+            //console.log("avatarMinimap", lastX, lastY, mazeActor.getCellSeason(lastX,lastY));
         }
-        minimapDiv.style.transform = `rotate(${this.yaw}rad)`;
+        const compass = document.getElementById('compass');
+        if (compass) compass.style.transform = `translate(-0%, -50%) rotate(${-this.yaw-PI_2}rad)`;
         minimapCtx.globalAlpha = 0.9;
         minimapCtx.fillStyle = "#FFFFFF";
         minimapCtx.fillRect(x*11-4, y*11-4, 8, 8);
     }
 
     redrawMaze() {
+        // forces a redraw of the 3D maze - used for colorblind mode
         this.publish("maze", "redraw");
     }
 }

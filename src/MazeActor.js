@@ -64,6 +64,7 @@ class MazeActor extends mix(Actor).with(AM_Spatial) {
       this.carve(this.WIDTH/2, this.HEIGHT/2, 'N');
       //console.log(this.output()); // if braid making holes?
       this.braid();
+      this.flip();
       this.clean();
       console.log("New Maze");
       console.log(this.output());
@@ -108,6 +109,35 @@ class MazeActor extends mix(Actor).with(AM_Spatial) {
       }
     }
 
+    flip() {
+      for(let y=0; y<this.HEIGHT/2+1; y++) {
+        for(let x=0; x<this.WIDTH; x++) {
+          const cellFrom = this.map[x][y];
+          const cellTo = this.map[x][this.HEIGHT-y];
+          if(cellTo) {
+            cellTo.S = cellFrom.N?true:undefined;
+            cellTo.N = cellFrom.S?true:undefined;
+            cellTo.E = cellFrom.E; //cellFrom.W?true:null;
+            cellTo.W = cellFrom.W; //cellFrom.E?true:null;
+          }
+        }
+      }
+
+      for(let y=1; y<this.HEIGHT; y++) {
+        for(let x=1; x<this.WIDTH/2+1; x++) {
+          const cellFrom = this.map[x][y];
+          console.log("cellTo", this.WIDTH-x,y);
+          const cellTo = this.map[this.WIDTH-x][y];
+          if(cellTo) {
+            cellTo.S = cellFrom.S;
+            cellTo.N = cellFrom.N;
+            cellTo.E = cellFrom.W?true:undefined;
+            cellTo.W = cellFrom.E?true:undefined;
+          }
+        }
+      }
+    }
+
     // remove cull-de-sacs. This is incomplete, a few may remain along the edges
     braid() {
       for (let y = 2; y < this.HEIGHT-1; y++) {
@@ -144,10 +174,10 @@ class MazeActor extends mix(Actor).with(AM_Spatial) {
         // the horse is in the center of the maze so add walls around it and remove walls nearby
         // a value of false means there is a wall
         const center = 10;
-        this.placeStatue(center,center);
-        this.placeStatue(center, 4);
+        this.placeStatue(center,center, true);
+        this.placeStatue(center, 5);
         this.placeStatue(center, 15);
-        this.placeStatue(4, center);
+        this.placeStatue(5, center);
         this.placeStatue(15, center);
         this.clearCorner(0,0, "Spring");
         this.clearCorner(this.WIDTH-3,0,"Winter");
@@ -155,16 +185,23 @@ class MazeActor extends mix(Actor).with(AM_Spatial) {
         this.clearCorner(this.WIDTH-3,this.HEIGHT-3,"Autumn");
     }
   
-    placeStatue(x,y){
+    placeStatue(x,y, walls=false){
       const cell = this.map[x][y];
       cell.N = cell.S = cell.E = cell.W = false;
-      this.map[x][y-1].S = this.map[x][y+1].N = false;
-      this.map[x-1][y].E = this.map[x+1][y].W = false;
+      // four walls around the statue
+        this.map[x][y].S = this.map[x][y].N =this.map[x][y-1].S = this.map[x][y+1].N = !walls;
+        this.map[x][y].E = this.map[x][y].W =this.map[x-1][y].E = this.map[x+1][y].W = !walls;
 
+      // clear area around the statue
       this.map[x-1][y-1].S = this.map[x-1][y].N = this.map[x-1][y].S = this.map[x-1][y+1].N = true;
       this.map[x+1][y-1].S = this.map[x+1][y].N = this.map[x+1][y].S = this.map[x+1][y+1].N = true;
       this.map[x-1][y-1].E = this.map[x][y-1].W = this.map[x][y-1].E = this.map[x+1][y-1].W = true;
       this.map[x-1][y+1].E = this.map[x][y+1].W = this.map[x][y+1].E = this.map[x+1][y+1].W = true;
+      if (walls) {
+        this.map[x][y+1].S = this.map[x][y-1].N =this.map[x][y-2].S = this.map[x][y+2].N = true;
+        this.map[x+1][y].E = this.map[x-1][y].W =this.map[x-2][y].E = this.map[x+2][y].W = true;
+      }
+      //this.map[x][y-2].E = this.map[x][y-1].W = false;
     }
 
   
@@ -237,6 +274,10 @@ class MazeActor extends mix(Actor).with(AM_Spatial) {
     getSeason(x,y) {
       // console.log("getSeason", x,y);
         return this.map[x-1][y-1].season;
+    }
+
+    getCell(x,y) {
+        return this.map[x-1][y-1];
     }
 
     checkLife(season, avatarId) {

@@ -17,6 +17,13 @@
         <!-- favicon -->
         <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%2210 0 100 100%22><text y=%22.90em%22 font-size=%2290%22>🍁</text></svg>"></link>
         <style>
+            * {
+                -webkit-user-select: none;
+                -moz-user-select: none;
+                -ms-user-select: none;
+                user-select: none;
+            }
+
             body {
                 overflow: hidden;
                 background: rgb(30, 30, 30);
@@ -42,7 +49,7 @@
 
             .minimap-wrapper {
                 position: fixed;
-                top: 50px;
+                top: 30px;
                 left: 50%;
                 transform: translateX(-50%);
                 pointer-events: none;
@@ -59,6 +66,42 @@
                 border: 1px solid rgba(255, 255, 255, 0.5);
                 transform-origin: center center;
                 display: none;
+            }
+            .compass {
+                position: absolute;
+                top: 50%;
+                left: 50%;
+                width: 50%;     /* Half the width of minimap */
+                height: 8px;    /* Thicker at base */
+                background: white;
+                transform-origin: 0 4px;  /* Set origin to left-center using half the height */
+                pointer-events: none;
+                z-index: 1001;
+                /* Much stronger shadow with larger offset and darker colors */
+                filter: drop-shadow(0 0 3px rgba(0, 0, 0, 1.0))
+                    drop-shadow(2px 2px 6px rgba(0, 0, 0, 0.9))
+                    drop-shadow(4px 4px 12px rgba(0, 0, 0, 0.8));
+                /* Sharp point at end, wider at base */
+                clip-path: polygon(0 50%, 10% 0, 90% 25%, 100% 50%, 90% 75%, 10% 100%);
+            }
+
+            /* Back part of needle */
+            .compass {
+                position: absolute;
+                top: 50%;
+                left: 50%;
+                width: 50%;     /* Half the width of minimap */
+                height: 8px;    /* Thicker at base */
+                background: white;
+                transform-origin: 0 50%;  /* Set origin to the base point */
+                pointer-events: none;
+                z-index: 1001;
+                /* Much stronger shadow with larger offset and darker colors */
+                filter: drop-shadow(0 0 3px rgba(0, 0, 0, 1.0))
+                    drop-shadow(2px 2px 6px rgba(0, 0, 0, 0.9))
+                    drop-shadow(4px 4px 12px rgba(0, 0, 0, 0.8));
+                /* Sharp point at end, wider at base */
+                clip-path: polygon(0 50%, 10% 0, 90% 25%, 100% 50%, 90% 75%, 10% 100%);
             }
             .countdown {
                 position: fixed;
@@ -220,7 +263,9 @@
     </head>
     <body>
         <div class="minimap-wrapper">
-            <div id="minimap" class="minimap"></div>
+            <div id="minimap" class="minimap">
+                <div id="compass" class="compass"></div>
+            </div>
         </div>
         <div id="countdown" class="countdown">0:00</div>
         <div id="victory-display" style="display: none;">

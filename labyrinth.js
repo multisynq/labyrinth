@@ -141,6 +141,8 @@
 // Made the maze visible in the minimap.
 // Prevent objects from being selected.
 // Added a big compass to the minimap - probably too big and will switch to mini on avatar location.
+// Avatar in minimap is now a circle.
+// Fixed the line rendering on the minimap so it is consistent.
 //------------------------------------------------------------------------------------------
 // Bugs:
 // We don't go off the map anymore, but we can tunnel through walls or jump 2 cells.
@@ -249,17 +251,19 @@ import eyeball_glb from "./assets/eyeball.glb";
 import column_glb from "./assets/column2.glb";
 // https://www.robscanlon.com/hexasphere/
 import hexasphere_glb from "./assets/hexasphere.glb";
-// https://optimesh.gumroad.com/l/SJpXC
-import horse2_glb from "./assets/Horse_Copper2.glb";
 // https://sketchfab.com/tochechka
 import fourSeasonsTree_glb from "./assets/fourSeasonsTree.glb";
 // https://sketchfab.com/dangry
 import ivy_glb from "./assets/ivy3.glb";
 
-import aspasia_glb from "./assets/aspasia.glb";
-import apollo_glb from "./assets/apollo.glb";
-import engel_glb from "./assets/engel.glb";
-import johannes_glb from "./assets/johannes_benk.glb";
+// https://optimesh.gumroad.com/l/SJpXC
+import statue1_glb from "./assets/Horse_Copper2.glb";
+/*
+import statue2_glb from "./assets/aspasia.glb";
+import statue3_glb from "./assets/apollo.glb";
+import statue4_glb from "./assets/engel.glb";
+import statue5_glb from "./assets/johannes_benk.glb";
+*/
 
 // Shaders
 //------------------------------------------------------------------------------------------
@@ -407,7 +411,7 @@ setTextDisplay(device.isMobile? "mobile device":"desktop",10);
 const minimapDiv = document.getElementById('minimap');
 const minimapCanvas = document.createElement('canvas');
 const minimapCtx = minimapCanvas.getContext('2d');
-minimapCtx.globalAlpha = 0.1;
+minimapCtx.globalAlpha = 1;
 minimapCanvas.width = 220;
 minimapCanvas.height = 220;
 
@@ -651,7 +655,7 @@ loadSounds().then( sounds => {
 // Load 3D Models
 //------------------------------------------------------------------------------------------
 // 3D Models
-let eyeball, column, hexasphere, horse, aspasia, apollo, engel, johannes, trees, ivy;
+let eyeball, column, hexasphere, trees, ivy, statue1; //, statue2, statue3, statue4, statue5;
 const staticModels ={};
 
 function  deepClone(original) {
@@ -675,7 +679,7 @@ async function modelConstruct() {
     const dracoLoader = new ADDONS.DRACOLoader();
     dracoLoader.setDecoderPath('draco/');
     gltfLoader.setDRACOLoader(dracoLoader);
-    return [eyeball, column, ivy, hexasphere, trees, horse, aspasia, apollo, engel, johannes] = await Promise.all( [
+    return [eyeball, column, ivy, hexasphere, trees, statue1, /*statue2, statue3, statue4, statue5*/] = await Promise.all( [
         // add additional GLB files to load here
         gltfLoader.loadAsync( eyeball_glb ),
         gltfLoader.loadAsync( column_glb ),
@@ -683,11 +687,11 @@ async function modelConstruct() {
         gltfLoader.loadAsync( hexasphere_glb ),
 
         gltfLoader.loadAsync( fourSeasonsTree_glb ),
-        gltfLoader.loadAsync( horse2_glb ),
-        gltfLoader.loadAsync( aspasia_glb ),
-        gltfLoader.loadAsync( apollo_glb ),
-        gltfLoader.loadAsync( engel_glb ),
-        gltfLoader.loadAsync( johannes_glb ),
+        gltfLoader.loadAsync( statue1_glb ),
+        //gltfLoader.loadAsync( statue2_glb ),
+        //gltfLoader.loadAsync( statue3_glb ),
+        //gltfLoader.loadAsync( statue4_glb ),
+        //gltfLoader.loadAsync( statue5_glb ),
     ]);
 }
 
@@ -717,11 +721,11 @@ modelConstruct().then( () => {
         mesh.traverse( m => {if (m.geometry) { m.castShadow=true; m.receiveShadow=true; m.position.set(0,0,0);} });
         return mesh;
     }
-    staticModels.horse = prepare(horse);
-    staticModels.aspasia = prepare(aspasia);
-    staticModels.apollo = prepare(apollo);
-    staticModels.engel = prepare(engel);
-    staticModels.johannes = prepare(johannes);
+    staticModels.statue1 = prepare(statue1);
+    //staticModels.statue2 = prepare(statue2);
+    //staticModels.statue3 = prepare(statue3);
+    //staticModels.statue4 = prepare(statue4);
+    //staticModels.statue5 = prepare(statue5);
 
     staticModels.Spring = new THREE.Group();
     staticModels.Summer = new THREE.Group();
@@ -1006,13 +1010,13 @@ class MyModelRoot extends ModelRoot {
         this.base = BaseActor.create({ translation:[xOffset,0,zOffset]});
         this.maze = MazeActor.create({translation: [0,5,0], rows: MAZE_ROWS, columns: MAZE_COLUMNS, cellSize: CELL_SIZE, minutes: GAME_MINUTES});
 
-        this.horse = StaticActor.create({model3d:"horse", translation:[190.9,10,189.70], scale:[8.75,8.75,8.75]});
+        this.statue1 = StaticActor.create({model3d:"statue1", translation:[190.9,10,189.70], scale:[8.75,8.75,8.75]});
         
         let s = 9.0;
-        this.aspasia = StaticActor.create({model3d:"aspasia", translation:[190,-1,290], scale:[s,s,s]});
-        this.apollo = StaticActor.create({model3d:"apollo", translation:[188,0,90], scale:[s,s,s]});
-        this.engel = StaticActor.create({model3d:"engel", translation:[90,0,190], scale:[s,s,s], rotation: q_euler(0,-Math.PI/2,0)});
-        this.johannes = StaticActor.create({model3d:"johannes", translation:[290,-9.6,190], scale:[s,s,s],rotation: q_euler(0,Math.PI/2,0)});
+        //this.statue2 = StaticActor.create({model3d:"statue2", translation:[190,-1,290], scale:[s,s,s]});
+        //this.statue3 = StaticActor.create({model3d:"statue3", translation:[188,0,90], scale:[s,s,s]});
+        //this.statue4 = StaticActor.create({model3d:"statue4", translation:[90,0,190], scale:[s,s,s], rotation: q_euler(0,-Math.PI/2,0)});
+        //this.statue5 = StaticActor.create({model3d:"statue5", translation:[290,-9.6,190], scale:[s,s,s],rotation: q_euler(0,Math.PI/2,0)});
     
         s = 10.0;
         this.spring = StaticActor.create({model3d:"Spring",translation: [20, 0.5, 20], scale:[s,s,s]});
@@ -1908,14 +1912,19 @@ class AvatarPawn extends mix(Pawn).with(PM_Smoothed, PM_ThreeVisible, PM_Avatar)
 
     clearCells(data) {
         console.log("AvatarPawn clearCells", data.avatarId, this.actor.id);
+
+        for (const cell of data.clearCells) {
+            this.drawMinimapCell(cell[0]+1,cell[1]+1);
+        }
         if(this.isMyAvatar) {
             console.log("clearCells", data.avatarId, this.actor.id);
             if(data.avatarId === this.actor.id) playSound(aweSound, this.renderObject, false);
             else playSound(shockSound, null, false);
+            const xCell = 1+Math.floor(this.translation[0]/CELL_SIZE);
+            const yCell = 1+Math.floor(this.translation[2]/CELL_SIZE);
+            this.avatarMinimap(null, null, xCell, yCell);
         }
-        for (const cell of data.clearCells) {
-            this.drawMinimapCell(cell[0]+1,cell[1]+1);
-        }
+
     }
 
     createMinimap() {
@@ -1931,6 +1940,7 @@ class AvatarPawn extends mix(Pawn).with(PM_Smoothed, PM_ThreeVisible, PM_Avatar)
        // if (!this.isMyAvatar) return;
         console.log("redrawMinimap");
         const mazeActor = this.wellKnownModel("ModelRoot").maze;
+        minimapCtx.globalAlpha = 1;
         minimapCtx.clearRect(0, 0, minimapCanvas.width, minimapCanvas.height);
 
         for (let y = 1; y < mazeActor.rows; y++) {
@@ -1949,12 +1959,6 @@ class AvatarPawn extends mix(Pawn).with(PM_Smoothed, PM_ThreeVisible, PM_Avatar)
 
     drawMinimapCell(x,y) {
         // console.log("drawMinimapCell", x,y, season);
-        const mazeActor = this.wellKnownModel("ModelRoot").maze;
-        let season = mazeActor.getCellSeason(x,y);
-        let cell = mazeActor.getCell(x+1, y+1);
-        let color;
-        if (!season) color = 0xFFFFFF;
-        else color = colorBlind ? seasons[season].colorBlind:seasons[season].color;
         function hexNumberToColorString(hexNumber) {
             let hexString = hexNumber.toString(16);
             while (hexString.length < 6) {
@@ -1962,32 +1966,37 @@ class AvatarPawn extends mix(Pawn).with(PM_Smoothed, PM_ThreeVisible, PM_Avatar)
             }
             return '#' + hexString.toUpperCase();
         }
+        function drawLine(ctx, x1, y1, x2, y2) {
+            ctx.beginPath();
+            ctx.strokeStyle = '#FFFFFF';
+            ctx.globalAlpha = 1.0;  
+            ctx.lineWidth = 1;
+            ctx.moveTo(Math.floor(x1) + 0.5, Math.floor(y1) + 0.5);
+            ctx.lineTo(Math.floor(x2) + 0.5, Math.floor(y2) + 0.5);
+            ctx.stroke();
+        }
+
+        const mazeActor = this.wellKnownModel("ModelRoot").maze;
+        let season = mazeActor.getCellSeason(x,y);
+        let cell = mazeActor.getCell(x+1, y+1);
+        let color;
+        if (!season) color = 0xFFFFFF;
+        else color = colorBlind ? seasons[season].colorBlind:seasons[season].color;
+
+        minimapCtx.globalAlpha = 0.5;
         if (color !== 0xFFFFFF) {
             minimapCtx.clearRect(x*11-5, y*11-5, 11, 11);
-            minimapCtx.globalAlpha = 0.5;
             minimapCtx.fillStyle = hexNumberToColorString(color);
             minimapCtx.fillRect(x*11-5, y*11-5, 11, 11);
         } else {
             minimapCtx.clearRect(x*11-5, y*11-5, 10, 10);
         }
-        function drawLine(ctx, x1, y1, x2, y2, color = 'black', width = 1) {
-            ctx.beginPath();
-            ctx.strokeStyle = color;
-            ctx.lineWidth = width;
-            ctx.moveTo(x1, y1);
-            ctx.lineTo(x2, y2);
-            ctx.stroke();
-        }
+        minimapCtx.globalAlpha = 1;
         if(cell) {
-            minimapCtx.globalAlpha = 1;
-            if(!cell.E) drawLine(minimapCtx, x*11+5, y*11+5, x*11+5, y*11-5, 'white');
-            if(!cell.W) drawLine(minimapCtx, x*11-5, y*11+5, x*11-5, y*11-5, 'white');
-            if(!cell.S) drawLine(minimapCtx, x*11+5, y*11+5, x*11-5, y*11+5, 'white');
-            if(!cell.N) drawLine(minimapCtx, x*11+5, y*11-5, x*11-5, y*11-5, 'white');
-
-
-            //drawLine(minimapCtx, x*11-5, y*11+5, x*11+5, y*11+5, 'white');
-            //drawLine(minimapCtx, x*11+5, y*11-5, x*11+5, y*11+5, 'white');
+            if(!cell.E) drawLine(minimapCtx, x*11+5, y*11+5, x*11+5, y*11-5);
+            if(!cell.W) drawLine(minimapCtx, x*11-5, y*11+5, x*11-5, y*11-5);
+            if(!cell.S) drawLine(minimapCtx, x*11+5, y*11+5, x*11-5, y*11+5);
+            if(!cell.N) drawLine(minimapCtx, x*11+5, y*11-5, x*11-5, y*11-5);
         }
     }
 
@@ -2000,9 +2009,11 @@ class AvatarPawn extends mix(Pawn).with(PM_Smoothed, PM_ThreeVisible, PM_Avatar)
         }
         const compass = document.getElementById('compass');
         if (compass) compass.style.transform = `translate(-0%, -50%) rotate(${-this.yaw-PI_2}rad)`;
-        minimapCtx.globalAlpha = 0.9;
+        minimapCtx.globalAlpha = 1;
         minimapCtx.fillStyle = "#FFFFFF";
-        minimapCtx.fillRect(x*11-4, y*11-4, 8, 8);
+        minimapCtx.beginPath();
+        minimapCtx.arc(x*11, y*11, 4, 0, Math.PI * 2);  // x, y, radius, startAngle, endAngle
+        minimapCtx.fill();
     }
 
     redrawMaze() {
@@ -2618,8 +2629,8 @@ class StaticPawn extends mix(Pawn).with(PM_Smoothed, PM_ThreeVisible) {
 
     load3D() {
         if (this.doomed) return;
-        if (readyToLoad3D && horse) {
-            this.model3d = staticModels[this.actor._model3d].clone();
+        if (readyToLoad3D && statue1) {
+            this.model3d = staticModels[this.actor._model3d];
             this.model3d.traverse( m => {if (m.geometry) { m.castShadow=true; m.receiveShadow=true; } });
             this.setRenderObject(this.model3d);
         } else this.future(100).load3D();

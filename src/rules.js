@@ -158,6 +158,7 @@ function createRules(headingText, contentText) {
             font-size: 1.8em;
             flex-grow: 1;
             text-align: center;
+            font-family: "Times New Roman", Times, serif;  /* Add this line only */
         }
 
         .rules-close {
@@ -190,6 +191,7 @@ function createRules(headingText, contentText) {
             max-height: calc(80vh - 130px);
             scrollbar-width: thin;
             scrollbar-color: rgba(255, 255, 255, 0.3) transparent;
+            font-family: "Times New Roman", Times, serif;  /* Add this line only */
         }
 
         .rules-content::-webkit-scrollbar {

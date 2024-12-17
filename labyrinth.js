@@ -410,6 +410,27 @@ setTextDisplay(device.isMobile? "mobile device":"desktop",10);
 // Minimap canvas
 const minimapDiv = document.getElementById('minimap');
 const minimapCanvas = document.createElement('canvas');
+
+// Add handlers to both elements
+minimapDiv.addEventListener('pointerdown', (event) => {
+    console.log("Minimap DIV clicked!");  // Debug log
+    event.stopPropagation();
+    event.preventDefault();
+    saveMinimap();
+});
+
+minimapCanvas.addEventListener('pointerdown', (event) => {
+    console.log("Minimap CANVAS clicked!");  // Debug log
+    event.stopPropagation();
+    event.preventDefault();
+    saveMinimap();
+});
+
+
+// Make both elements clickable
+minimapDiv.style.cursor = 'pointer';
+minimapCanvas.style.cursor = 'pointer';
+
 const minimapCtx = minimapCanvas.getContext('2d');
 minimapCtx.globalAlpha = 1;
 minimapCanvas.width = 220;
@@ -437,6 +458,23 @@ function scaleMinimap() {
     }
 }
 scaleMinimap();
+
+function saveMinimap() {
+    // Save the current canvas state
+    console.log("saveMinimap called");  // Debug log
+    const dataURL = minimapCanvas.toDataURL('image/png');
+    
+    // Create and trigger download
+    const link = document.createElement('a');
+    link.download = 'labyrinth-minimap.png';
+    link.href = dataURL;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    
+    // Optional: Show feedback that save occurred
+    setTextDisplay("Minimap saved!", 2);  // Uses your existing text display system
+}
 
 let overlaysHidden = false;
 let hiddenElements = new Map(); // Store original display values

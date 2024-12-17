@@ -145,12 +145,14 @@
 // Fixed the line rendering on the minimap so it is consistent.
 // Click the minimap to save it as an image.
 // Reworked loading of eyeballs. Need to force a render of each though.
+// Shrink the sky texture to 2048x1024.
 //------------------------------------------------------------------------------------------
 // Bugs:
 // We don't go off the map anymore, but we can tunnel through walls or jump 2 cells.
 //------------------------------------------------------------------------------------------
 // Priority To do:
 // Doesn't work on iOS anymore. 
+// Has a problem on Windows.
 // The missiles do not show up for the first few shots.
 // Render all of the avatar models when a player joins to warm up the models.
 // Need a menu for mobile:
@@ -200,10 +202,20 @@ import EmojiDisplay from './src/EmojiDisplay.js';
 import GameButton from './src/GameButton.js';
 // import getLocation from './src/geolocation.js';
 import apiKey from "./src/apiKey.js";
+// Determine if we are mobile or desktop
+const device = new DeviceDetector();
 
 // Textures
 //------------------------------------------------------------------------------------------
-import sky from "./assets/textures/aboveClouds.jpg";
+/*let sky;
+async function loadAsset() {
+    if (deviceisIOS) {
+        sky = await import("./assets/textures/aboveClouds.jpg");
+    } else {
+        sky = await import("./assets/textures/aboveClouds.jpg");
+    }
+}*/
+import sky from "./assets/textures/aboveClouds1024.jpg";
 // import eyeball_summer from "./assets/textures/EyeSummer.png";
 import eyeball_autumn from "./assets/textures/EyeAutumn_05k.png";
 import eyeball_winter from "./assets/textures/EyeWinter_05k.png";
@@ -397,13 +409,9 @@ function createTextDisplay() {
 }
 
 const setTextDisplay = createTextDisplay();
-
+setTextDisplay("Device: "+ (device.isMobile? (device.isIOS?"iOS":"Android"):"desktop"),10);
 // Initialize fullscreen button
 new FullscreenButton();
-
-// Determine if we are mobile or desktop
-const device = new DeviceDetector();
-setTextDisplay(device.isMobile? "mobile device":"desktop",10);
 
 // Minimap canvas
 const minimapDiv = document.getElementById('minimap');
@@ -2119,7 +2127,7 @@ class EyeballPawn extends mix(Pawn).with(PM_Smoothed, PM_ThreeVisible, PM_ThreeC
     load3D() {
         if (this.doomed) return;
         const model3d = staticModels[this.parent.season+"Avatar"];
-        if (readyToLoad3D && model3d) {
+        if (readyToLoad3D && readyToLoadTextures&& model3d) {
             if ( !this.parent.isMyAvatar ) {
                 this.eye = model3d;
                 this.eye.scale.set(40,40,40);

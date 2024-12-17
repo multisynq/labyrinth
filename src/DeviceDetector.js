@@ -1,6 +1,7 @@
 class DeviceDetector {
     constructor() {
         this._isMobile = this.checkIfMobile();
+        this._isIOS = this.checkIfiOS();
         // Check URL parameters for override
         const urlParams = new URLSearchParams(window.location.search);
         const forceMobile = urlParams.get('mobile');
@@ -8,10 +9,10 @@ class DeviceDetector {
             this._isMobile = forceMobile.toLowerCase() === 'true';
         }
 
-        console.log('Device Detection Det   ails:', {
+        console.log('Device Detection Details:', {
             userAgent: navigator.userAgent,
-            platform: navigator.platform,
-            vendor: navigator.vendor,
+            //platform: navigator.platform,
+            //vendor: navigator.vendor,
             touchPoints: navigator.maxTouchPoints,
             screenSize: `${window.innerWidth}x${window.innerHeight}`,
             screenActual: `${window.screen.width}x${window.screen.height}`,
@@ -20,6 +21,12 @@ class DeviceDetector {
             isMobile: this._isMobile,
             forceMobile: forceMobile
         });
+    }
+
+    checkIfiOS() {
+        const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) || 
+             (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+        return isIOS;
     }
 
     checkIfMobile() {
@@ -89,6 +96,10 @@ class DeviceDetector {
 
     get isDesktop() {
         return !this._isMobile;
+    }
+
+    get isIOS() {
+        return this._isIOS;
     }
 
     refresh() {

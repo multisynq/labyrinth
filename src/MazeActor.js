@@ -179,10 +179,20 @@ class MazeActor extends mix(Actor).with(AM_Spatial) {
         this.placeStatue(center, 15);
         this.placeStatue(5, center);
         this.placeStatue(15, center);
+
+        // add an opening along the edge hallways
+        this.map[center][1].S = this.map[center][2].N = true; 
+        this.map[center][19].N =this.map[center][18].S = true;
+        this.map[1][center].E = this.map[2][center].W = true;
+        this.map[19][center].W = this.map[18][center].E = true;
+
         this.clearCorner(0,0, "Spring");
         this.clearCorner(this.WIDTH-3,0,"Winter");
         this.clearCorner(0,this.HEIGHT-3,"Summer");
         this.clearCorner(this.WIDTH-3,this.HEIGHT-3,"Autumn");
+
+        //
+        //this.map[x][y].E = this.map[x][y].W =this.map[x-1][y].E = this.map[x+1][y].W = !walls;
     }
   
     placeStatue(x,y, walls=false){

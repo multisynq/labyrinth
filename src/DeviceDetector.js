@@ -17,13 +17,14 @@ class DeviceDetector {
             pixelRatio: window.devicePixelRatio,
             orientation: screen.orientation?.type || 'unknown',
             isMobile: this._isMobile,
+            isIOS: this._isIOS,
             forceMobile: forceMobile
         });
     }
 
     checkIfiOS() {
-        return /iPad|iPhone|iPod/.test(navigator.userAgent) || 
-               (navigator.maxTouchPoints > 1 && /Macintosh/.test(navigator.userAgent));
+        // Simplified iOS check focusing on touch points for iPad Pro
+        return navigator.maxTouchPoints > 1 || /iPad|iPhone|iPod/.test(navigator.userAgent);
     }
 
     checkIfMobile() {
@@ -36,32 +37,24 @@ class DeviceDetector {
         };
         console.log('Device Debug Info:', debugInfo);
 
-        // Check if it's an iPad/iOS device with touch
-        const isIPadOS = (
-            navigator.maxTouchPoints > 1 &&
-            /iPad|iPhone|iPod|Macintosh/.test(navigator.userAgent)
-        );
-        
-        if (isIPadOS) {
+        // First check: Touch points (catches iPad Pro)
+        if (navigator.maxTouchPoints > 1) {
+            console.log('Detected touch device with multiple touch points');
             return true;
         }
 
-        // Check if it's a Mac
-        const isMac = (
-            /Macintosh/.test(navigator.userAgent) && 
-            navigator.maxTouchPoints <= 1
-        );
-        
-        if (isMac) {
-            return false;
+        // Second check: iOS devices
+        if (/iPad|iPhone|iPod/.test(navigator.userAgent)) {
+            console.log('Detected iOS device via user agent');
+            return true;
         }
 
-        // Mobile-specific checks
+        // Mobile-specific checks as fallback
         const mobileChecks = [
-            // Primary check: User agent for mobile keywords
+            // User agent check
             () => {
                 const ua = navigator.userAgent.toLowerCase();
-                const isMobile = /mobile|android|iphone|ipad|phone|samsung|galaxy/i.test(ua);
+                const isMobile = /mobile|android|phone|samsung|galaxy/i.test(ua);
                 console.log('UA Mobile Check:', isMobile, ua);
                 return isMobile;
             },
@@ -73,7 +66,7 @@ class DeviceDetector {
                 return isMobileSize;
             },
             
-            // Touch capability
+            // Basic touch capability
             () => {
                 const hasTouch = navigator.maxTouchPoints > 0;
                 console.log('Touch Check:', hasTouch);
@@ -81,7 +74,7 @@ class DeviceDetector {
             },
         ];
 
-        // Run checks and log results
+        // Run fallback checks
         const results = mobileChecks.map(check => {
             try {
                 return check();

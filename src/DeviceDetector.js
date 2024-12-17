@@ -11,8 +11,6 @@ class DeviceDetector {
 
         console.log('Device Detection Details:', {
             userAgent: navigator.userAgent,
-            //platform: navigator.platform,
-            //vendor: navigator.vendor,
             touchPoints: navigator.maxTouchPoints,
             screenSize: `${window.innerWidth}x${window.innerHeight}`,
             screenActual: `${window.screen.width}x${window.screen.height}`,
@@ -24,27 +22,34 @@ class DeviceDetector {
     }
 
     checkIfiOS() {
-        const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) || 
-             (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
-        return isIOS;
+        return /iPad|iPhone|iPod/.test(navigator.userAgent) || 
+               (navigator.maxTouchPoints > 1 && /Macintosh/.test(navigator.userAgent));
     }
 
     checkIfMobile() {
         // Debug logging
         const debugInfo = {
             userAgent: navigator.userAgent,
-            platform: navigator.platform,
             maxTouchPoints: navigator.maxTouchPoints,
             screenSize: `${window.innerWidth}x${window.innerHeight}`,
             pixelRatio: window.devicePixelRatio
         };
         console.log('Device Debug Info:', debugInfo);
 
-        // Check if it's a Mac first
+        // Check if it's an iPad/iOS device with touch
+        const isIPadOS = (
+            navigator.maxTouchPoints > 1 &&
+            /iPad|iPhone|iPod|Macintosh/.test(navigator.userAgent)
+        );
+        
+        if (isIPadOS) {
+            return true;
+        }
+
+        // Check if it's a Mac
         const isMac = (
-            navigator.platform.includes('Mac') && 
-            navigator.userAgent.includes('Macintosh') && 
-            !navigator.userAgent.includes('Mobile')
+            /Macintosh/.test(navigator.userAgent) && 
+            navigator.maxTouchPoints <= 1
         );
         
         if (isMac) {

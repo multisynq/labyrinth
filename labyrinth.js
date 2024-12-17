@@ -146,12 +146,12 @@
 // Click the minimap to save it as an image.
 // Reworked loading of eyeballs. Need to force a render of each though.
 // Shrink the sky texture to 2048x1024.
+// iPad PRO must be a considered to be a mobile device.
 //------------------------------------------------------------------------------------------
 // Bugs:
 // We don't go off the map anymore, but we can tunnel through walls or jump 2 cells.
 //------------------------------------------------------------------------------------------
 // Priority To do:
-// Doesn't work on iOS anymore. 
 // Has a problem on Windows.
 // The missiles do not show up for the first few shots.
 // Render all of the avatar models when a player joins to warm up the models.

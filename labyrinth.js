@@ -143,18 +143,16 @@
 // Added a big compass to the minimap - probably too big and will switch to mini on avatar location.
 // Avatar in minimap is now a circle.
 // Fixed the line rendering on the minimap so it is consistent.
+// Click the minimap to save it as an image.
+// Reworked loading of eyeballs. Need to force a render of each though.
 //------------------------------------------------------------------------------------------
 // Bugs:
 // We don't go off the map anymore, but we can tunnel through walls or jump 2 cells.
 //------------------------------------------------------------------------------------------
 // Priority To do:
-// Doesn't work on iOS anymore.
+// Doesn't work on iOS anymore. 
 // The missiles do not show up for the first few shots.
-// Add a smaller compass to the minimap.
-// collide with the statues.
-// Try the animal statues.
-// Lobby:
-// - Add location to the lobby
+// Render all of the avatar models when a player joins to warm up the models.
 // Need a menu for mobile:
 // - switch controls left/right
 // - color blindness mode
@@ -759,6 +757,31 @@ modelConstruct().then( () => {
         mesh.traverse( m => {if (m.geometry) { m.castShadow=true; m.receiveShadow=true; m.position.set(0,0,0);} });
         return mesh;
     }
+
+    function setupEye3d(season){
+        if(!staticModels[season+"Avatar"]){
+            let color = seasons[season].colorEye;
+            let eye = deepClone(staticModels.BaseAvatar); 
+            const material = eye.children[0].children[0].material;
+            material.color = new THREE.Color(color);
+            // console.log("material color", color, color.toString(16),material.color);
+            if(season === "Spring") material.map = eyeball_spring_t;
+            else if(season === "Autumn") material.map = eyeball_autumn_t;
+            else if(season === "Winter") material.map = eyeball_winter_t;
+            material.needsUpdate = true;
+            eye.traverse( m => {
+                if (m.geometry) {    
+                    m.castShadow=true; 
+                    m.receiveShadow=true; 
+                }
+            });
+            eye.scale.set(40,40,40);
+            eye.rotation.set(0,Math.PI,0);
+            console.log("setupEye3d", season, eye);
+            staticModels[season+"Avatar"] = eye;
+        }
+    }
+
     staticModels.statue1 = prepare(statue1);
     //staticModels.statue2 = prepare(statue2);
     //staticModels.statue3 = prepare(statue3);
@@ -769,6 +792,14 @@ modelConstruct().then( () => {
     staticModels.Summer = new THREE.Group();
     staticModels.Autumn = new THREE.Group();
     staticModels.Winter = new THREE.Group();
+
+    staticModels.BaseAvatar = eyeball.scene;
+    setupEye3d("Spring");
+    setupEye3d("Summer");
+    setupEye3d("Autumn");
+    setupEye3d("Winter");
+    
+
     trees.scene.children.forEach(node => {
         if (node.name) {
             if (node.name.includes("spring")) staticModels.Spring.add(node.clone());
@@ -2077,42 +2108,26 @@ class EyeballPawn extends mix(Pawn).with(PM_Smoothed, PM_ThreeVisible, PM_ThreeC
         this.radius = AVATAR_RADIUS;
         //this.pitch = q_pitch(this.rotation);
         //this.pitchQ = q_axisAngle([1,0,0], this.pitch);
-        if ( !this.parent.isMyAvatar ) {
-            this.load3D();
-        } else this.parent.eyeball = this;
+        //if ( !this.parent.isMyAvatar ) {
+        //    this.load3D();
+        //} else this.parent.eyeball = this;
         playSound( enterSound, this.renderObject );
         this.shootNow = true;
+        this.load3D();
     }
 
     load3D() {
         if (this.doomed) return;
-        if (readyToLoad3D && eyeball) {
-            let color = seasons[this.parent.season].colorEye;
-            // console.log("load3D", this.parent.season, color.toString(16));
-            if(this.parent.season === "Summer") this.eye = eyeball.scene;
-            else this.eye = deepClone(eyeball.scene);
-
-            //console.log("EyeballPawn load3D", this.parent.season);
-            //console.log("EYES:", this.eye, eyeball.scene);
-
-            const material = this.eye.children[0].children[0].material;
-            material.color = new THREE.Color(color);
-            // console.log("material color", color, color.toString(16),material.color);
-            if(this.parent.season === "Spring") material.map = eyeball_spring_t;
-            else if(this.parent.season === "Autumn") material.map = eyeball_autumn_t;
-            else if(this.parent.season === "Winter") material.map = eyeball_winter_t;
-            material.needsUpdate = true;
-            this.eye.traverse( m => {
-                if (m.geometry) {    
-                    m.castShadow=true; 
-                    m.receiveShadow=true; 
-                }
-            });
-            this.eye.scale.set(40,40,40);
-            this.eye.rotation.set(0,Math.PI,0);
-            this.group = new THREE.Group();
-            this.group.add(this.eye);
-            this.setRenderObject(this.group);
+        const model3d = staticModels[this.parent.season+"Avatar"];
+        if (readyToLoad3D && model3d) {
+            if ( !this.parent.isMyAvatar ) {
+                this.eye = model3d;
+                this.eye.scale.set(40,40,40);
+                this.eye.rotation.set(0,Math.PI,0);
+                this.group = new THREE.Group();
+                this.group.add(this.eye);
+                this.setRenderObject(this.group);
+            }
         } else this.future(100).load3D();
     }
 

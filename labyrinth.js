@@ -146,12 +146,16 @@
 // Click the minimap to save it as an image.
 // Reworked loading of eyeballs. Need to force a render of each though.
 // Shrink the sky texture to 2048x1024.
-// iPad PRO must be a considered to be a mobile device.
+// iPad PRO must be a considered to be a mobile device. Removed pointer lock. Use keyboard.
 //------------------------------------------------------------------------------------------
 // Bugs:
 // We don't go off the map anymore, but we can tunnel through walls or jump 2 cells.
 //------------------------------------------------------------------------------------------
 // Priority To do:
+// Determine if we are running on Telegram - presume their API has a flag.
+// Display Telegram user names. 
+// Add the Telegram full screen button.
+// Create and deliver the NFT.
 // Has a problem on Windows.
 // The missiles do not show up for the first few shots.
 // Render all of the avatar models when a player joins to warm up the models.
@@ -1567,9 +1571,11 @@ class AvatarPawn extends mix(Pawn).with(PM_Smoothed, PM_ThreeVisible, PM_Avatar)
             case "ArrowDown": case "S": case "s":
                 this.gas = -1; break;
             case "A": case "a":
-                this.strafe = 1; break;
+                this.turn = -1; break;
+                //this.strafe = 1; break;
             case "D": case "d":
-                this.strafe = -1; break;
+                this.turn = 1; break;
+                //this.strafe = -1; break;              
             case "ArrowLeft":
                 this.turn = -1; break;
             case "ArrowRight":
@@ -1627,9 +1633,11 @@ class AvatarPawn extends mix(Pawn).with(PM_Smoothed, PM_ThreeVisible, PM_Avatar)
             case "ArrowDown": case "S": case "s":
                 this.gas = 0; break;
             case "A": case "a":
-                this.strafe = 0; break;
+                this.turn = 0; break;                
+                //this.strafe = 0; break;
             case "D": case "d":
-                this.strafe = 0; break;
+                this.turn = 0; break;                
+                //this.strafe = 0; break;
             case "ArrowRight": case "ArrowLeft": 
                 this.turn = 0; break;                
             case " ":
@@ -1640,14 +1648,16 @@ class AvatarPawn extends mix(Pawn).with(PM_Smoothed, PM_ThreeVisible, PM_Avatar)
     }
 
     doPointerDown(e) {
-        if (!device.isMobile) {
+        if (!device.isMobile) this.shootMissile();
+        /*
+            {
             const im = this.service("MyInputManager");
             if (im.inPointerLock) this.shootMissile();
             else {
                 im.enterPointerLock();
                 if (isRulesVisible()) showRules();
             }
-        } 
+        } */
         if (soundOn) soundSwitch = true;
     }
 
@@ -1663,8 +1673,8 @@ class AvatarPawn extends mix(Pawn).with(PM_Smoothed, PM_ThreeVisible, PM_Avatar)
     doPointerDelta(e) {
         //console.log("AvatarPawn.onPointerDelta()", e.xy);
         // update the avatar's yaw
-        const im = this.service("MyInputManager");
-        if ( im.inPointerLock ) this.pointerLook(e.xy[0], e.xy[1], 0.002);
+        //const im = this.service("MyInputManager");
+        //if ( im.inPointerLock ) this.pointerLook(e.xy[0], e.xy[1], 0.002);
     }
 
    pointerLook(x,y,scale) {
@@ -1882,10 +1892,10 @@ class AvatarPawn extends mix(Pawn).with(PM_Smoothed, PM_ThreeVisible, PM_Avatar)
     update(time, delta) {
         super.update(time,delta);
         if (this.driving) {
-            if ( this.turn ) this.pointerLook(this.turn, 0, 0.05);
+            const factor = Math.min(delta/1000,0.1);
+            if ( this.turn ) this.pointerLook(this.turn, 0, factor*2.5);
             if (this.gas || this.strafe) {
                 if(delta/1000 > 0.1) console.log("AvatarPawn update delay", delta);
-                const factor = Math.min(delta/1000,0.1);
                 const speed = this.gas * 20 * factor * this.actor.highGear;
                 const strafeSpeed = this.strafe * 20 * factor * this.actor.highGear;
                 const forward = v3_rotate([0,0,-1], this.yawQ);
@@ -2229,6 +2239,7 @@ class MyInputManager extends InputManager {
     }
     // Override pointer lock for mobile
     // Override pointer lock for mobile and Safari
+    /*
     onPointerDown(event) {
         if (device.isMobile) return;
         
@@ -2250,7 +2261,7 @@ class MyInputManager extends InputManager {
         } else {
             super.onPointerDown(event);
         }
-    }
+    }*/
 }
 
 // MissileActor

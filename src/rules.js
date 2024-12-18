@@ -424,9 +424,7 @@ function initRules() {
         "They receive the game generated NFT as well as other prizes!",
         "-",
         "💻  PC Controls:",
-        "Click in the window to enter Pointer Lock to play.",
-        "Press ESC to exit Pointer Lock.",
-        "MOVE: WASD or Arrow Keys",
+        "MOVE and ROTATE: WASD or Arrow Keys",
         "LOOK: Mouse",
         "SHOOT: Space/Mouse Button",
         "SOUND: /",
@@ -439,6 +437,14 @@ function initRules() {
         "LOOK: Right side of screen",
         "SHOOT: Tap",
         "HELP (this screen): Help button",
+        "-",
+        "🗺 Roadmap:",
+        "NFT rewards to winning players",
+        "Coins to collect",
+        "Mobile menu:",
+        "- switch controls left/right",
+        "- color blindness mode",
+        "- sound on/off",
     ];
     
     rulesOverlay = createRules(heading, content);

@@ -147,23 +147,28 @@
 // Reworked loading of eyeballs. Need to force a render of each though.
 // Shrink the sky texture to 2048x1024.
 // iPad PRO must be a considered to be a mobile device. Removed pointer lock. Use keyboard.
+// Added strafe with Q/E.
 //------------------------------------------------------------------------------------------
 // Bugs:
 // We don't go off the map anymore, but we can tunnel through walls or jump 2 cells.
 //------------------------------------------------------------------------------------------
 // Priority To do:
+// Add Q/E for strafing.
 // Determine if we are running on Telegram - presume their API has a flag.
 // Display Telegram user names. 
 // Add the Telegram full screen button.
 // Create and deliver the NFT.
-// Has a problem on Windows.
-// The missiles do not show up for the first few shots.
-// Render all of the avatar models when a player joins to warm up the models.
+// Has a problem on Windows. This may be fixed by using keyboard instead of pointer lock.
+// Need to warm up the models when a player first joins.
+// - The missiles do not show up for the first few shots.
+// - The avatars cause a slow down when a player joins.
+// - Render all of the avatar models when a player joins to warm up the models.
 // Need a menu for mobile:
 // - switch controls left/right
 // - color blindness mode
 // - sound on/off
-// Add the coins.
+// Add the coins. 
+// Need to add the "back to lobby"button.
 //------------------------------------------------------------------------------------------
 // Consider:
 // Claiming another player's cell should take longer than claiming a free cell.
@@ -1572,10 +1577,12 @@ class AvatarPawn extends mix(Pawn).with(PM_Smoothed, PM_ThreeVisible, PM_Avatar)
                 this.gas = -1; break;
             case "A": case "a":
                 this.turn = -1; break;
-                //this.strafe = 1; break;
+            case "Q": case "q":
+                this.strafe = 1; break;
             case "D": case "d":
                 this.turn = 1; break;
-                //this.strafe = -1; break;              
+            case "E": case "e":
+                this.strafe = -1; break;              
             case "ArrowLeft":
                 this.turn = -1; break;
             case "ArrowRight":
@@ -1633,11 +1640,13 @@ class AvatarPawn extends mix(Pawn).with(PM_Smoothed, PM_ThreeVisible, PM_Avatar)
             case "ArrowDown": case "S": case "s":
                 this.gas = 0; break;
             case "A": case "a":
-                this.turn = 0; break;                
-                //this.strafe = 0; break;
+                this.turn = 0; break;  
+            case "Q": case "q":              
+                this.strafe = 0; break;
             case "D": case "d":
-                this.turn = 0; break;                
-                //this.strafe = 0; break;
+                this.turn = 0; break;   
+            case "E": case "e":             
+                this.strafe = 0; break;
             case "ArrowRight": case "ArrowLeft": 
                 this.turn = 0; break;                
             case " ":
@@ -1893,7 +1902,7 @@ class AvatarPawn extends mix(Pawn).with(PM_Smoothed, PM_ThreeVisible, PM_Avatar)
         super.update(time,delta);
         if (this.driving) {
             const factor = Math.min(delta/1000,0.1);
-            if ( this.turn ) this.pointerLook(this.turn, 0, factor*2.5);
+            if ( this.turn ) this.pointerLook(this.turn, 0, factor*3);
             if (this.gas || this.strafe) {
                 if(delta/1000 > 0.1) console.log("AvatarPawn update delay", delta);
                 const speed = this.gas * 20 * factor * this.actor.highGear;

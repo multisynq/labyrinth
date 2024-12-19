@@ -438,7 +438,7 @@ function initRules() {
         "SHOOT: Tap",
         "HELP (this screen): Help button",
         "-",
-        "🗺 Roadmap:",
+        "🌎 Roadmap:",
         "NFT rewards to winning players",
         "Coins to collect",
         "Mobile menu:",

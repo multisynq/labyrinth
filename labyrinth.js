@@ -148,12 +148,13 @@
 // Shrink the sky texture to 2048x1024.
 // iPad PRO must be a considered to be a mobile device. Removed pointer lock. Use keyboard.
 // Added strafe with Q/E.
+// Added the Christmas tree.
 //------------------------------------------------------------------------------------------
 // Bugs:
 // We don't go off the map anymore, but we can tunnel through walls or jump 2 cells.
 //------------------------------------------------------------------------------------------
 // Priority To do:
-// Add Q/E for strafing.
+// Need to add the "back to lobby" button.
 // Determine if we are running on Telegram - presume their API has a flag.
 // Display Telegram user names. 
 // Add the Telegram full screen button.
@@ -168,7 +169,6 @@
 // - color blindness mode
 // - sound on/off
 // Add the coins. 
-// Need to add the "back to lobby"button.
 //------------------------------------------------------------------------------------------
 // Consider:
 // Claiming another player's cell should take longer than claiming a free cell.
@@ -274,7 +274,8 @@ import hexasphere_glb from "./assets/hexasphere.glb";
 import fourSeasonsTree_glb from "./assets/fourSeasonsTree.glb";
 // https://sketchfab.com/dangry
 import ivy_glb from "./assets/ivy3.glb";
-
+import tree_glb from "./assets/tree.glb";
+import ornaments_glb from "./assets/ornaments.glb";
 // https://optimesh.gumroad.com/l/SJpXC
 import statue1_glb from "./assets/Horse_Copper2.glb";
 /*
@@ -708,7 +709,7 @@ loadSounds().then( sounds => {
 // Load 3D Models
 //------------------------------------------------------------------------------------------
 // 3D Models
-let eyeball, column, hexasphere, trees, ivy, statue1; //, statue2, statue3, statue4, statue5;
+let eyeball, column, hexasphere, trees, ivy, statue1, statue2; //, statue2, statue3, statue4, statue5;
 const staticModels ={};
 
 function  deepClone(original) {
@@ -732,7 +733,7 @@ async function modelConstruct() {
     const dracoLoader = new ADDONS.DRACOLoader();
     dracoLoader.setDecoderPath('draco/');
     gltfLoader.setDRACOLoader(dracoLoader);
-    return [eyeball, column, ivy, hexasphere, trees, statue1, /*statue2, statue3, statue4, statue5*/] = await Promise.all( [
+    return [eyeball, column, ivy, hexasphere, trees, statue1, statue2 /*statue2, statue3, statue4, statue5*/] = await Promise.all( [
         // add additional GLB files to load here
         gltfLoader.loadAsync( eyeball_glb ),
         gltfLoader.loadAsync( column_glb ),
@@ -740,7 +741,8 @@ async function modelConstruct() {
         gltfLoader.loadAsync( hexasphere_glb ),
 
         gltfLoader.loadAsync( fourSeasonsTree_glb ),
-        gltfLoader.loadAsync( statue1_glb ),
+        gltfLoader.loadAsync( tree_glb ),
+        gltfLoader.loadAsync( ornaments_glb ),
         //gltfLoader.loadAsync( statue2_glb ),
         //gltfLoader.loadAsync( statue3_glb ),
         //gltfLoader.loadAsync( statue4_glb ),
@@ -769,9 +771,19 @@ modelConstruct().then( () => {
     backWall.rotateY(Math.PI);
     geometries.wall = ADDONS.BufferGeometryUtils.mergeGeometries([frontWall, backWall], false);
 
-    function prepare(mesh) {
+    function prepare(mesh, depthTest) {
         mesh = mesh.scene;
-        mesh.traverse( m => {if (m.geometry) { m.castShadow=true; m.receiveShadow=true; m.position.set(0,0,0);} });
+        mesh.traverse( m => {if (m.geometry) { 
+            m.castShadow=true; 
+            m.receiveShadow=true; 
+            m.position.set(0,0,0);
+            //m.renderOrder = renderOrder;
+            if(depthTest) { 
+                m.material.depthTest = depthTest;
+                m.material.depthWrite = depthTest;
+            }
+            m.material.needsUpdate = true;
+        } });
         return mesh;
     }
 
@@ -800,6 +812,8 @@ modelConstruct().then( () => {
     }
 
     staticModels.statue1 = prepare(statue1);
+    staticModels.statue2 = prepare(statue2, true);
+
     //staticModels.statue2 = prepare(statue2);
     //staticModels.statue3 = prepare(statue3);
     //staticModels.statue4 = prepare(statue4);
@@ -1096,8 +1110,9 @@ class MyModelRoot extends ModelRoot {
         this.base = BaseActor.create({ translation:[xOffset,0,zOffset]});
         this.maze = MazeActor.create({translation: [0,5,0], rows: MAZE_ROWS, columns: MAZE_COLUMNS, cellSize: CELL_SIZE, minutes: GAME_MINUTES});
 
-        this.statue1 = StaticActor.create({model3d:"statue1", translation:[190.9,10,189.70], scale:[8.75,8.75,8.75]});
-        
+        //this.statue1 = StaticActor.create({model3d:"statue1", translation:[190.9,10,189.70], scale:[8.75,8.75,8.75]});
+        this.statue1 = StaticActor.create({model3d:"statue1", translation:[190,10,190], scale:[3,3,3]});
+        this.statue2 = StaticActor.create({model3d:"statue2", translation:[190,10,190], scale:[3,3,3]});
         let s = 9.0;
         //this.statue2 = StaticActor.create({model3d:"statue2", translation:[190,-1,290], scale:[s,s,s]});
         //this.statue3 = StaticActor.create({model3d:"statue3", translation:[188,0,90], scale:[s,s,s]});

@@ -72,6 +72,33 @@
             .in-lobby > #app {
                 display: none;
             }
+            #back-to-lobby {
+                position: fixed;
+                top: 20px;
+                left: 70px;  /* Changed from right: 130px to left: 70px (20px initial + 40px help button width + 10px gap) */
+                width: 40px;
+                height: 40px;
+                background: rgba(0, 0, 0, 0.5);
+                border: 2px solid rgba(255, 255, 255, 0.5);
+                border-radius: 50%;
+                color: white;
+                font-size: 24px;
+                cursor: pointer;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                z-index: 1000;
+                transition: background-color 0.3s;
+                padding: 0;
+            }
+
+            #back-to-lobby:hover {
+                background: rgba(0, 0, 0, 0.7);
+            }
+
+            .in-lobby > #back-to-lobby {
+                display: none;
+            }
             #croquet_dock {
                 display: none;
             }
@@ -394,7 +421,8 @@
                 <a href="https://multisynq.io" target="_blank"><div id="powered-by"></div></a>
             </div>
         </div>
-        <div id="version-number" class="version-display">v0.1.4-alpha.107</div>
+        <div id="version-number" class="version-display">v0.1.4-alpha.108</div>
         <iframe id="app" src="about:blank"></iframe>
+        <button id="back-to-lobby" title="Back to Lobby">↩</div>
     </body>
 </html>

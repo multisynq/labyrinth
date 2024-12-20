@@ -149,6 +149,7 @@
 // iPad PRO must be a considered to be a mobile device. Removed pointer lock. Use keyboard.
 // Added strafe with Q/E.
 // Added the Christmas tree.
+// Added the back to lobby button - this is needed for the Telegram deployment.
 //------------------------------------------------------------------------------------------
 // Bugs:
 // We don't go off the map anymore, but we can tunnel through walls or jump 2 cells.

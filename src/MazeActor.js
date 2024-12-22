@@ -62,6 +62,7 @@ class MazeActor extends mix(Actor).with(AM_Spatial) {
       this.HEIGHT = height || 20;
       this.prefill();
       this.carve(this.WIDTH/2, this.HEIGHT/2, 'N');
+      // this.clearWalls();
       //console.log(this.output()); // if braid making holes?
       this.braid();
       this.flip();
@@ -86,9 +87,20 @@ class MazeActor extends mix(Actor).with(AM_Spatial) {
       return o;
     }
 
+    clearWalls() {
+      for (let y = 0; y < this.HEIGHT; y++) {
+        for (let x = 0; x < this.WIDTH; x++) {
+          this.map[x][y].S = this.map[x][y].E = this.map[x][y].N = this.map[x][y].W = true;
+          if (y===0) this.map[x][y].S = this.map[x][y+1].N = false;
+          if (y===this.HEIGHT-1) this.map[x][y-1].S = this.map[x][y].N = false;
+          if (x===0) this.map[x][y].W = false;
+          if (x===this.WIDTH-1) this.map[x][y].E = false;
+        }
+      }
+    }
     // carve away a wall - don't go anywhere we have already been
     carve(x0, y0, direction) {
-        const x1 = x0 + (this.DIRECTIONS[direction].dx || 0),
+      const x1 = x0 + (this.DIRECTIONS[direction].dx || 0),
           y1 = y0 + (this.DIRECTIONS[direction].dy || 0);
 
       if (x1 === 0 || x1 === this.WIDTH || y1 === 0 || y1 === this.HEIGHT) {

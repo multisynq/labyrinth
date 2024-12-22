@@ -75,7 +75,15 @@ export class InstancePawn extends mix(Pawn).with(PM_Smoothed, PM_ThreeVisible, P
                 instance.mesh.castShadow = true;
             } else this.future(100).loadInstance(); // not ready to load - try again later
         }
-        if (instance && this.actor.color) this.doColor(this.actor.color);
+        if (instance && this.actor.color) {
+            this.doColor(this.actor.color);
+            this.warmUp(instance.mesh);
+        }
+    }
+
+    warmUp(model3d) {
+        const rm = this.service("ThreeRenderManager");
+        rm.renderer.compile(rm.scene, rm.camera, model3d);
     }
 }
 InstancePawn.register("InstancePawn");

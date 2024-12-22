@@ -3,8 +3,13 @@
 // Actually, it isn't just a shooter. It is a strategy game.
 // Think of it as "Go" with guns.
 //
-// It is loosely based upon the early Maze War game created at NASA Ames in 1973
-// https://en.wikipedia.org/wiki/Maze_War and has elements of Go, Pacman, The Colony and Dodgeball.
+// Labyrinth has elements from a number of different games. 
+// It is loosely based upon the early Maze War game created at NASA Ames in 1973.
+// https://en.wikipedia.org/wiki/Maze_War 
+// It also has elements of Go, Pacman, 
+// The Colony - https://en.wikipedia.org/wiki/The_Colony_(video_game)
+// and Dodgeball.
+// 
 //------------------------------------------------------------------------------------------
 // Changes:
 // Minimal world - showing we exist. We get an alert when a new user joins.
@@ -154,16 +159,15 @@
 // Added Telegram API.
 // Added the Telegram full screen.
 // Added Telegram user name. 
+// Increase the throttle to 1.5 and 3.0.
+// Warm up the 3D models when a player joins.
 //------------------------------------------------------------------------------------------
 // Bugs:
 // We don't go off the map anymore, but we can tunnel through walls or jump 2 cells.
 //------------------------------------------------------------------------------------------
 // Priority To do:
 // Create and deliver the NFT.
-// Need to warm up the models when a player first joins.
-// - The missiles do not show up for the first few shots.
-// - The avatars cause a slow down when a player joins.
-// - Render all of the avatar models when a player joins to warm up the models.
+// Maze with no walls?
 // Need a menu for mobile:
 // - switch controls left/right
 // - color blindness mode
@@ -196,7 +200,6 @@ import { App, StartWorldcore, Constants, ViewService, ModelRoot, ViewRoot,Actor,
     q_yaw, q_euler, q_axisAngle, v3_add, v3_sub, v3_normalize, v3_rotate, v3_scale, v3_distanceSqr,
     THREE, ADDONS, PM_ThreeVisible, ThreeRenderManager, PM_ThreeCamera, PM_ThreeInstanced, ThreeInstanceManager
 } from '@croquet/worldcore';
-
 
 import FullscreenButton from './src/Fullscreen.js';
 import FakeGlowMaterial from './src/FakeGlowMaterial.js';
@@ -320,11 +323,12 @@ const MISSILE_LIFE = 4000;
 export const CELL_SIZE = 20;
 const AVATAR_RADIUS = 3.7;
 const AVATAR_HEIGHT = 7.5;
+const AVATAR_SPEED = 1.5;
 const MISSILE_RADIUS = 2;
 const WALL_EPSILON = 0.01;
 const MAZE_ROWS = 20;
 const MAZE_COLUMNS = 20;
-const MISSILE_SPEED = 0.50;
+const MISSILE_SPEED = 1;
 
 export let csm; // CSM is Cascaded Shadow Maps
 
@@ -422,7 +426,7 @@ const setTextDisplay = createTextDisplay();
 setTextDisplay("Device: "+ (device.isMobile? (device.isIOS?"iOS":"Android"):"desktop"),10);
 // Initialize fullscreen button
 new FullscreenButton();
-
+const boxScore = new BoxScore();
 // Minimap canvas
 const minimapDiv = document.getElementById('minimap');
 const minimapCanvas = document.createElement('canvas');
@@ -567,7 +571,7 @@ function toggleOverlays() {
 console.log("Telegram Web App API WebApp:", window.Telegram.WebApp);
 console.log("Telegram Web App API initDataUnsafe:", window.Telegram.WebApp.initDataUnsafe);
 console.log("Telegram Web App API user:", window.Telegram.WebApp.initDataUnsafe.user);
-let telegramUser = window.Telegram.WebApp.initDataUnsafe.user;
+let telegramUser = window.Telegram.WebApp.initDataUnsafe.user; // this is undefined if not on telegram
 // window.Telegram.WebApp.requestFullscreen();
 // Sound Manager
 //------------------------------------------------------------------------------------------
@@ -1173,8 +1177,7 @@ export class MyViewRoot extends ViewRoot {
         const timer = this.wellKnownModel("ModelRoot").maze.timer
         this.countdownTimer = new Countdown(timer);
         // Initialize the scoreboard
-        this.boxScore = new BoxScore();
-        this.boxScore.setScores({"Spring": 0, "Summer": 0, "Autumn": 0, "Winter": 0});
+        boxScore.setScores({"Spring": 0, "Summer": 0, "Autumn": 0, "Winter": 0});
         this.skyRotation = new THREE.Euler(0, 0, 0);
         this.subscribe("root", "rotateSky", this.rotateSky);
         this.subscribe("input", "resize", scaleMinimap);
@@ -1183,7 +1186,7 @@ export class MyViewRoot extends ViewRoot {
         this.subscribe("game", "updateName", this.updateName);
         // this.subscribe("game", "reset", this.reset);
         const scores = this.wellKnownModel("ModelRoot").maze.seasons;
-        this.boxScore.setScores(scores);
+        boxScore.setScores(scores);
         this.subscribe("maze", "score", this.scoreUpdate);
         this.subscribe("maze", "reset", this.reset);
         // We joined at the end of the game...
@@ -1212,12 +1215,12 @@ export class MyViewRoot extends ViewRoot {
     }
 
     scoreUpdate( data ){
-        this.boxScore.setScores(data);
+        boxScore.setScores(data);
    //     console.log("scoreUpdate", data);
     }
 
     updateName(data) {
-        this.boxScore.setName(data.season, data.userName);
+        boxScore.setName(data.season, data.userName);
         console.log("MyViewRoot updateName", data.season, data.userName);    
     }
 
@@ -1227,12 +1230,14 @@ export class MyViewRoot extends ViewRoot {
         for (const season in scores) {
             if (scores[season] > scores[winner]) winner = season;
         }
+
         for (const season in scores) {
             if (season!= winner && scores[season] === scores[winner]) winner = "none";
         }
-    
+        let winnerName;
+        if(winner!="none")winnerName = boxScore.getName(winner);
         victoryEmojiDisplay.show(seasons[winner].emoji, device.isMobile?128:256, seasons[winner].color, 
-            winner==="none"?"It is a":winner, winner==="none"?"Tie!":"Wins!");
+            winner==="none"?"It is a":winnerName, winner==="none"?"Tie!":"Wins!");
         this.future(4000).newGameButton();
         playSound( winSound );
     }
@@ -1308,15 +1313,16 @@ export class MyViewRoot extends ViewRoot {
 // This is you. Most of the control code for the avatar is in the pawn.
 // The AvatarActor has minimal need for replicated state except for user events.
 //------------------------------------------------------------------------------------------
-export let colorBlind = false;
+export let colorBlind = false; // display the minimap and maze in color blind mode
+
 class AvatarActor extends mix(Actor).with(AM_Spatial, AM_Avatar) {
     get pawn() { return "AvatarPawn" }
 
     init(options) {
         super.init(options);
         //this.season = this.wellKnownModel("ModelRoot").getSeason(this.driver);
-        this.throttleMin = 1.0;
-        this.throttleMax = 2.0;
+        this.throttleMin = AVATAR_SPEED;
+        this.throttleMax = AVATAR_SPEED*2;
         this.canShoot = true;
         this.inCorner = true;
         this.isCollider = true;
@@ -1379,15 +1385,12 @@ class AvatarActor extends mix(Actor).with(AM_Spatial, AM_Avatar) {
     }
 
     setName(data) { // bounce back my name to all players
-        console.log("AvatarActorsetName", data.season, data.userName);
-        if(this.season === data.season)
+        if(this.season === data.season) // only update my season name for everyone
             {
                 this.userName = data.userName;
                 this.publish("game", "updateName", data);
             }
     }
-
- //   get season() {return this._season || "spring"}
 
     get color() {return colorBlind? seasons[this.season].colorBlind:seasons[this.season].color}
     get color2() {return colorBlind? seasons[this.season].colorBlind:seasons[this.season].color2}
@@ -1454,7 +1457,7 @@ class AvatarActor extends mix(Actor).with(AM_Spatial, AM_Avatar) {
 
     destroy() {
         // console.log("AvatarActor destroy", this);
-        this.setName(this.season, this.season);
+        // this.setName(this.season, this.season); //  don't do this, the same avatar may show up later...
         this.wellKnownModel("ModelRoot").releaseSeason(this.season);
         for(let i=0; i<4; i++) {this.glow[i].destroy();}
         super.destroy();
@@ -1501,8 +1504,11 @@ class AvatarPawn extends mix(Pawn).with(PM_Smoothed, PM_ThreeVisible, PM_Avatar)
     
     onStart(season) {
         console.log("AvatarPawn onStart", season);
-        if(telegramUser) this.setName(telegramUser.username);
-        else if(this.actor.userName) this.updateName(this.season, this.actor.userName);
+        if(this.isMyAvatar) {
+
+        }
+        console.log("AvatarPawn onStart", this.actor.userName, this.actor);
+
         this._translation = this.actor.translation;
         this._rotation = this.actor.rotation;
         this.yaw = q_yaw(this.rotation);
@@ -1518,7 +1524,12 @@ class AvatarPawn extends mix(Pawn).with(PM_Smoothed, PM_ThreeVisible, PM_Avatar)
             this.createMinimap();
             const compass = document.getElementById('compass');
             if (compass) compass.style.transform = `translate(-0%, -50%) rotate(${-this.yaw-PI_2}rad)`;
-            avatarEmojiDisplay.show(seasons[this.season].emoji, device.isMobile?64:128, seasons[this.season].color, this.season);
+            let name = this.userName;
+            // let everyone know my telegram username
+            if(telegramUser && this.actor.userName!==telegramUser) {name = telegramUser; this.setName(telegramUser);}
+            // everyone already knows my name
+            else if(this.userName) {name = this.userName; this.updateName(this.userName);}
+            avatarEmojiDisplay.show(seasons[this.season].emoji, device.isMobile?64:128, seasons[this.season].color, name);
         }
     }
 
@@ -1535,7 +1546,7 @@ class AvatarPawn extends mix(Pawn).with(PM_Smoothed, PM_ThreeVisible, PM_Avatar)
 
     updateName(data) {
         console.log("AvatarPawn updateName", data.season, data.userName);    
-        if(this.season === data.season) avatarEmojiDisplay.text(data.userName);
+        if(this.season === data.season && this.isMyAvatar) avatarEmojiDisplay.text(data.userName);
     }
 
     setColorBlind() {
@@ -1682,7 +1693,7 @@ class AvatarPawn extends mix(Pawn).with(PM_Smoothed, PM_ThreeVisible, PM_Avatar)
                 toggleOverlays();
                 break;
             case 't': case 'T': // texting
-                // this.setName("David");
+                this.setName("David");
                 break;
             default:
         }
@@ -2203,6 +2214,7 @@ class EyeballPawn extends mix(Pawn).with(PM_Smoothed, PM_ThreeVisible, PM_ThreeC
         const model3d = staticModels[this.parent.season+"Avatar"];
         if (readyToLoad3D && readyToLoadTextures&& model3d) {
             if ( !this.parent.isMyAvatar ) {
+                this.warmUp(model3d);
                 this.eye = model3d;
                 this.eye.scale.set(40,40,40);
                 this.eye.rotation.set(0,Math.PI,0);
@@ -2211,6 +2223,11 @@ class EyeballPawn extends mix(Pawn).with(PM_Smoothed, PM_ThreeVisible, PM_ThreeC
                 this.setRenderObject(this.group);
             }
         } else this.future(100).load3D();
+    }
+
+    warmUp(model3d) {
+        const rm = this.service("ThreeRenderManager");
+        rm.renderer.compile(rm.scene, rm.camera, model3d);
     }
 
     update(time, delta) {
@@ -2338,9 +2355,9 @@ class MissileActor extends mix(Actor).with(AM_Spatial) {
         super.init(options);
         this.hexasphere = InstanceActor.create({name: "hexasphere", parent: this, max:8});
         // this.glow = GlowActor.create({parent: this, color: options.color||0xff8844, depthTest: true, radius: 1.25, glowRadius: 0.5, falloff: 0.1, opacity: 0.75, sharpness: 0.5});
-        this.flicker = PointFlickerActor.create({parent: this, playSound: true,color: options.color||0xff8844});
         this.future(this._avatar ? 4000 : 1000).destroy(); // destroy after some time
         if (this._avatar) {
+            this.flicker = PointFlickerActor.create({parent: this, playSound: true,color: options.color||0xff8844});
             this.isCollider = true;
             this.radius = MISSILE_RADIUS;
             const t = [...this._avatar.translation];
@@ -2587,10 +2604,16 @@ export class FireballPawn extends mix(Pawn).with(PM_Smoothed, PM_ThreeVisible) {
         this.fireball = new THREE.Mesh(this.geometry, this.material);
         this.pointLight = new THREE.PointLight(0xff8844, 1, 4, 2);
         this.fireball.add(this.pointLight);
+        this.warmUp(this.fireball);
         this.setRenderObject(this.fireball);
         this.doVisible(this.actor.visible);
         this.listen("visible", this.doVisible);
         //playSound(implosionSound, this.fireball, false);
+    }
+
+    warmUp(model3d) {
+        const rm = this.service("ThreeRenderManager");
+        rm.renderer.compile(rm.scene, rm.camera, model3d);
     }
 
     doVisible(value) {
@@ -2731,9 +2754,15 @@ export class GlowPawn extends mix(Pawn).with(PM_Smoothed, PM_ThreeVisible) {
         });
         this.glow = new THREE.Mesh(geometry, material);
         this.glow.renderOrder = 5000; // this must be set to a large number to keep the associated pawn visible
+        this.warmUp(this.glow);
         this.setRenderObject(this.glow);
         this.listen("visible", this.doVisible);
         this.doVisible(this.actor.visible);
+    }
+
+    warmUp(model3d) {
+        const rm = this.service("ThreeRenderManager");
+        rm.renderer.compile(rm.scene, rm.camera, model3d);
     }
 
     doVisible(value) {
@@ -2767,9 +2796,15 @@ class StaticPawn extends mix(Pawn).with(PM_Smoothed, PM_ThreeVisible) {
         if (this.doomed) return;
         if (readyToLoad3D && statue1) {
             this.model3d = staticModels[this.actor._model3d];
+            this.warmUp(this.model3d);
             this.model3d.traverse( m => {if (m.geometry) { m.castShadow=true; m.receiveShadow=true; } });
             this.setRenderObject(this.model3d);
         } else this.future(100).load3D();
+    }
+    
+    warmUp(model3d) {
+        const rm = this.service("ThreeRenderManager");
+        rm.renderer.compile(rm.scene, rm.camera, model3d);
     }
 
     destroy() {

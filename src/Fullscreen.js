@@ -26,13 +26,16 @@ class FullscreenButton {
 
     async toggleFullscreen() {
         try {
-            if (!document.fullscreenElement && 
+            if (!window.Telegram.WebApp.isFullscreen &&
+                !document.fullscreenElement && 
                 !document.webkitFullscreenElement && 
                 !document.mozFullScreenElement &&
                 !document.msFullscreenElement) {
                 
                 // Enter fullscreen
-                if (document.documentElement.requestFullscreen) {
+                if (window.Telegram.WebApp.initDataUnsafe.user) {
+                    window.Telegram.WebApp.requestFullscreen();
+                } else if (document.documentElement.requestFullscreen) {
                     await document.documentElement.requestFullscreen();
                 } else if (document.documentElement.webkitRequestFullscreen) {
                     await document.documentElement.webkitRequestFullscreen();
@@ -54,7 +57,9 @@ class FullscreenButton {
                 this.button.innerHTML = '⛶';
             } else {
                 // Exit fullscreen
-                if (document.exitFullscreen) {
+                if (window.Telegram.WebApp.initDataUnsafe.user) {
+                    window.Telegram.WebApp.exitFullscreen();
+                } else if (document.exitFullscreen) {
                     await document.exitFullscreen();
                 } else if (document.webkitExitFullscreen) {
                     await document.webkitExitFullscreen();

@@ -150,17 +150,16 @@
 // Added strafe with Q/E.
 // Added the Christmas tree.
 // Added the back to lobby button - this is needed for the Telegram deployment.
+// Set countdown to red at start in case the game is already completed.
+// Added Telegram API.
+// Added the Telegram full screen.
+// Added Telegram user name. 
 //------------------------------------------------------------------------------------------
 // Bugs:
 // We don't go off the map anymore, but we can tunnel through walls or jump 2 cells.
 //------------------------------------------------------------------------------------------
 // Priority To do:
-// Need to add the "back to lobby" button.
-// Determine if we are running on Telegram - presume their API has a flag.
-// Display Telegram user names. 
-// Add the Telegram full screen button.
 // Create and deliver the NFT.
-// Has a problem on Windows. This may be fixed by using keyboard instead of pointer lock.
 // Need to warm up the models when a player first joins.
 // - The missiles do not show up for the first few shots.
 // - The avatars cause a slow down when a player joins.
@@ -278,7 +277,7 @@ import ivy_glb from "./assets/ivy3.glb";
 import tree_glb from "./assets/tree.glb";
 import ornaments_glb from "./assets/ornaments.glb";
 // https://optimesh.gumroad.com/l/SJpXC
-import statue1_glb from "./assets/Horse_Copper2.glb";
+// import statue1_glb from "./assets/Horse_Copper2.glb";
 /*
 import statue2_glb from "./assets/aspasia.glb";
 import statue3_glb from "./assets/apollo.glb";
@@ -565,6 +564,11 @@ function toggleOverlays() {
     }
 }
 
+console.log("Telegram Web App API WebApp:", window.Telegram.WebApp);
+console.log("Telegram Web App API initDataUnsafe:", window.Telegram.WebApp.initDataUnsafe);
+console.log("Telegram Web App API user:", window.Telegram.WebApp.initDataUnsafe.user);
+let telegramUser = window.Telegram.WebApp.initDataUnsafe.user;
+// window.Telegram.WebApp.requestFullscreen();
 // Sound Manager
 //------------------------------------------------------------------------------------------
 export let soundSwitch = false; // turn sound on and off
@@ -1176,6 +1180,7 @@ export class MyViewRoot extends ViewRoot {
         this.subscribe("input", "resize", scaleMinimap);
         this.subscribe("maze", "countDown", this.countDown);
         this.subscribe("maze", "victory", this.victory);
+        this.subscribe("game", "updateName", this.updateName);
         // this.subscribe("game", "reset", this.reset);
         const scores = this.wellKnownModel("ModelRoot").maze.seasons;
         this.boxScore.setScores(scores);
@@ -1209,6 +1214,11 @@ export class MyViewRoot extends ViewRoot {
     scoreUpdate( data ){
         this.boxScore.setScores(data);
    //     console.log("scoreUpdate", data);
+    }
+
+    updateName(data) {
+        this.boxScore.setName(data.season, data.userName);
+        console.log("MyViewRoot updateName", data.season, data.userName);    
     }
 
     victory(scores) {
@@ -1315,6 +1325,7 @@ class AvatarActor extends mix(Actor).with(AM_Spatial, AM_Avatar) {
         this.highGear = this.throttleMin;
         this.listen("shootMissile", this.shootMissile);
         this.listen("claimCell", this.claimCell);
+        this.listen("setName", this.setName);
         this.fireball =  FireballActor.create({parent: this, radius:this.radius});
         const translation = [this.translation[0], this.translation[1]-40, this.translation[2]];
         this.fireball.future(1000).hide();
@@ -1365,6 +1376,15 @@ class AvatarActor extends mix(Actor).with(AM_Spatial, AM_Avatar) {
             this.glow[i].sink(1000, 1, doCell.floor.translation);
             this.glow[i].future(1000).hide();
         }
+    }
+
+    setName(data) { // bounce back my name to all players
+        console.log("AvatarActorsetName", data.season, data.userName);
+        if(this.season === data.season)
+            {
+                this.userName = data.userName;
+                this.publish("game", "updateName", data);
+            }
     }
 
  //   get season() {return this._season || "spring"}
@@ -1434,6 +1454,7 @@ class AvatarActor extends mix(Actor).with(AM_Spatial, AM_Avatar) {
 
     destroy() {
         // console.log("AvatarActor destroy", this);
+        this.setName(this.season, this.season);
         this.wellKnownModel("ModelRoot").releaseSeason(this.season);
         for(let i=0; i<4; i++) {this.glow[i].destroy();}
         super.destroy();
@@ -1463,6 +1484,8 @@ class AvatarPawn extends mix(Pawn).with(PM_Smoothed, PM_ThreeVisible, PM_Avatar)
         this.listen("recharged", this.rechargedSound);
         this.listen("claimCellUpdate", this.claimCellUpdate);
         this.listen("respawn", this.respawn);
+        this.subscribe("game", "updateName", this.updateName);
+
         //this.listen("colorBlindReady", this.setColorBlind);
         this.subscribe(this.viewId, "synced", this.handleSynced);
         this.subscribe("maze", "clearCells", this.clearCells);
@@ -1478,6 +1501,8 @@ class AvatarPawn extends mix(Pawn).with(PM_Smoothed, PM_ThreeVisible, PM_Avatar)
     
     onStart(season) {
         console.log("AvatarPawn onStart", season);
+        if(telegramUser) this.setName(telegramUser.username);
+        else if(this.actor.userName) this.updateName(this.season, this.actor.userName);
         this._translation = this.actor.translation;
         this._rotation = this.actor.rotation;
         this.yaw = q_yaw(this.rotation);
@@ -1497,10 +1522,21 @@ class AvatarPawn extends mix(Pawn).with(PM_Smoothed, PM_ThreeVisible, PM_Avatar)
         }
     }
 
+    get userName() { return this.actor.userName || this.season}
     get season() {return this.actor.season}
     get color() {return colorBlind? seasons[this.season].colorBlind:seasons[this.season].color}
     get color2() {return colorBlind? seasons[this.season].colorBlind:seasons[this.season].color2}
     get colorBlind() {return seasons[this.season].colorBlind}
+
+    setName(userName) {
+        console.log("AvatarPawn setName", this.season, userName);
+        this.say("setName", {season:this.season, userName});
+    }
+
+    updateName(data) {
+        console.log("AvatarPawn updateName", data.season, data.userName);    
+        if(this.season === data.season) avatarEmojiDisplay.text(data.userName);
+    }
 
     setColorBlind() {
         this.redrawMinimap();
@@ -1609,7 +1645,7 @@ class AvatarPawn extends mix(Pawn).with(PM_Smoothed, PM_ThreeVisible, PM_Avatar)
             case "?": case "h": case "H":
                 showRules();
                 break;
-            case "I": case "i":
+            case "I": case "i": // Avatar info
                 console.log( "AvatarPawn", this );
                 break;
             case '-': case '_':
@@ -1640,10 +1676,13 @@ class AvatarPawn extends mix(Pawn).with(PM_Smoothed, PM_ThreeVisible, PM_Avatar)
                 this.setColorBlind();
                 break;
             case 'r': case 'R':
-                this.publish("game", "reset");
+               //  this.publish("game", "reset");
                 break;
-            case 'p': case 'P':
+            case 'p': case 'P': // take a photo/screenshot without the overlays
                 toggleOverlays();
+                break;
+            case 't': case 'T': // texting
+                // this.setName("David");
                 break;
             default:
         }

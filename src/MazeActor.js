@@ -126,7 +126,7 @@ class MazeActor extends mix(Actor).with(AM_Spatial) {
       for(let y=1; y<this.HEIGHT; y++) {
         for(let x=1; x<this.WIDTH/2+1; x++) {
           const cellFrom = this.map[x][y];
-          console.log("cellTo", this.WIDTH-x,y);
+          // console.log("cellTo", this.WIDTH-x,y);
           const cellTo = this.map[this.WIDTH-x][y];
           if(cellTo) {
             cellTo.S = cellFrom.S;

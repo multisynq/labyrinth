@@ -7,7 +7,13 @@ class BoxScore {
             Autumn: { value: 0, element: document.querySelector('[data-season="Autumn"]') },
             Winter: { value: 0, element: document.querySelector('[data-season="Winter"]') }
         };
-        
+        // Add a mapping for season emojis
+        this.seasonEmojis = {
+            Spring: '🌸',
+            Summer: '🌿',
+            Autumn: '🍁',
+            Winter: '❄️'
+        };
         // Initialize positions
         Object.values(this.scores).forEach((score, index) => {
             score.element.style.position = 'absolute';
@@ -62,6 +68,21 @@ class BoxScore {
                 this.updatePending = false;
             });
         }
+    }
+
+    setName(season, userName = season) {
+        const scoreElement = this.scores[season]?.element;
+        if (!scoreElement) return;
+        
+        // Find the season span that contains both emoji and name
+        const seasonSpan = scoreElement.querySelector('.season');
+        if (!seasonSpan) return;
+        
+        // Get the emoji for this season
+        const emoji = this.seasonEmojis[season];
+        
+        // Update just the text content while preserving the class, emoji, and styling
+        seasonSpan.textContent = `${emoji} ${userName}`;
     }
 
     updatePositions() {

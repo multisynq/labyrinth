@@ -51,8 +51,8 @@ class EmojiDisplay {
         emojiElement.textContent = emoji;
         
         // Create first text element
-        const textElement1 = document.createElement('div');
-        textElement1.style.cssText = `
+        this.textElement1 = document.createElement('div');
+        this.textElement1.style.cssText = `
             font-family: Arial, sans-serif;
             font-size: ${size/4}px;
             font-weight: bold;
@@ -64,16 +64,16 @@ class EmojiDisplay {
                 0 6px 8px rgba(0, 0, 0, 0.9);
             width: 100%;
         `;
-        textElement1.textContent = text1;
+        this.textElement1.textContent = text1;
         
         // Add elements to container
         this.element.appendChild(emojiElement);
-        this.element.appendChild(textElement1);
+        this.element.appendChild(this.textElement1);
 
         // Add second text if provided
         if (text2) {
-            const textElement2 = document.createElement('div');
-            textElement2.style.cssText = `
+            this.textElement2 = document.createElement('div');
+            this.textElement2.style.cssText = `
                 font-family: Arial, sans-serif;
                 font-size: ${size/4}px;
                 font-weight: bold;
@@ -85,11 +85,15 @@ class EmojiDisplay {
                     0 6px 8px rgba(0, 0, 0, 0.9);
                 width: 100%;
             `;
-            textElement2.textContent = text2;
-            this.element.appendChild(textElement2);
+            this.textElement2.textContent = text2;
+            this.element.appendChild(this.textElement2);
         }
 
         document.body.appendChild(this.element);
+    }
+
+    text(userName){
+        this.textElement1.textContent = userName;
     }
 
     hide() {

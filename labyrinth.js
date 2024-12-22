@@ -161,6 +161,7 @@
 // Added Telegram user name. 
 // Increase the throttle to 1.5 and 3.0.
 // Warm up the 3D models when a player joins.
+// Your missile no longer kills you.
 //------------------------------------------------------------------------------------------
 // Bugs:
 // We don't go off the map anymore, but we can tunnel through walls or jump 2 cells.
@@ -2400,7 +2401,7 @@ class MissileActor extends mix(Actor).with(AM_Spatial) {
         const collide = actor.radius + this.radius;
         const collideSqr = collide*collide;
         if (distanceSqr < collideSqr) {
-            if (actor.inCorner && distanceSqr > 0) {
+            if (actor.inCorner && distanceSqr > 0 || actor.id === this._avatar.id) {
                 // the missile bounces off the avatar when they are in their own corner
                 this.hasBounced = true;
                 const d = 1/Math.sqrt(distanceSqr);
